@@ -1,1 +1,1 @@
-web: cd Backend && python start_secure.py
+web: python start_simple.py

@@ -16,7 +16,9 @@ os.chdir('Backend')
 if not os.getenv('BACKEND_HOST'):
     os.environ['BACKEND_HOST'] = '0.0.0.0'
 if not os.getenv('BACKEND_PORT'):
-    os.environ['BACKEND_PORT'] = '8000'
+    # Railway provides PORT environment variable
+    port = os.getenv('PORT', '8000')
+    os.environ['BACKEND_PORT'] = port
 
 # Import and run the main application directly
 from main import app
@@ -24,7 +26,7 @@ import uvicorn
 
 if __name__ == "__main__":
     host = os.getenv('BACKEND_HOST', '0.0.0.0')
-    port = int(os.getenv('BACKEND_PORT', 8000))
+    port = int(os.getenv('PORT', os.getenv('BACKEND_PORT', 8000)))
     
     print(f"🚀 Starting Privacy Browser Backend on {host}:{port}")
     print("✅ Environment variables configured")
