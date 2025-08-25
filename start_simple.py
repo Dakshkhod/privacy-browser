@@ -6,6 +6,23 @@ Bypasses some security checks that might fail in Railway environment
 import os
 import sys
 
+# FIRST: Generate encryption keys before ANY imports that might need them
+if not os.getenv('ENCRYPTION_KEY') or len(os.getenv('ENCRYPTION_KEY', '')) < 32:
+    from cryptography.fernet import Fernet
+    os.environ['ENCRYPTION_KEY'] = Fernet.generate_key().decode()
+    print("✅ Generated new encryption key for Railway deployment")
+
+# Set other required keys if missing
+if not os.getenv('SECRET_KEY'):
+    import secrets
+    os.environ['SECRET_KEY'] = secrets.token_urlsafe(64)
+if not os.getenv('JWT_SECRET'):
+    import secrets
+    os.environ['JWT_SECRET'] = secrets.token_urlsafe(64)
+if not os.getenv('API_KEY_HASH_SALT'):
+    import secrets
+    os.environ['API_KEY_HASH_SALT'] = secrets.token_urlsafe(32)
+
 # Add Backend to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Backend'))
 
@@ -23,23 +40,6 @@ if not os.getenv('BACKEND_PORT'):
     # Railway provides PORT environment variable
     port = os.getenv('PORT', '8000')
     os.environ['BACKEND_PORT'] = port
-
-# Ensure proper encryption key format
-if not os.getenv('ENCRYPTION_KEY') or len(os.getenv('ENCRYPTION_KEY', '')) < 32:
-    from cryptography.fernet import Fernet
-    os.environ['ENCRYPTION_KEY'] = Fernet.generate_key().decode()
-    print("✅ Generated new encryption key for Railway deployment")
-
-# Set other required keys if missing
-if not os.getenv('SECRET_KEY'):
-    import secrets
-    os.environ['SECRET_KEY'] = secrets.token_urlsafe(64)
-if not os.getenv('JWT_SECRET'):
-    import secrets
-    os.environ['JWT_SECRET'] = secrets.token_urlsafe(64)
-if not os.getenv('API_KEY_HASH_SALT'):
-    import secrets
-    os.environ['API_KEY_HASH_SALT'] = secrets.token_urlsafe(32)
 
 # Import and run the main application directly
 from main import app
