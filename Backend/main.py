@@ -184,18 +184,7 @@ async def startup_event():
         logger.critical(f"Security verification failed: {e}")
         raise RuntimeError("Cannot start - security verification failed")
 
-@app.get("/")
-def read_root(request: Request):
-    """Root endpoint with security headers."""
-    client_ip = request.client.host if request.client else "unknown"
-    log_security_event("ROOT_ACCESS", "Root endpoint accessed", client_ip)
-    
-    return {
-        "message": "Privacy Analyser backend is running securely!",
-        "version": "2.0.0",
-        "security": "enabled",
-        "timestamp": datetime.utcnow().isoformat()
-    }
+# Root route removed - now handled by React catch-all route at the end of the file
 
 @app.get("/health")
 async def health_check():
@@ -3106,11 +3095,20 @@ static_dir = os.path.join(os.path.dirname(__file__), "..", "Frontend", "dist")
 if os.path.exists(static_dir):
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
     
-    # Serve React app for all non-API routes (catch-all route must be last)
+    # Serve React app for root and all non-API routes (catch-all route must be last)
+    @app.get("/")
+    async def serve_react_root():
+        """Serve React app for root route."""
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            return JSONResponse({"message": "Frontend not built. Run 'npm run build' in Frontend directory."})
+    
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         # If it's an API route, let it be handled by the API endpoints
-        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc"):
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc") or full_path == "health":
             raise HTTPException(status_code=404, detail="Not found")
         
         # Serve static files directly if they exist
