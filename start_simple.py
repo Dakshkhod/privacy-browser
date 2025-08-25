@@ -7,10 +7,14 @@ import os
 import sys
 
 # FIRST: Generate encryption keys before ANY imports that might need them
-if not os.getenv('ENCRYPTION_KEY') or len(os.getenv('ENCRYPTION_KEY', '')) < 32:
-    from cryptography.fernet import Fernet
-    os.environ['ENCRYPTION_KEY'] = Fernet.generate_key().decode()
-    print("✅ Generated new encryption key for Railway deployment")
+print(f"DEBUG: ENCRYPTION_KEY exists: {bool(os.getenv('ENCRYPTION_KEY'))}")
+print(f"DEBUG: ENCRYPTION_KEY length: {len(os.getenv('ENCRYPTION_KEY', ''))}")
+print(f"DEBUG: ENCRYPTION_KEY value: '{os.getenv('ENCRYPTION_KEY', 'NONE')[:50]}...'")
+
+# FORCE generation of proper keys regardless of what Railway has
+from cryptography.fernet import Fernet
+os.environ['ENCRYPTION_KEY'] = Fernet.generate_key().decode()
+print("✅ FORCED generation of new encryption key for Railway deployment")
 
 # Set other required keys if missing
 if not os.getenv('SECRET_KEY'):
