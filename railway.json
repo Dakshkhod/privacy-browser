@@ -3,6 +3,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python start.py"
+    "startCommand": "source /opt/venv/bin/activate && cd Backend && python start_secure.py"
   }
 }
