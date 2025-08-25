@@ -186,6 +186,11 @@ async def startup_event():
 
 # Root route removed - now handled by React catch-all route at the end of the file
 
+@app.get("/api/test")
+async def api_test():
+    """Simple API test endpoint for frontend connectivity."""
+    return {"status": "ok", "message": "API is working", "timestamp": datetime.utcnow().isoformat()}
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for production monitoring."""
