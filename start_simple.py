@@ -12,6 +12,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'Backend'))
 # Change to Backend directory
 os.chdir('Backend')
 
+# Create necessary directories
+os.makedirs('logs', exist_ok=True)
+os.makedirs('temp', exist_ok=True)
+
 # Set environment variables if not present
 if not os.getenv('BACKEND_HOST'):
     os.environ['BACKEND_HOST'] = '0.0.0.0'
