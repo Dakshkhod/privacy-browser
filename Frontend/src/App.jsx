@@ -401,8 +401,10 @@ function App() {
     }
   })();
   
-  // Backend URL
-  const BACKEND_URL = "http://localhost:8000";
+  // Backend URL - dynamically determine based on environment
+  const BACKEND_URL = window.location.hostname === 'localhost' 
+    ? "http://localhost:8000" 
+    : window.location.origin;
 
   // Safe URL validation
   const isValidUrl = (string) => {

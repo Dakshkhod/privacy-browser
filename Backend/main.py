@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from starlette.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -159,6 +161,8 @@ app.add_middleware(
     allow_methods=cors_config['allow_methods'],
     allow_headers=cors_config['allow_headers'],
 )
+
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -3096,3 +3100,29 @@ def get_built_in_alternatives(service_type: str, risk_level: str, domain: str) -
         'privacy_focus': "Privacy-first alternatives with better data practices and user control",
         'source': 'Curated privacy alternatives database'
     }
+
+# Mount static files for React frontend (must be at the end after all API routes)
+static_dir = os.path.join(os.path.dirname(__file__), "..", "Frontend", "dist")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    
+    # Serve React app for all non-API routes (catch-all route must be last)
+    @app.get("/{full_path:path}")
+    async def serve_react_app(full_path: str):
+        # If it's an API route, let it be handled by the API endpoints
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc"):
+            raise HTTPException(status_code=404, detail="Not found")
+        
+        # Serve static files directly if they exist
+        file_path = os.path.join(static_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        
+        # For all other routes, serve index.html (React Router will handle it)
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        else:
+            return JSONResponse({"message": "Frontend not built. Run 'npm run build' in Frontend directory."})
+else:
+    logger.warning("Frontend dist directory not found. Frontend will not be served.")
