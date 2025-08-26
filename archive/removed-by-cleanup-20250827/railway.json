@@ -1,0 +1,8 @@
+{
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "source /opt/venv/bin/activate && python start_simple.py"
+  }
+}
