@@ -1,0 +1,49 @@
+[1minstagram_handler.py[m[36m:[m8[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
+[1minstagram_handler.py[m[36m:[m10[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m13[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m17[36m:[m80[36m:[m [1m[31mE501[m line too long (140 > 79 characters)
+[1minstagram_handler.py[m[36m:[m23[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m25[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m33[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m37[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m40[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m49[36m:[m80[36m:[m [1m[31mE501[m line too long (94 > 79 characters)
+[1minstagram_handler.py[m[36m:[m56[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m67[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m72[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m76[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m80[36m:[m38[36m:[m [1m[31mW291[m trailing whitespace
+[1minstagram_handler.py[m[36m:[m82[36m:[m80[36m:[m [1m[31mE501[m line too long (94 > 79 characters)
+[1minstagram_handler.py[m[36m:[m83[36m:[m80[36m:[m [1m[31mE501[m line too long (94 > 79 characters)
+[1minstagram_handler.py[m[36m:[m84[36m:[m80[36m:[m [1m[31mE501[m line too long (94 > 79 characters)
+[1minstagram_handler.py[m[36m:[m85[36m:[m80[36m:[m [1m[31mE501[m line too long (97 > 79 characters)
+[1minstagram_handler.py[m[36m:[m86[36m:[m80[36m:[m [1m[31mE501[m line too long (91 > 79 characters)
+[1minstagram_handler.py[m[36m:[m87[36m:[m5[36m:[m [1m[31mE125[m continuation line with same indent as next logical line
+[1minstagram_handler.py[m[36m:[m89[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m91[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m96[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
+[1minstagram_handler.py[m[36m:[m98[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m99[36m:[m80[36m:[m [1m[31mE501[m line too long (84 > 79 characters)
+[1minstagram_handler.py[m[36m:[m103[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m105[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m111[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m117[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m123[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m130[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m136[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m142[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m147[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m152[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m157[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m163[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m165[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m174[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m176[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m182[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m184[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m189[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m191[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m201[36m:[m1[36m:[m [1m[31mW293[m blank line contains whitespace
+[1minstagram_handler.py[m[36m:[m204[36m:[m1[36m:[m [1m[31mE305[m expected 2 blank lines after class or function definition, found 1
+[1minstagram_handler.py[m[36m:[m214[36m:[m60[36m:[m [1m[31mW291[m trailing whitespace
+[1minstagram_handler.py[m[36m:[m214[36m:[m61[36m:[m [1m[31mW292[m no newline at end of file

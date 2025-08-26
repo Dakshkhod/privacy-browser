@@ -1,0 +1,3 @@
+[1minstagram_handler.py[m[36m:[m19[36m:[m27[36m:[m [1m[31mE128[m continuation line under-indented for visual indent
+[1minstagram_handler.py[m[36m:[m20[36m:[m27[36m:[m [1m[31mE128[m continuation line under-indented for visual indent
+[1minstagram_handler.py[m[36m:[m223[36m:[m60[36m:[m [1m[31mW292[m no newline at end of file
