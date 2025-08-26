@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import './App.css';
 import { Doughnut } from "react-chartjs-2";
+import config from './config';
 import {
   Chart,
   ArcElement,
@@ -404,7 +405,7 @@ function App() {
   // Backend URL - dynamically determine based on environment
   const BACKEND_URL = window.location.hostname === 'localhost' 
     ? "http://localhost:8000" 
-    : window.location.origin;
+    : config.BACKEND_URL;
 
   // Safe URL validation
   const isValidUrl = (string) => {

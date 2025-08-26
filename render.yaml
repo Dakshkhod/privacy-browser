@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: privacy-browser-backend
+    env: python
+    plan: free
+    buildCommand: |
+      cd Backend
+      pip install -r requirements.txt
+      python -m spacy download en_core_web_sm
+    startCommand: |
+      cd Backend
+      python start_simple.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.6
+      - key: PORT
+        value: 8000
+      - key: BACKEND_HOST
+        value: 0.0.0.0
+      - key: DEBUG_MODE
+        value: false
+    healthCheckPath: /
+    autoDeploy: true
