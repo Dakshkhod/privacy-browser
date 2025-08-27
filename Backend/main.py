@@ -206,6 +206,11 @@ async def api_test():
     """Simple API test endpoint for frontend connectivity."""
     return {"status": "ok", "message": "API is working", "timestamp": datetime.utcnow().isoformat()}
 
+@app.get("/test-simple")
+async def test_simple():
+    """Very simple test endpoint to verify basic functionality."""
+    return {"status": "ok", "message": "Simple test successful", "test": True}
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint for production monitoring."""
@@ -679,7 +684,8 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
             use_dns_cache=True,  # More permissive for wider compatibility
         )
         
-        timeout = aiohttp.ClientTimeout(total=25, connect=4)
+        # Increased timeouts to prevent frontend timeouts
+        timeout = aiohttp.ClientTimeout(total=60, connect=10)  # Increased from 25/4
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -694,7 +700,7 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
             'Cache-Control': 'max-age=0'
         }
 
-        async def fetch_url_with_retries(session, url, timeout_seconds=3, retries=2):
+        async def fetch_url_with_retries(session, url, timeout_seconds=10, retries=2):  # Increased from 3
             """Fetch URL with automatic retries and error handling"""
             for attempt in range(retries + 1):
                 try:
@@ -725,7 +731,7 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
                     return url, None, None
             return url, None, None
 
-        async def test_urls_parallel(session, urls, timeout_per_url=3, max_concurrent=8):
+        async def test_urls_parallel(session, urls, timeout_per_url=10, max_concurrent=8):  # Increased from 3
             """Test multiple URLs in parallel with intelligent scoring and lower thresholds"""
             results = []
             
@@ -780,7 +786,7 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
             if is_likely_privacy_url(base_url):
                 try:
                     logger.info("Testing direct URL as potential privacy policy")
-                    url, content, status = await fetch_url_with_retries(session, base_url, 5)
+                    url, content, status = await fetch_url_with_retries(session, base_url, 10, 2)
                     if content:
                         soup = BeautifulSoup(content, "html.parser")
                         text = extract_text_smartly(soup)
@@ -809,7 +815,7 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
                         policy_url = urljoin(base + '/', path.lstrip('/'))
                         priority_urls.append(policy_url)
                 
-                url, text, score = await test_urls_parallel(session, priority_urls, 3, 6)
+                url, text, score = await test_urls_parallel(session, priority_urls, 10, 6)
                 if url and score >= 8:  # Lower threshold for priority paths
                     result = {"policy_url": url, "policy_text": text[:10000]}
 
@@ -817,7 +823,7 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
                 # Strategy 3: Homepage analysis for privacy links
                 logger.info("Analyzing homepage for privacy links")
                 try:
-                    url, content, status = await fetch_url_with_retries(session, base_url, 6, 2)
+                    url, content, status = await fetch_url_with_retries(session, base_url, 10, 2)
                     if content:
                         soup = BeautifulSoup(content, "html.parser")
                         

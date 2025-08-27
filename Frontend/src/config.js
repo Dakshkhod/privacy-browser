@@ -10,10 +10,11 @@ const config = {
     FETCH_POLICY: '/fetch-privacy-policy',
     ANALYZE_DIRECT: '/analyze-direct-policy',
     HEALTH: '/',
+    TEST_SIMPLE: '/test-simple',
   },
   
-  // Request timeout (in milliseconds)
-  TIMEOUT: 30000,
+  // Request timeout (in milliseconds) - Increased to match backend
+  TIMEOUT: 60000,  // 60 seconds to match backend timeout
   
   // Retry attempts
   MAX_RETRIES: 3,
