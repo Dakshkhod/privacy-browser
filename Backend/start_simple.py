@@ -24,11 +24,18 @@ if not os.getenv('API_KEY_HASH_SALT'):
     import secrets
     os.environ['API_KEY_HASH_SALT'] = secrets.token_urlsafe(32)
 
-# Add Backend to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '.'))
+# Resolve absolute path to this file's directory to avoid empty dirname issues
+backend_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Change to Backend directory
-os.chdir(os.path.dirname(__file__))
+# Add Backend to Python path
+sys.path.insert(0, backend_dir)
+
+# Change to Backend directory (guard against empty path)
+try:
+    os.chdir(backend_dir)
+except FileNotFoundError:
+    # If for some reason the directory isn't resolvable, stay in current dir
+    pass
 
 # Create necessary directories
 os.makedirs('logs', exist_ok=True)
