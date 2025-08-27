@@ -184,7 +184,22 @@ async def startup_event():
         logger.critical(f"Security verification failed: {e}")
         raise RuntimeError("Cannot start - security verification failed")
 
-# Root route removed - now handled by React catch-all route at the end of the file
+# Root route for health checks and basic info
+@app.get("/")
+async def root():
+    """Root endpoint for health checks and basic API information."""
+    return {
+        "status": "ok",
+        "message": "Privacy Browser Backend API",
+        "version": "1.0.0",
+        "timestamp": datetime.utcnow().isoformat(),
+        "endpoints": {
+            "health": "/health",
+            "api_test": "/api/test",
+            "fetch_policy": "/fetch-privacy-policy",
+            "analyze_direct": "/analyze-direct-policy"
+        }
+    }
 
 @app.get("/api/test")
 async def api_test():

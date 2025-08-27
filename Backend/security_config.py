@@ -275,7 +275,7 @@ class SecurityConfig:
     @property
     def cors_config(self) -> Dict[str, Any]:
         """Get CORS configuration."""
-        origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
+        origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,https://privacy-browser.vercel.app').split(',')
         return {
             'allow_origins': [origin.strip() for origin in origins],
             'allow_credentials': os.getenv('CORS_CREDENTIALS', 'true').lower() == 'true',
