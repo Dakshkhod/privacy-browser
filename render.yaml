@@ -13,7 +13,7 @@ services:
       python start_simple.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.6
+        value: 3.9.18
       - key: PORT
         value: 8000
       - key: BACKEND_HOST
