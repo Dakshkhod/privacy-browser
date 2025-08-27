@@ -5,7 +5,7 @@ Implements comprehensive security measures including rate limiting, request vali
 
 import time
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from collections import defaultdict, deque
 from fastapi import Request, Response, HTTPException
 from fastapi.responses import JSONResponse
@@ -29,7 +29,7 @@ class RateLimiter:
         self.blocked_ips: Dict[str, datetime] = {}
         self.config = security_config.rate_limit_config
         
-    def is_allowed(self, client_ip: str) -> tuple[bool, Optional[str]]:
+    def is_allowed(self, client_ip: str) -> Tuple[bool, Optional[str]]:
         """Check if request is allowed based on rate limiting rules."""
         current_time = time.time()
         
