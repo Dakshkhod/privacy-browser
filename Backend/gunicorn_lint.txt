@@ -1,0 +1,7 @@
+[1mgunicorn.conf.py[m[36m:[m24[36m:[m80[36m:[m [1m[31mE501[m line too long (87 > 79 characters)
+[1mgunicorn.conf.py[m[36m:[m39[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
+[1mgunicorn.conf.py[m[36m:[m42[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
+[1mgunicorn.conf.py[m[36m:[m45[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
+[1mgunicorn.conf.py[m[36m:[m48[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
+[1mgunicorn.conf.py[m[36m:[m51[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
+[1mgunicorn.conf.py[m[36m:[m54[36m:[m1[36m:[m [1m[31mE302[m expected 2 blank lines, found 1
