@@ -1,0 +1,23 @@
+# Lightweight requirements for Render free tier
+# Core web framework
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# Essential HTTP and async support  
+aiohttp==3.9.1
+requests==2.31.0
+
+# HTML parsing (lighter than full selenium)
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Security and CORS
+python-multipart==0.0.6
+python-dotenv==1.0.0
+cryptography==41.0.8
+
+# Minimal NLP (will load spacy only when needed)
+spacy==3.7.2
+
+# Basic data structures
+pydantic==2.5.0

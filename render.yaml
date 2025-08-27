@@ -6,11 +6,11 @@ services:
     buildCommand: |
       pip install --upgrade pip setuptools wheel
       cd Backend
-      pip install -r requirements.txt
-      python -m spacy download en_core_web_sm
+      pip install -r requirements-lite.txt
+      python -m spacy download en_core_web_sm --quiet
     startCommand: |
       cd Backend
-      python start_simple.py
+      python start_lightweight.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.8.18
