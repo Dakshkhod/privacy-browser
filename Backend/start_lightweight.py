@@ -73,6 +73,9 @@ if __name__ == "__main__":
         print(f"🔗 Available at: https://privacybrowser-backend.onrender.com")
         
         # Minimal uvicorn configuration for low memory usage
+        # Import optimized app
+        from main_optimized import app
+        
         uvicorn.run(
             app, 
             host="0.0.0.0", 
