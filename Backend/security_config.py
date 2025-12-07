@@ -22,13 +22,29 @@ from datetime import datetime, timedelta
 import jwt
 
 # Configure secure logging
+# For cloud deployments (Render, etc.), use stdout/stderr only
+# For local development, try to use file logging if directory exists
+handlers = [logging.StreamHandler()]  # Always use stdout/stderr
+
+# Try to add file handler if logs directory exists or can be created
+try:
+    log_dir = 'logs'
+    log_file = os.path.join(log_dir, 'security.log')
+    # Try to create directory if it doesn't exist
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    # Only add file handler if we can write to the directory
+    if os.path.exists(log_dir) and os.access(log_dir, os.W_OK):
+        handlers.append(logging.FileHandler(log_file))
+except (OSError, PermissionError):
+    # If we can't create/write to logs directory, just use stdout/stderr
+    # This is fine for cloud deployments like Render
+    pass
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/security.log'),
-        logging.StreamHandler()
-    ]
+    handlers=handlers
 )
 
 security_logger = logging.getLogger('security')
