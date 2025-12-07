@@ -3,6 +3,7 @@ Optimized Privacy Browser Backend - Ultra-Fast and Comprehensive
 Version 3.0 - Next Generation with Advanced Fetching
 """
 import os
+import time
 import logging
 from datetime import datetime
 from typing import Optional, Dict, List
