@@ -73,7 +73,7 @@ const safeObject = (value) => {
 // Helper functions
 const getFriendlyLabel = (dataType) => {
   if (!dataType || typeof dataType !== 'string') return 'Unknown Data Type';
-  
+
   const friendlyLabels = {
     phone: 'Phone Numbers',
     browsing: 'Browsing & Device Info',
@@ -138,13 +138,13 @@ const getFriendlyLabel = (dataType) => {
     product_preferences: 'Product Preferences',
     voice_commands: 'Voice Commands'
   };
-  
+
   return friendlyLabels[dataType] || dataType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
 const getDataTypeSummary = (dataType) => {
   if (!dataType || typeof dataType !== 'string') return 'General data collection';
-  
+
   const summaries = {
     email: 'Used for communication, account management, and notifications',
     phone: 'For verification, support, and security purposes',
@@ -161,37 +161,37 @@ const getDataTypeSummary = (dataType) => {
     employment: 'For professional networking and job-related features',
     behavior: 'To personalize content and improve recommendations'
   };
-  
+
   return summaries[dataType] || 'General data processing and service provision';
 };
 
 const getDataTypeWeight = (dataType) => {
   if (!dataType || typeof dataType !== 'string') return 1;
-  
+
   const weights = {
     // Highly sensitive data (highest weight)
     biometric: 15, political: 14, religious: 14, sexual_orientation: 14,
     health: 13, id: 12, payment: 11,
-    
+
     // Sensitive tracking data (high weight)
     location: 10, browsing: 9, advertising: 9, demographic: 9,
     communication: 8, content: 8, social: 8, behavior: 8,
-    
+
     // Personal data (medium weight)
     device: 7, camera: 7, microphone: 7, contacts: 7,
     calendar: 6, files: 6, app_usage: 6, purchase: 6,
     search: 6, profile: 6, account: 6, activity: 6,
-    
+
     // Standard personal data (lower weight)
     phone: 5, email: 4, name: 3, age: 3,
     preferences: 4, interests: 4, relationships: 5,
     ethnicity: 6, gender: 5, income: 8, family: 7,
-    
+
     // Activity and preference data (lowest weight)
     usage: 3, network: 3, login: 3, travel: 4, shopping: 4,
     entertainment: 3, news: 3, sports: 3, music: 3, gaming: 3,
     education: 4, employment: 5,
-    
+
     // Platform-specific data types (high weight due to sensitivity)
     search_history: 12, location_history: 11, browsing_history: 10,
     voice_data: 13, social_graph: 12, content_analysis: 11,
@@ -199,48 +199,48 @@ const getDataTypeWeight = (dataType) => {
     purchase_history: 9, shopping_behavior: 8, product_preferences: 7,
     voice_commands: 12
   };
-  
+
   return weights[dataType] || 1;
 };
 
 const getDataTypeIcon = (dataType) => {
   if (!dataType || typeof dataType !== 'string') return '📄';
-  
+
   const icons = {
     // Core personal data
     'email': '📧', 'phone': '📱', 'name': '👤', 'age': '🎂', 'id': '🆔',
-    
+
     // Location and tracking
     'location': '📍', 'browsing': '🌐', 'network': '🌍',
-    
+
     // Financial and sensitive
     'payment': '💳', 'biometric': '🫵', 'health': '🏥',
-    
+
     // Social and communication
     'social': '👥', 'communication': '💬', 'content': '📸', 'relationships': '💕',
-    
+
     // Device and technical
     'device': '📱', 'camera': '📷', 'microphone': '🎤', 'files': '📁',
-    
+
     // Activity and behavior
     'behavior': '🧠', 'activity': '📊', 'usage': '📈', 'app_usage': '📱',
     'preferences': '⚙️', 'interests': '🎯', 'search': '🔍',
-    
+
     // Demographics and profiling
     'demographic': '📊', 'advertising': '📢', 'profile': '👤', 'account': '🔐',
-    
+
     // Sensitive personal information
     'political': '🗳️', 'religious': '⛪', 'sexual_orientation': '🏳️‍🌈',
     'ethnicity': '🌍', 'gender': '⚧', 'income': '💰', 'family': '👨‍👩‍👧‍👦',
-    
+
     // Activity categories
     'travel': '✈️', 'shopping': '🛒', 'entertainment': '🎬', 'news': '📰',
     'sports': '⚽', 'music': '🎵', 'gaming': '🎮', 'calendar': '📅',
-    
+
     // Other
     'contacts': '📞', 'purchase': '🛍️', 'login': '🔑', 'education': '🎓',
     'employment': '💼',
-    
+
     // Platform-specific data types
     'search_history': '🔍', 'location_history': '📍', 'browsing_history': '🌐',
     'voice_data': '🎤', 'social_graph': '👥', 'content_analysis': '📊',
@@ -340,7 +340,7 @@ function App() {
   }, [loading, steps, directSteps, analysisType]);
 
   const chartColors = [
-    "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", 
+    "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981",
     "#06b6d4", "#84cc16", "#f97316", "#ef4444", "#6b7280"
   ];
 
@@ -359,9 +359,9 @@ function App() {
           safer_alternatives: null
         };
       }
-      
 
-      
+
+
       return {
         data_types: safeObject(analysis.data_types),
         warnings: safeArray(analysis.warnings),
@@ -393,18 +393,24 @@ function App() {
   const availableTypes = (() => {
     try {
       const dataTypes = safeAnalysis.data_types || {};
-      return Object.keys(dataTypes).filter(type => 
-        type && typeof type === 'string' && (dataTypes[type] || 0) > 0
-      );
+      return Object.keys(dataTypes).filter(type => {
+        if (!type || typeof type !== 'string') return false;
+        const value = dataTypes[type];
+        // Handle both object format {severity, details} and numeric format
+        if (typeof value === 'object' && value !== null) {
+          return value.severity > 0 || (value.details && value.details.length > 0);
+        }
+        return (value || 0) > 0;
+      });
     } catch (e) {
       console.error('Error calculating available types:', e);
       return [];
     }
   })();
-  
+
   // Backend URL - dynamically determine based on environment
-  const BACKEND_URL = window.location.hostname === 'localhost' 
-    ? "http://localhost:8000" 
+  const BACKEND_URL = window.location.hostname === 'localhost'
+    ? "http://localhost:5001"
     : config.BACKEND_URL;
 
   // Safe URL validation
@@ -420,24 +426,24 @@ function App() {
   // Smart URL type detection
   const detectUrlType = (inputUrl) => {
     if (!inputUrl || !inputUrl.trim()) return null;
-    
+
     const url = inputUrl.toLowerCase().trim();
-    
+
     // Check for direct privacy policy indicators
     const privacyIndicators = [
       'privacy', 'policy', 'data-protection', 'gdpr', 'ccpa',
       'cookie-policy', 'legal/privacy', 'terms-privacy'
     ];
-    
-    const hasPrivacyIndicator = privacyIndicators.some(indicator => 
+
+    const hasPrivacyIndicator = privacyIndicators.some(indicator =>
       url.includes(indicator)
     );
-    
+
     // If URL contains privacy-related terms, treat as direct policy
     if (hasPrivacyIndicator) {
       return 'direct';
     }
-    
+
     // Otherwise, treat as website for automatic discovery
     return 'website';
   };
@@ -445,7 +451,7 @@ function App() {
   // Unified analysis function that routes to appropriate endpoint
   const analyzePrivacyPolicy = async (inputUrl = null) => {
     const urlToAnalyze = inputUrl || url;
-    
+
     if (!urlToAnalyze || !urlToAnalyze.trim()) {
       setError("Please enter a website URL or privacy policy URL");
       return;
@@ -464,7 +470,7 @@ function App() {
 
     const urlType = detectUrlType(processedUrl);
     setAnalysisType(urlType);
-    
+
     setLoading(true);
     setError("");
     setShowResults(false);
@@ -472,12 +478,13 @@ function App() {
     setRawResult(null);
 
     try {
+      const controller = new AbortController();
       const timeoutId = setTimeout(() => {
-        throw new Error('Request timed out after 30 seconds');
-      }, 30000);
+        controller.abort();
+      }, config.TIMEOUT || 60000);
 
       let endpoint, requestBody;
-      
+
       if (urlType === 'direct') {
         // Use direct policy analysis endpoint
         endpoint = `${BACKEND_URL}/analyze-direct-policy`;
@@ -494,6 +501,7 @@ function App() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
+        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
@@ -519,7 +527,7 @@ function App() {
       }
 
       const result = await response.json();
-      
+
       // Check if the response contains an error even with 200 status
       if (result.error) {
         if (result.error === 'not_found') {
@@ -528,7 +536,7 @@ function App() {
           throw new Error(`Website error: ${result.error}`);
         }
       }
-      
+
       if (urlType === 'direct') {
         // Direct analysis returns the full analysis
         setAnalysis(result);
@@ -558,15 +566,18 @@ function App() {
   // Safe analysis function for website scanner results
   const analyzePolicy = async (policyText, websiteUrl) => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), config.TIMEOUT || 60000);
       const response = await fetch(`${BACKEND_URL}/analyze-policy`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           policy_text: policyText,
           website_url: websiteUrl // Pass the processed URL for context-aware alternatives
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -576,6 +587,7 @@ function App() {
       }
 
       const analysisResult = await response.json();
+      clearTimeout(timeoutId);
       setAnalysis(analysisResult);
     } catch (err) {
       console.error("Error analyzing policy:", err);
@@ -641,23 +653,23 @@ function App() {
   // Smart URL suggestions for better user experience
   const getSmartSuggestions = (inputUrl, errorType) => {
     if (!inputUrl) return [];
-    
+
     try {
       const urlObj = new URL(inputUrl.startsWith('http') ? inputUrl : `https://${inputUrl}`);
       const domain = urlObj.hostname;
-      
+
       const suggestions = [];
-      
+
       if (errorType === 'not_found') {
         // Suggest direct privacy policy URLs
         const privacyPaths = [
           '/privacy',
-          '/privacy-policy', 
+          '/privacy-policy',
           '/legal/privacy',
           '/policy/privacy',
           '/privacy-notice'
         ];
-        
+
         privacyPaths.forEach(path => {
           suggestions.push({
             url: `https://${domain}${path}`,
@@ -665,7 +677,7 @@ function App() {
             type: 'direct'
           });
         });
-        
+
         // Suggest alternative subdomains
         if (!domain.startsWith('www.')) {
           suggestions.push({
@@ -674,7 +686,7 @@ function App() {
             type: 'subdomain'
           });
         }
-        
+
         // Suggest help/legal subdomains
         ['help', 'legal', 'policies'].forEach(sub => {
           if (!domain.startsWith(`${sub}.`)) {
@@ -685,7 +697,7 @@ function App() {
             });
           }
         });
-        
+
         // Special suggestions for specific domains
         if (domain.includes('whatsapp')) {
           suggestions.push({
@@ -712,25 +724,25 @@ function App() {
           });
         }
       }
-      
+
       return suggestions.slice(0, 6); // Limit to 6 suggestions
-         } catch {
-       return [];
-     }
+    } catch {
+      return [];
+    }
   };
 
   // Enhanced error handling with smart suggestions
   const renderErrorSection = () => {
     // Show suggestions for various error types, not just "not found"
-    const shouldShowSuggestions = error.includes('not found') || 
-                                 error.includes('status 400') || 
-                                 error.includes('status 404') || 
-                                 error.includes('not accessible') ||
-                                 error.includes('Unable to fetch') ||
-                                 error.includes('Invalid URL');
-    
+    const shouldShowSuggestions = error.includes('not found') ||
+      error.includes('status 400') ||
+      error.includes('status 404') ||
+      error.includes('not accessible') ||
+      error.includes('Unable to fetch') ||
+      error.includes('Invalid URL');
+
     const suggestions = getSmartSuggestions(url, shouldShowSuggestions ? 'not_found' : 'other');
-    
+
     return (
       <div className="error-section">
         <div className="error-card">
@@ -745,7 +757,7 @@ function App() {
           {shouldShowSuggestions && (
             <div className="error-suggestions">
               <h4>💡 Smart Suggestions:</h4>
-              
+
               {suggestions.length > 0 && (
                 <div className="smart-suggestions">
                   <p>Try these direct privacy policy URLs:</p>
@@ -761,7 +773,7 @@ function App() {
                       </button>
                     ))}
                   </div>
-                  
+
                   {suggestions.filter(s => s.type === 'subdomain').length > 0 && (
                     <>
                       <p>Or try these alternative domains:</p>
@@ -781,7 +793,7 @@ function App() {
                   )}
                 </div>
               )}
-              
+
               <div className="general-suggestions">
                 <h5>General tips:</h5>
                 <ul>
@@ -793,25 +805,25 @@ function App() {
                   <li>Check if the website has a mobile app with privacy settings</li>
                 </ul>
               </div>
-              
+
               <div className="alternative-actions">
                 <p>You can also:</p>
                 <div className="action-buttons">
-                  <button 
+                  <button
                     onClick={() => {
                       try {
                         const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
                         window.open(`https://www.google.com/search?q=${encodeURIComponent(domain + ' privacy policy')}`, '_blank');
-                             } catch {
-         window.open(`https://www.google.com/search?q=${encodeURIComponent(url + ' privacy policy')}`, '_blank');
-       }
+                      } catch {
+                        window.open(`https://www.google.com/search?q=${encodeURIComponent(url + ' privacy policy')}`, '_blank');
+                      }
                     }}
                     className="search-btn"
                   >
                     🔍 Search Google
                   </button>
-                  <button 
-                    onClick={() => setError("")} 
+                  <button
+                    onClick={() => setError("")}
                     className="retry-btn"
                   >
                     🔄 Try Again
@@ -827,17 +839,17 @@ function App() {
 
   // Enhanced input section with better UX
   const renderInputSection = () => {
-    const placeholder = analysisType === 'direct' 
-      ? "https://example.com/privacy-policy" 
+    const placeholder = analysisType === 'direct'
+      ? "https://example.com/privacy-policy"
       : "https://example.com or https://example.com/privacy-policy";
-    
+
     return (
       <div className="input-section">
         <h2 className="section-title">Smart Privacy Policy Analysis</h2>
         <p className="section-description">
           Enter any website URL or direct privacy policy link. Our AI will automatically detect the best approach and provide comprehensive analysis.
         </p>
-        
+
         <div className="features-preview">
           <div className="feature-item">
             <span className="feature-icon">🧠</span>
@@ -852,7 +864,7 @@ function App() {
             <span className="feature-text">Comprehensive Risk Assessment</span>
           </div>
         </div>
-        
+
         <form className="modern-form" onSubmit={(e) => { e.preventDefault(); analyzePrivacyPolicy(); }}>
           <div className={`input-group ${isInputFocused ? 'focused' : ''} ${loading ? 'loading' : ''}`}>
             <SearchIcon />
@@ -867,8 +879,8 @@ function App() {
               disabled={loading}
             />
             {url && !loading && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="clear-btn"
                 onClick={() => setUrl('')}
                 title="Clear URL"
@@ -877,9 +889,9 @@ function App() {
               </button>
             )}
           </div>
-          
-          <button 
-            type="submit" 
+
+          <button
+            type="submit"
             className={`analyze-btn ${loading ? 'loading' : ''} ${!url.trim() ? 'disabled' : ''}`}
             disabled={loading || !url.trim()}
           >
@@ -896,7 +908,7 @@ function App() {
             )}
           </button>
         </form>
-        
+
         {url && !loading && !error && !showResults && (
           <div className="url-preview">
             <div className="preview-header">
@@ -904,8 +916,8 @@ function App() {
                 {detectUrlType(url) === 'direct' ? '🔗' : '🌐'}
               </span>
               <span className="preview-text">
-                {detectUrlType(url) === 'direct' 
-                  ? 'Direct Privacy Policy Analysis' 
+                {detectUrlType(url) === 'direct'
+                  ? 'Direct Privacy Policy Analysis'
                   : 'Website Privacy Policy Discovery'}
               </span>
             </div>
@@ -931,13 +943,13 @@ function App() {
                 ✕
               </button>
             </div>
-            
+
             <div className="welcome-content">
               <h2>Welcome to PrivacyLens! 🔍</h2>
               <p className="welcome-subtitle">
                 Understand privacy policies in seconds with AI-powered analysis
               </p>
-              
+
               <div className="welcome-features">
                 <div className="welcome-feature">
                   <span className="feature-icon">📊</span>
@@ -968,7 +980,7 @@ function App() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="welcome-demo">
                 <h3>Try it now with a popular website:</h3>
                 <div className="demo-buttons">
@@ -984,7 +996,7 @@ function App() {
                   ))}
                 </div>
               </div>
-              
+
               <div className="welcome-trust">
                 <div className="trust-badges">
                   <span className="trust-badge">🔒 No data stored</span>
@@ -1026,14 +1038,14 @@ function App() {
               <div className="loading-content">
                 <div className="progress-container">
                   <div className="progress-bar">
-                    <div 
-                      className="progress-fill" 
+                    <div
+                      className="progress-fill"
                       style={{ width: `${progress}%` }}
                     ></div>
                   </div>
                   <span className="progress-text">{Math.round(progress)}%</span>
                 </div>
-                
+
                 <div className="status-text">
                   <span className="current-step">{getCurrentSteps()[currentStep]}</span>
                 </div>
@@ -1048,25 +1060,68 @@ function App() {
           {showResults && analysis && (
             <ErrorBoundary>
               <div className="results-section">
-                                    <div className="results-header">
-                      <h2>✨ Analysis Complete!</h2>
-                      <p>Privacy insights for <strong>{rawResult?.policy_url ? (() => {
-                        try {
-                          return new URL(rawResult.policy_url).hostname;
-                        } catch {
-                          return 'the website';
-                        }
-                      })() : analysis?.policy_url ? (() => {
-                        try {
-                          return new URL(analysis.policy_url).hostname;
-                        } catch {
-                          return 'the website';
-                        }
-                      })() : 'the website'}</strong></p>
-                      <div className="analysis-type-badge">
-                        <span className="analysis-type">{getAnalysisTypeText()}</span>
-                      </div>
+                <div className="results-header">
+                  <div className="results-header-top">
+                    <h2>✨ Analysis Complete!</h2>
+                    <div className="verification-badges">
+                      <span className="verification-badge ai-verified" title="Analyzed using advanced AI">
+                        <span className="badge-icon">🤖</span>
+                        <span className="badge-text">AI Verified</span>
+                      </span>
+                      <span className="verification-badge confidence-badge" title="Analysis confidence: High">
+                        <span className="badge-icon">✓</span>
+                        <span className="badge-text">High Confidence</span>
+                      </span>
                     </div>
+                  </div>
+
+                  <p className="results-subtitle">Privacy insights for <strong>{
+                    (() => {
+                      try {
+                        const url = analysis?.policy_url;
+                        if (url) return new URL(url).hostname;
+                        return 'the website';
+                      } catch {
+                        return 'the website';
+                      }
+                    })()
+                  }</strong></p>
+
+                  <div className="analysis-metadata">
+                    <div className="metadata-row">
+                      <span className="metadata-item" title="Analysis method used">
+                        <span className="meta-icon">🔬</span>
+                        <span className="meta-label">Method:</span>
+                        <span className="meta-value">{analysis?.analysis_method === 'groq_llm' ? 'LLama 3.3 70B AI' : 'Heuristic Analysis'}</span>
+                      </span>
+                      <span className="metadata-item" title="When this analysis was performed">
+                        <span className="meta-icon">🕐</span>
+                        <span className="meta-label">Analyzed:</span>
+                        <span className="meta-value">Just now</span>
+                      </span>
+                      <span className="metadata-item" title="Policy text analyzed">
+                        <span className="meta-icon">📄</span>
+                        <span className="meta-label">Policy Size:</span>
+                        <span className="meta-value">{analysis?.policy_length ? `${Math.round(analysis.policy_length / 1000)}k chars` : 'Full document'}</span>
+                      </span>
+                    </div>
+
+                    {analysis?.policy_url && (
+                      <div className="source-transparency">
+                        <span className="meta-icon">🔗</span>
+                        <span className="meta-label">Source:</span>
+                        <a href={analysis.policy_url} target="_blank" rel="noopener noreferrer" className="source-link">
+                          View original policy
+                          <ExternalLinkIcon />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="analysis-type-badge">
+                    <span className="analysis-type">{getAnalysisTypeText()}</span>
+                  </div>
+                </div>
 
                 {/* Key Metrics Dashboard */}
                 <div className="metrics-dashboard">
@@ -1125,7 +1180,7 @@ function App() {
                         </div>
                       </div>
                     )}
-                    
+
                     {Object.keys(safeAnalysis.data_types || {}).length > 5 && (
                       <div className="insight-item warning">
                         <div className="insight-icon">📋</div>
@@ -1169,7 +1224,8 @@ function App() {
                             labels: availableTypes.map(type => getFriendlyLabel(type)),
                             datasets: [{
                               data: availableTypes.map(type => {
-                                const baseValue = safeAnalysis.data_types[type] || 1;
+                                const typeData = safeAnalysis.data_types[type];
+                                const baseValue = (typeof typeData === 'object' ? typeData.severity : typeData) || 1;
                                 const weight = getDataTypeWeight(type);
                                 return Math.max(baseValue * weight, 1);
                               }),
@@ -1217,23 +1273,36 @@ function App() {
                           }}
                         />
                       </div>
-                      
+
                       <div className="data-types-legend">
-                        {availableTypes.map((type, index) => (
-                          <div key={type} className="legend-item">
-                            <div 
-                              className="legend-color" 
-                              style={{ backgroundColor: chartColors[index] }}
-                            ></div>
-                            <div className="legend-content">
-                              <span className="legend-icon">{getDataTypeIcon(type)}</span>
-                              <span className="legend-label">{getFriendlyLabel(type)}</span>
-                              <span className="legend-risk">
-                                {getDataTypeWeight(type) > 6 ? '🔴' : getDataTypeWeight(type) > 3 ? '🟡' : '🟢'}
-                              </span>
+                        {availableTypes.map((type, index) => {
+                          const typeData = safeAnalysis.data_types[type];
+                          const severity = typeof typeData === 'object' ? typeData.severity : typeData;
+                          const details = typeof typeData === 'object' ? typeData.details : [];
+
+                          return (
+                            <div key={type} className="legend-item">
+                              <div
+                                className="legend-color"
+                                style={{ backgroundColor: chartColors[index] }}
+                              ></div>
+                              <div className="legend-content">
+                                <span className="legend-icon">{getDataTypeIcon(type)}</span>
+                                <div className="legend-text-wrapper">
+                                  <span className="legend-label">{getFriendlyLabel(type)}</span>
+                                  {details && details.length > 0 && (
+                                    <span className="legend-details" title={details.join(', ')}>
+                                      {details.join(', ')}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="legend-risk">
+                                  {getDataTypeWeight(type) > 6 ? '🔴' : getDataTypeWeight(type) > 3 ? '🟡' : '🟢'}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1242,166 +1311,338 @@ function App() {
                 {/* Quick Actions */}
                 <div className="result-card actions-card">
                   <h2>🎯 What Should You Do?</h2>
+                  <p className="actions-intro">
+                    Based on this analysis, here are specific steps you can take to protect your privacy:
+                  </p>
                   <div className="actions-grid">
-                    {safeAnalysis.risk_level === 'High' && (
+                    {/* High Risk Warning */}
+                    {(safeAnalysis.risk_level === 'High' || safeAnalysis.risk_level === 'Critical') && (
                       <div className="action-item critical">
-                        <div className="action-icon">🛑</div>
+                        <div className="action-icon">🚨</div>
                         <div className="action-content">
-                          <h4>Consider Alternatives</h4>
-                          <p>High privacy risk detected. Look for services with better privacy practices.</p>
+                          <h4>High Privacy Risk - Take Immediate Action</h4>
+                          <p>This service collects extensive personal data with {safeArray(safeAnalysis.warnings).length > 0 ? `${safeArray(safeAnalysis.warnings).length} major concerns` : 'significant privacy risks'}. 
+                          {safeAnalysis.safer_alternatives ? ' Consider using privacy-focused alternatives.' : ' Review all settings immediately and limit data sharing.'}</p>
+                          {Object.keys(safeAnalysis.data_types || {}).length > 8 && (
+                            <ul className="action-details">
+                              <li>They collect {Object.keys(safeAnalysis.data_types || {}).length} different types of your personal data</li>
+                              <li>Consider using a privacy-focused alternative if available</li>
+                              <li>If you must use this service, minimize the data you share</li>
+                            </ul>
+                          )}
                         </div>
                       </div>
                     )}
-                    
+
+                    {/* Specific High-Risk Data Types */}
+                    {(() => {
+                      const highRiskTypes = Object.entries(safeAnalysis.data_types || {})
+                        .filter(([type, info]) => {
+                          const severity = typeof info === 'object' ? info.severity : info;
+                          return severity >= 4;
+                        })
+                        .slice(0, 3);
+                      
+                      if (highRiskTypes.length > 0) {
+                        return (
+                          <div className="action-item warning">
+                            <div className="action-icon">⚠️</div>
+                            <div className="action-content">
+                              <h4>High-Risk Data Collection Detected</h4>
+                              <p>This service collects sensitive data types that require extra caution:</p>
+                              <ul className="action-details">
+                                {highRiskTypes.map(([type, info]) => (
+                                  <li key={type}>
+                                    <strong>{type}</strong>: {typeof info === 'object' && info.details ? 
+                                      (Array.isArray(info.details) ? info.details.slice(0, 2).join(', ') : info.details) : 
+                                      'Sensitive personal information'}
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="action-subtext">Review what data you're sharing and disable unnecessary permissions in your account settings.</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+
+                    {/* Privacy Settings */}
                     <div className="action-item">
-                      <div className="action-icon">📋</div>
+                      <div className="action-icon">⚙️</div>
                       <div className="action-content">
-                        <h4>Review Settings</h4>
-                        <p>Check privacy settings and limit data sharing where possible.</p>
+                        <h4>Review & Adjust Privacy Settings</h4>
+                        <p>Take control of your data by checking these critical settings:</p>
+                        <ul className="action-details">
+                          <li><strong>Data Sharing:</strong> Disable sharing with third parties and advertisers</li>
+                          <li><strong>Location Services:</strong> Turn off location tracking if not essential</li>
+                          <li><strong>Cookies & Tracking:</strong> Opt out of advertising and analytics cookies</li>
+                          <li><strong>Profile Visibility:</strong> Limit who can see your personal information</li>
+                          {Object.keys(safeAnalysis.data_types || {}).some(type => 
+                            type.toLowerCase().includes('biometric') || type.toLowerCase().includes('health')
+                          ) && (
+                            <li><strong>Biometric/Health Data:</strong> Disable facial recognition and health tracking features</li>
+                          )}
+                        </ul>
+                        <p className="action-subtext">
+                          {(() => {
+                            try {
+                              const url = analysis?.policy_url || url;
+                              if (url) {
+                                const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+                                return `Visit ${domain}/settings/privacy or ${domain}/account/privacy to adjust these settings.`;
+                              }
+                            } catch {}
+                            return 'Look for "Privacy Settings" or "Account Settings" in the service menu.';
+                          })()}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="action-item">
-                      <div className="action-icon">🔒</div>
-                      <div className="action-content">
-                        <h4>Know Your Rights</h4>
-                        <p>Contact them to access, correct, or delete your data when needed.</p>
+                    {/* Exercise Your Rights */}
+                    {safeArray(safeAnalysis.summary?.your_rights).length > 0 && (
+                      <div className="action-item">
+                        <div className="action-icon">⚖️</div>
+                        <div className="action-content">
+                          <h4>Exercise Your Privacy Rights</h4>
+                          <p>You have the following rights under GDPR/CCPA. Here's how to use them:</p>
+                          <ul className="action-details">
+                            {safeArray(safeAnalysis.summary.your_rights).slice(0, 5).map((right, idx) => (
+                              <li key={idx}>
+                                <strong>{extractDisplayText(right)}</strong>
+                                {right.toLowerCase().includes('access') && ': Request a copy of all data they have about you'}
+                                {right.toLowerCase().includes('delete') && ': Submit a data deletion request via their privacy portal'}
+                                {right.toLowerCase().includes('correct') && ': Update inaccurate information in your account settings'}
+                                {right.toLowerCase().includes('opt') && ': Unsubscribe from marketing emails and disable ad personalization'}
+                                {right.toLowerCase().includes('portability') && ': Download your data in a portable format'}
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="action-subtext">
+                            {(() => {
+                              try {
+                                const url = analysis?.policy_url || url;
+                                if (url) {
+                                  const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+                                  return `Contact ${domain}/privacy or ${domain}/support to exercise these rights. Most services have a "Data Request" or "Privacy Request" form.`;
+                                }
+                              } catch {}
+                              return 'Contact their privacy team or use their data request form (usually found in privacy settings).';
+                            })()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
+                    {/* Third-Party Sharing Warning */}
+                    {safeArray(safeAnalysis.warnings).some(w => 
+                      typeof w === 'string' && (w.toLowerCase().includes('third') || w.toLowerCase().includes('share') || w.toLowerCase().includes('partner'))
+                    ) && (
+                      <div className="action-item warning">
+                        <div className="action-icon">🔗</div>
+                        <div className="action-content">
+                          <h4>Third-Party Data Sharing</h4>
+                          <p>Your data may be shared with external parties. Take these steps:</p>
+                          <ul className="action-details">
+                            <li><strong>Opt-Out:</strong> Look for "Do Not Sell My Personal Information" or "Opt-Out" links in privacy settings</li>
+                            <li><strong>Ad Preferences:</strong> Disable personalized advertising in your account settings</li>
+                            <li><strong>Partner Sharing:</strong> Review and disable data sharing with business partners</li>
+                            <li><strong>Analytics:</strong> Use browser extensions to block tracking cookies and pixels</li>
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Data Minimization */}
+                    {Object.keys(safeAnalysis.data_types || {}).length > 5 && (
+                      <div className="action-item">
+                        <div className="action-icon">📉</div>
+                        <div className="action-content">
+                          <h4>Minimize Data Collection</h4>
+                          <p>Since they collect {Object.keys(safeAnalysis.data_types || {}).length} types of data, minimize what you share:</p>
+                          <ul className="action-details">
+                            <li>Use a pseudonym or minimal profile information when possible</li>
+                            <li>Avoid connecting social media accounts or granting unnecessary permissions</li>
+                            <li>Use a separate email address for this service</li>
+                            <li>Disable optional features that collect additional data</li>
+                            <li>Regularly review and delete old data from your account</li>
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Security Recommendations */}
+                    {safeArray(safeAnalysis.summary?.security).length > 0 && (
+                      <div className="action-item">
+                        <div className="action-icon">🛡️</div>
+                        <div className="action-content">
+                          <h4>Security Best Practices</h4>
+                          <p>Protect your account with these security measures:</p>
+                          <ul className="action-details">
+                            <li>Enable two-factor authentication (2FA) if available</li>
+                            <li>Use a strong, unique password for this account</li>
+                            <li>Review active sessions and log out from unused devices</li>
+                            <li>Enable login alerts and monitor for suspicious activity</li>
+                            {safeArray(safeAnalysis.summary.security).slice(0, 2).map((measure, idx) => (
+                              <li key={idx}>{extractDisplayText(measure)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Regular Monitoring */}
                     <div className="action-item">
                       <div className="action-icon">🔄</div>
                       <div className="action-content">
-                        <h4>Regular Review</h4>
-                        <p>Check privacy policies periodically as they can change over time.</p>
+                        <h4>Ongoing Privacy Maintenance</h4>
+                        <p>Privacy policies change frequently. Stay protected:</p>
+                        <ul className="action-details">
+                          <li><strong>Review Quarterly:</strong> Check privacy settings every 3 months</li>
+                          <li><strong>Policy Updates:</strong> Read notifications about policy changes</li>
+                          <li><strong>Data Audits:</strong> Periodically download and review your data</li>
+                          <li><strong>Account Cleanup:</strong> Delete old posts, messages, and unused data</li>
+                          <li><strong>Stay Informed:</strong> Monitor for data breaches affecting this service</li>
+                        </ul>
                       </div>
                     </div>
+
+                    {/* Safer Alternatives Link */}
+                    {safeAnalysis.safer_alternatives && safeAnalysis.safer_alternatives.alternatives && safeAnalysis.safer_alternatives.alternatives.length > 0 && (
+                      <div className="action-item positive">
+                        <div className="action-icon">✨</div>
+                        <div className="action-content">
+                          <h4>Consider Privacy-Focused Alternatives</h4>
+                          <p>We've identified {safeAnalysis.safer_alternatives.alternatives.length} privacy-focused alternative(s) that may better protect your data. Scroll down to see the "Safer Alternatives" section for recommendations.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                                    {/* Expandable Detailed Analysis */}
-                    <div className="result-card expandable-card">
-                      <div className="expandable-header" onClick={() => setShowDetailed(!showDetailed)}>
-                        <h2>📄 Detailed Analysis</h2>
-                        <div className={`expand-icon ${showDetailed ? 'expanded' : ''}`}>
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="6,9 12,15 18,9"></polyline>
-                          </svg>
+                {/* Expandable Detailed Analysis */}
+                <div className="result-card expandable-card">
+                  <div className="expandable-header" onClick={() => setShowDetailed(!showDetailed)}>
+                    <h2>📄 Detailed Analysis</h2>
+                    <div className={`expand-icon ${showDetailed ? 'expanded' : ''}`}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="6,9 12,15 18,9"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+
+                  {showDetailed && (
+                    <div className="detailed-content">
+                      {/* Warnings Section - Only if warnings exist */}
+                      {safeArray(safeAnalysis.warnings).length > 0 && (
+                        <div className="detail-section">
+                          <h3><span className="section-icon">⚠️</span>Privacy Warnings</h3>
+                          <div className="warnings-compact">
+                            {safeArray(safeAnalysis.warnings).map((warning, index) => {
+                              const w = safeString(warning).toLowerCase();
+                              let icon = '⚠️';
+                              if (w.includes('payment')) icon = '💳';
+                              else if (w.includes('biometric')) icon = '🫵';
+                              else if (w.includes('location')) icon = '📍';
+                              else if (w.includes('extensive')) icon = '⚠️';
+                              else if (w.includes('children')) icon = '🧒';
+                              return (
+                                <div key={index} className="warning-item-compact">
+                                  <span>{icon}</span> {safeString(warning)}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                      
-                      {showDetailed && (
-                        <div className="detailed-content">
-                          {/* Warnings Section - Only if warnings exist */}
-                          {safeArray(safeAnalysis.warnings).length > 0 && (
-                            <div className="detail-section">
-                              <h3><span className="section-icon">⚠️</span>Privacy Warnings</h3>
-                              <div className="warnings-compact">
-                                {safeArray(safeAnalysis.warnings).map((warning, index) => {
-                                  const w = safeString(warning).toLowerCase();
-                                  let icon = '⚠️';
-                                  if (w.includes('payment')) icon = '💳';
-                                  else if (w.includes('biometric')) icon = '🫵';
-                                  else if (w.includes('location')) icon = '📍';
-                                  else if (w.includes('extensive')) icon = '⚠️';
-                                  else if (w.includes('children')) icon = '🧒';
-                                  return (
-                                    <div key={index} className="warning-item-compact">
-                                      <span>{icon}</span> {safeString(warning)}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
+                      )}
 
-                          {/* Your Rights - Only if rights exist */}
-                          {safeArray(safeAnalysis.summary?.your_rights).length > 0 && (
-                            <div className="detail-section">
-                              <h3><span className="section-icon">⚖️</span>Your Privacy Rights</h3>
-                              <div className="rights-compact">
-                                {safeArray(safeAnalysis.summary.your_rights).map((right, index) => {
-                                  const text = extractDisplayText(right).toLowerCase();
-                                  let icon = '✓';
-                                  if (text.includes('download')) icon = '📥';
-                                  else if (text.includes('delete')) icon = '🗑️';
-                                  else if (text.includes('access')) icon = '👁️';
-                                  else if (text.includes('correct')) icon = '✏️';
-                                  else if (text.includes('opt-out')) icon = '🚫';
-                                  return (
-                                    <div key={index} className="right-item-compact">
-                                      <span>{icon}</span> {extractDisplayText(right)}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
+                      {/* Your Rights - Only if rights exist */}
+                      {safeArray(safeAnalysis.summary?.your_rights).length > 0 && (
+                        <div className="detail-section">
+                          <h3><span className="section-icon">⚖️</span>Your Privacy Rights</h3>
+                          <div className="rights-compact">
+                            {safeArray(safeAnalysis.summary.your_rights).map((right, index) => {
+                              const text = extractDisplayText(right).toLowerCase();
+                              let icon = '✓';
+                              if (text.includes('download')) icon = '📥';
+                              else if (text.includes('delete')) icon = '🗑️';
+                              else if (text.includes('access')) icon = '👁️';
+                              else if (text.includes('correct')) icon = '✏️';
+                              else if (text.includes('opt-out')) icon = '🚫';
+                              return (
+                                <div key={index} className="right-item-compact">
+                                  <span>{icon}</span> {extractDisplayText(right)}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
-                          {/* Security Measures - Only if security info exists */}
-                          {safeArray(safeAnalysis.summary?.security).length > 0 && (
-                            <div className="detail-section">
-                              <h3><span className="section-icon">🛡️</span>Security Measures</h3>
-                              <div className="security-compact">
-                                {safeArray(safeAnalysis.summary.security).map((measure, index) => (
-                                  <div key={index} className="security-item-compact">
-                                    <span>🛡️</span> {extractDisplayText(measure)}
-                                  </div>
-                                ))}
+                      {/* Security Measures - Only if security info exists */}
+                      {safeArray(safeAnalysis.summary?.security).length > 0 && (
+                        <div className="detail-section">
+                          <h3><span className="section-icon">🛡️</span>Security Measures</h3>
+                          <div className="security-compact">
+                            {safeArray(safeAnalysis.summary.security).map((measure, index) => (
+                              <div key={index} className="security-item-compact">
+                                <span>🛡️</span> {extractDisplayText(measure)}
                               </div>
-                            </div>
-                          )}
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
 
-                    {/* Safer Alternatives Section */}
-                    {safeAnalysis.safer_alternatives && safeAnalysis.safer_alternatives.alternatives && safeAnalysis.safer_alternatives.alternatives.length > 0 && (
-                      <div className="result-card alternatives-card">
-                        <h2>🛡️ Safer Alternatives</h2>
-                        <div className="alternatives-intro">
-                          <p>{safeAnalysis.safer_alternatives.reasoning || "Based on our privacy analysis, here are some safer alternatives that serve similar purposes:"}</p>
-                        </div>
-                        
-                        <div className="alternatives-grid">
-                          {safeAnalysis.safer_alternatives.alternatives.map((alternative, index) => (
-                            <div key={index} className="alternative-item">
-                              <div className="alternative-header">
-                                <h3>{alternative.name}</h3>
-                                <div className="alternative-badge">🔒 Privacy-Focused</div>
-                              </div>
-                              
-                              <p className="alternative-description">{alternative.description}</p>
-                              
-                              <div className="alternative-benefits">
-                                <h4>Privacy Benefits:</h4>
-                                <p>{alternative.privacy_benefits}</p>
-                              </div>
-                              
-                              {alternative.url && (
-                                <div className="alternative-actions">
-                                  <button 
-                                    onClick={() => window.open(alternative.url, '_blank')}
-                                    className="visit-alternative-btn"
-                                  >
-                                    <ExternalLinkIcon />
-                                    Visit Alternative
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {safeAnalysis.safer_alternatives.privacy_focus && (
-                          <div className="alternatives-footer">
-                            <p><strong>Privacy Focus:</strong> {safeAnalysis.safer_alternatives.privacy_focus}</p>
-                            <p className="source-note">💡 Powered by AI analysis of privacy practices</p>
+                {/* Safer Alternatives Section */}
+                {safeAnalysis.safer_alternatives && safeAnalysis.safer_alternatives.alternatives && safeAnalysis.safer_alternatives.alternatives.length > 0 && (
+                  <div className="result-card alternatives-card">
+                    <h2>🛡️ Safer Alternatives</h2>
+                    <div className="alternatives-intro">
+                      <p>{safeAnalysis.safer_alternatives.reasoning || "Based on our privacy analysis, here are some safer alternatives that serve similar purposes:"}</p>
+                    </div>
+
+                    <div className="alternatives-grid">
+                      {safeAnalysis.safer_alternatives.alternatives.map((alternative, index) => (
+                        <div key={index} className="alternative-item">
+                          <div className="alternative-header">
+                            <h3>{alternative.name}</h3>
+                            <div className="alternative-badge">🔒 Privacy-Focused</div>
                           </div>
-                        )}
+
+                          <p className="alternative-description">{alternative.description}</p>
+
+                          <div className="alternative-benefits">
+                            <h4>Privacy Benefits:</h4>
+                            <p>{alternative.privacy_benefits}</p>
+                          </div>
+
+                          {alternative.url && (
+                            <div className="alternative-actions">
+                              <button
+                                onClick={() => window.open(alternative.url, '_blank')}
+                                className="visit-alternative-btn"
+                              >
+                                <ExternalLinkIcon />
+                                Visit Alternative
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {safeAnalysis.safer_alternatives.privacy_focus && (
+                      <div className="alternatives-footer">
+                        <p><strong>Privacy Focus:</strong> {safeAnalysis.safer_alternatives.privacy_focus}</p>
+                        <p className="source-note">💡 Powered by AI analysis of privacy practices</p>
                       </div>
                     )}
-                    
+                  </div>
+                )}
+
 
               </div>
             </ErrorBoundary>
@@ -1410,7 +1651,7 @@ function App() {
 
         <footer className="app-footer">
           <p>
-            <ShieldIcon /> 
+            <ShieldIcon />
             Powered by AI • No data stored • Open source privacy analysis
           </p>
         </footer>

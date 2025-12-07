@@ -6,19 +6,23 @@ services:
     buildCommand: |
       pip install --upgrade pip setuptools wheel
       cd Backend
-      pip install -r requirements-lite.txt
-      python -m spacy download en_core_web_sm --quiet
+      pip install -r requirements.txt
+      python -m spacy download en_core_web_sm --quiet || echo "spaCy model download failed, continuing..."
     startCommand: |
       cd Backend
-      python start_lightweight.py
+      python -c "import sys; sys.path.insert(0, '.'); from main_optimized import app; import uvicorn; uvicorn.run(app, host='0.0.0.0', port=$PORT)"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.8.18
+        value: 3.11
       - key: PORT
         value: 8000
       - key: BACKEND_HOST
         value: 0.0.0.0
+      - key: BACKEND_PORT
+        value: 8000
       - key: DEBUG_MODE
         value: false
+      - key: ALLOWED_ORIGINS
+        sync: false
     healthCheckPath: /
     autoDeploy: true

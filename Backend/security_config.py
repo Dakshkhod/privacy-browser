@@ -99,33 +99,49 @@ class SecurityConfig:
         """Setup AES-256 encryption for sensitive data."""
         try:
             # Get encryption key from environment
-            encryption_key_b64 = os.getenv('ENCRYPTION_KEY')
-            
-            # Decode base64 key or generate from password
+            encryption_key_value = os.getenv('ENCRYPTION_KEY', '')
+
+            derived_key: bytes
+
+            # Attempt to treat value as base64-encoded 32-byte key
             try:
-                self._encryption_key = base64.b64decode(encryption_key_b64)
-            except:
-                # If not base64, derive key from password using PBKDF2
-                password = encryption_key_b64.encode()
-                salt = os.getenv('API_KEY_HASH_SALT').encode()
+                decoded = base64.b64decode(encryption_key_value, validate=True)
+            except Exception:
+                decoded = b''
+
+            if len(decoded) == 32:
+                derived_key = decoded
+            else:
+                # Derive a 32-byte key from the provided value using PBKDF2
+                password = encryption_key_value.encode() if encryption_key_value else b'default-dev-password'
+                salt = os.getenv('API_KEY_HASH_SALT', 'default-salt-for-development-only-change-in-production').encode()
                 kdf = PBKDF2HMAC(
                     algorithm=hashes.SHA256(),
                     length=32,
                     salt=salt,
-                    iterations=100000,
+                    iterations=100_000,
                 )
-                self._encryption_key = kdf.derive(password)
-            
-            # Initialize Fernet encryption
-            fernet_key = base64.urlsafe_b64encode(self._encryption_key)
+                derived_key = kdf.derive(password)
+
+            # Initialize Fernet encryption with a proper urlsafe base64 key
+            fernet_key = base64.urlsafe_b64encode(derived_key)
+            self._encryption_key = derived_key
             self._fernet = Fernet(fernet_key)
-            
+
             security_logger.info("Encryption system initialized with AES-256")
-            
+
         except Exception as e:
-            security_logger.warning(f"Encryption setup failed, using fallback: {e}")
-            # Use a simple fallback for development
-            self._encryption_key = b'default-encryption-key-for-dev-only'
+            security_logger.warning(f"Encryption setup failed, using deterministic fallback: {e}")
+            # Deterministic fallback for development with correct 32-byte length
+            fallback_password = b'default-fallback-password'
+            fallback_salt = b'default-fallback-salt'
+            kdf = PBKDF2HMAC(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=fallback_salt,
+                iterations=100_000,
+            )
+            self._encryption_key = kdf.derive(fallback_password)
             fernet_key = base64.urlsafe_b64encode(self._encryption_key)
             self._fernet = Fernet(fernet_key)
             security_logger.info("Using fallback encryption for development")
