@@ -16,9 +16,9 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy and install requirements
-COPY requirements-prod.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements-prod.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # Production stage
 FROM python:3.11-slim AS production
@@ -79,10 +79,6 @@ COPY . .
 RUN mkdir -p logs temp data && \
     chown -R appuser:appuser logs temp data
 
-# Set proper permissions
-RUN chmod +x start_production.py && \
-    chown appuser:appuser start_production.py
-
 # Switch to non-root user
 USER appuser
 
@@ -91,7 +87,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/ || exit 1
 
 # Run the production application
-CMD ["python", "start_production.py"]
+CMD ["python", "-c", "import sys; sys.path.insert(0, '.'); from main_optimized import app; import uvicorn; uvicorn.run(app, host='0.0.0.0', port=8000)"]
