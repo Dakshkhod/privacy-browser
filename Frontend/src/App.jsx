@@ -408,10 +408,8 @@ function App() {
     }
   })();
 
-  // Backend URL - dynamically determine based on environment
-  const BACKEND_URL = window.location.hostname === 'localhost'
-    ? "http://localhost:5001"
-    : config.BACKEND_URL;
+  // Backend URL - use config (which handles environment variables)
+  const BACKEND_URL = config.BACKEND_URL;
 
   // Safe URL validation
   const isValidUrl = (string) => {

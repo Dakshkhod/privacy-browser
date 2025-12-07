@@ -1,9 +1,11 @@
 // Configuration for Privacy Browser Frontend
 const config = {
-  // Backend API URL - Update this after deploying to Render
-  BACKEND_URL: process.env.NODE_ENV === 'production'
-    ? 'https://privacybrowser-backend.onrender.com'  // Your deployed Render backend
-    : 'http://localhost:5001',
+  // Backend API URL - Uses VITE_BACKEND_URL if set, otherwise defaults
+  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || (
+    import.meta.env.PROD
+      ? 'https://privacybrowser-backend.onrender.com'  // Production default
+      : 'http://localhost:5001'  // Development default
+  ),
 
   // API endpoints
   ENDPOINTS: {
