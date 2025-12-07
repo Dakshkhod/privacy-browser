@@ -1,7 +1,9 @@
 # Gunicorn configuration file for production deployment
 
 # Server socket
-bind = "0.0.0.0:8000"
+# Use PORT environment variable for Render compatibility
+import os
+bind = f"0.0.0.0:{os.getenv('PORT', '8000')}"
 backlog = 2048
 
 # Worker processes

@@ -120,9 +120,8 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "uptime": time.time()
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 @app.get("/test-simple")

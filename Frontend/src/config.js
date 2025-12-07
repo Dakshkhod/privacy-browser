@@ -2,7 +2,7 @@
 const config = {
   // Backend API URL - Update this after deploying to Render
   BACKEND_URL: process.env.NODE_ENV === 'production'
-    ? 'https://privacybrowser-backend.onrender.com'  // Your deployed Render backend
+    ? 'https://privacy-browser-backend.onrender.com'  // Your deployed Render backend
     : 'http://localhost:5001',
 
   // API endpoints
