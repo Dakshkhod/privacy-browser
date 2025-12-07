@@ -40,32 +40,44 @@ class LLMPrivacyAnalyzer:
             api_key = os.getenv('GROQ_API_KEY')
             if api_key:
                 try:
-                    # Try different initialization methods for compatibility
-                    # Method 1: Try with api_key as keyword argument
-                    try:
-                        self.groq_client = Groq(api_key=api_key)
-                        self.groq_available = True
-                        logger.info("Groq LLM initialized successfully")
-                    except (TypeError, Exception) as e1:
-                        # Method 2: Try with api_key as positional argument
+                    # Initialize Groq client - use api_key parameter (not proxies)
+                    # Some versions of groq library don't support proxies parameter
+                    self.groq_client = Groq(api_key=api_key)
+                    self.groq_available = True
+                    logger.info("Groq LLM initialized successfully")
+                except TypeError as e:
+                    # Handle version compatibility issues
+                    if 'proxies' in str(e) or 'unexpected keyword' in str(e):
+                        # Try with just api_key as positional argument
                         try:
                             self.groq_client = Groq(api_key)
                             self.groq_available = True
-                            logger.info("Groq LLM initialized successfully (positional mode)")
-                        except (TypeError, Exception) as e2:
+                            logger.info("Groq LLM initialized successfully (compatibility mode)")
+                        except Exception as e2:
                             # Method 3: Try with no arguments and set API key via environment
                             # Some versions require API key to be set via environment variable
-                            import os
                             original_key = os.environ.get('GROQ_API_KEY')
                             os.environ['GROQ_API_KEY'] = api_key
                             try:
                                 self.groq_client = Groq()
                                 self.groq_available = True
                                 logger.info("Groq LLM initialized successfully (env var mode)")
-                            except Exception as e3:
-                                if original_key:
+                                # Restore original environment variable value on success
+                                if original_key is not None:
                                     os.environ['GROQ_API_KEY'] = original_key
-                                logger.warning(f"Groq initialization failed with all methods: {e3}")
+                                else:
+                                    # If it didn't exist, remove it to restore original state
+                                    os.environ.pop('GROQ_API_KEY', None)
+                            except Exception as e3:
+                                # Restore original environment variable on failure
+                                if original_key is not None:
+                                    os.environ['GROQ_API_KEY'] = original_key
+                                else:
+                                    # If it didn't exist, remove it to restore original state
+                                    os.environ.pop('GROQ_API_KEY', None)
+                                logger.warning(f"Groq initialization failed: {e3}")
+                    else:
+                        logger.warning(f"Groq initialization failed: {e}")
                 except Exception as e:
                     logger.warning(f"Groq initialization failed: {e}")
             else:
@@ -929,4 +941,3 @@ def get_llm_analyzer() -> LLMPrivacyAnalyzer:
     if _llm_analyzer is None:
         _llm_analyzer = LLMPrivacyAnalyzer()
     return _llm_analyzer
-
