@@ -869,6 +869,43 @@ class UltraPrivacyFetcher:
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
             normalized_domain = self._normalize_domain_for_lookup(domain)
+            url_path = parsed_url.path.lower()
+            
+            # Check if URL is already a privacy policy page (direct link)
+            privacy_path_indicators = ['/privacy', '/privacy-policy', '/privacy_policy', '/privacypolicy',
+                                      '/privacy-notice', '/privacy-statement', '/data-protection', 
+                                      '/cookie-policy', '/legal/privacy', '/policies/privacy',
+                                      '/terms/privacy', '/about/privacy', '/help/privacy']
+            
+            is_direct_privacy_url = any(indicator in url_path for indicator in privacy_path_indicators)
+            
+            if is_direct_privacy_url:
+                logger.info(f"Detected direct privacy policy URL: {url} - fetching directly")
+                # Try to fetch the URL directly first
+                content, status, final_url = await self._fetch_url(url)
+                if content and status == 200:
+                    title = self._get_title(content)
+                    score = self._calculate_privacy_score_advanced(content, final_url, title)
+                    
+                    if score >= 40:  # Valid privacy policy
+                        clean_text = self._extract_clean_text(content)
+                        if len(clean_text) >= 50:
+                            response = {
+                                'success': True,
+                                'policy_url': final_url,
+                                'policy_text': clean_text[:15000],
+                                'score': score,
+                                'strategy': 'direct_fetch',
+                                'fetch_time': time.time() - start_time,
+                                'cached': False,
+                                'domain': normalized_domain
+                            }
+                            # Save to cache
+                            await self._save_to_memory_cache(normalized_domain, response)
+                            await self._save_to_disk_cache(normalized_domain, response)
+                            logger.info(f"✓ Direct fetch successful for {url} (score: {score}) in {time.time() - start_time:.2f}s")
+                            return response
+                    logger.info(f"Direct URL fetch returned low score ({score}), trying strategies...")
             
             # Normalize domain - some sites require www
             www_required_domains = ['facebook.com', 'instagram.com', 'meta.com']
