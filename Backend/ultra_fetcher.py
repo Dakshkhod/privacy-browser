@@ -208,15 +208,23 @@ class UltraPrivacyFetcher:
             'google.com': {'paths': ['/policies/privacy', '/intl/en/policies/privacy', '/chrome/privacy'], 'priority': 10},
             'facebook.com': {
                 'paths': [
-                    'https://www.facebook.com/privacy/policy',
-                    'https://www.facebook.com/privacy/policy/?entry_point=product_details&referrer=product_details',
-                    'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
-                    'https://www.facebook.com/privacy/explanation',
-                    'https://www.facebook.com/about/privacy',
+                    # Simple paths first (most likely to work)
+                    '/privacy',
+                    '/privacy-policy',
                     '/privacy/policy',
                     '/privacy/explanation',
                     '/about/privacy',
-                    '/legal/privacy'
+                    '/legal/privacy',
+                    # Full URLs with www
+                    'https://www.facebook.com/privacy',
+                    'https://www.facebook.com/privacy-policy',
+                    'https://www.facebook.com/privacy/policy',
+                    'https://www.facebook.com/privacy/policy/?entry_point=product_details&referrer=product_details',
+                    'https://www.facebook.com/privacy/explanation',
+                    'https://www.facebook.com/about/privacy',
+                    # Mobile/alternative versions
+                    'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                    'https://m.facebook.com/privacy/policy'
                 ],
                 'priority': 10,
                 'requires_js': True  # Facebook often requires JavaScript
@@ -628,14 +636,35 @@ class UltraPrivacyFetcher:
                 seen.add(url)
                 unique_urls.append(url)
         
-        # Test in parallel batches
+        logger.info(f"Testing {len(unique_urls)} direct URLs for {domain}")
+        
+        # For JavaScript-required sites, limit direct URL attempts to avoid wasting time
+        domain_pattern = self.domain_patterns.get(domain, {})
+        if domain_pattern.get('requires_js', False):
+            # Only test top 10 URLs for JS-required sites, then move to JS strategy
+            unique_urls = unique_urls[:10]
+            logger.info(f"Limited to top {len(unique_urls)} URLs for JS-required site {domain}")
+        
+        # Test in parallel batches with timeout
         best_result = None
         best_score = 0
         
-        batch_size = 15
+        batch_size = 10  # Reduced batch size for faster failure
         for i in range(0, len(unique_urls), batch_size):
             batch = unique_urls[i:i + batch_size]
-            tasks = [self._fetch_url(url) for url in batch]
+            
+            # Create tasks with timeout wrapper
+            async def fetch_with_timeout(url):
+                try:
+                    return await asyncio.wait_for(self._fetch_url(url), timeout=8.0)
+                except asyncio.TimeoutError:
+                    logger.debug(f"Timeout for {url}")
+                    return None, None, url
+                except Exception as e:
+                    logger.debug(f"Error fetching {url}: {e}")
+                    return None, None, url
+            
+            tasks = [fetch_with_timeout(url) for url in batch]
             
             try:
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -649,13 +678,15 @@ class UltraPrivacyFetcher:
                         title = self._get_title(content)
                         score = self._calculate_privacy_score_advanced(content, final_url, title)
                         
+                        logger.debug(f"URL {final_url}: score={score}, content_len={len(content)}")
+                        
                         if score > best_score:
                             best_score = score
                             best_result = (final_url, content, score)
                             
                             # Early termination for excellent matches
                             if score >= 75:
-                                logger.info(f"Found excellent match (score: {score}) at {final_url}")
+                                logger.info(f"✓ Found excellent match (score: {score}) at {final_url}")
                                 self.stats['strategy_success']['direct_url'] += 1
                                 return best_result
             
@@ -664,9 +695,11 @@ class UltraPrivacyFetcher:
                 continue
         
         if best_result and best_score >= 40:
+            logger.info(f"✓ Direct URL strategy found match (score: {best_score})")
             self.stats['strategy_success']['direct_url'] += 1
             return best_result
         
+        logger.debug(f"Direct URL strategy found no valid matches (best score: {best_score})")
         return None
 
     async def _strategy_sitemap(self, base_url: str, domain: str) -> Optional[Tuple[str, str, int]]:
@@ -824,9 +857,16 @@ class UltraPrivacyFetcher:
             
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
-            base_url = f"{parsed_url.scheme}://{domain}"
             
-            logger.info(f"Ultra Fetcher: Processing {domain}")
+            # Normalize domain - some sites require www
+            www_required_domains = ['facebook.com', 'instagram.com', 'meta.com']
+            if domain in www_required_domains and not domain.startswith('www.'):
+                # Keep original for domain lookup, but use www for base_url
+                base_url = f"{parsed_url.scheme}://www.{domain}"
+            else:
+                base_url = f"{parsed_url.scheme}://{domain}"
+            
+            logger.info(f"Ultra Fetcher: Processing {domain} (base_url: {base_url})")
             
             # Check multi-tier cache
             cached = await self._get_from_memory_cache(domain)
@@ -850,6 +890,11 @@ class UltraPrivacyFetcher:
                 ('robots_txt', self._strategy_robots_txt),
                 ('dom_scan', self._strategy_dom_scan)
             ]
+            
+            # Add JavaScript fallback for sites that require it (like Facebook)
+            domain_pattern = self.domain_patterns.get(domain, {})
+            if domain_pattern.get('requires_js', False):
+                strategies.append(('javascript', self._strategy_javascript_fallback))
             
             for strategy_name, strategy_func in strategies:
                 try:
@@ -908,40 +953,72 @@ class UltraPrivacyFetcher:
             }
 
     async def _strategy_javascript_fallback(self, base_url: str, domain: str) -> Optional[Tuple[str, str, int]]:
-        """Strategy 6: JavaScript rendering for problematic sites like Instagram/Facebook"""
-        logger.info(f"Strategy 6: JavaScript rendering for {domain}")
+        """Strategy 5: JavaScript rendering for problematic sites like Instagram/Facebook"""
+        logger.info(f"Strategy 5: JavaScript rendering for {domain}")
         
         if not JS_FETCHER_AVAILABLE:
             logger.debug("JavaScript fetcher not available")
             return None
         
         # Only use JavaScript for known problematic sites
-        problematic_domains = ['instagram.com', 'facebook.com', 'tiktok.com', 'snapchat.com']
+        problematic_domains = ['instagram.com', 'facebook.com', 'tiktok.com', 'snapchat.com', 'meta.com']
         if domain not in problematic_domains:
             return None
         
         try:
             js_fetcher = await get_js_fetcher()
             if not js_fetcher:
+                logger.warning("JavaScript fetcher not initialized")
                 return None
             
-            # Try the known privacy policy URLs with JavaScript
-            privacy_urls = [
-                f"https://privacycenter.{domain}/policy",
-                f"https://www.{domain}/privacy/policy",
-                f"https://{domain}/privacy",
-                f"https://{domain}/privacy-policy"
+            # Build list of URLs to try - use domain-specific patterns if available
+            privacy_urls = []
+            
+            # Get domain-specific URLs first
+            if domain in self.domain_patterns:
+                pattern = self.domain_patterns[domain]
+                for path in pattern['paths']:
+                    if path.startswith('http'):
+                        privacy_urls.append(path)
+                    else:
+                        privacy_urls.append(urljoin(base_url, path))
+            
+            # Add common fallback URLs
+            common_urls = [
+                f"{base_url}/privacy",
+                f"{base_url}/privacy-policy",
+                f"{base_url}/privacy/policy",
+                f"https://www.{domain}/privacy",
+                f"https://www.{domain}/privacy-policy",
+                f"https://www.{domain}/privacy/policy"
             ]
             
-            for privacy_url in privacy_urls:
+            for url in common_urls:
+                if url not in privacy_urls:
+                    privacy_urls.append(url)
+            
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_urls = []
+            for url in privacy_urls:
+                if url not in seen:
+                    seen.add(url)
+                    unique_urls.append(url)
+            
+            logger.info(f"Trying {len(unique_urls)} URLs with JavaScript rendering")
+            
+            for privacy_url in unique_urls[:10]:  # Limit to top 10 to avoid timeout
                 try:
-                    content, status, final_url = await js_fetcher.fetch_with_js(privacy_url)
-                    if content and len(content) > 100:
+                    logger.debug(f"JavaScript fetch attempt: {privacy_url}")
+                    content, status, final_url = await js_fetcher.fetch_with_js(privacy_url, wait_time=15)
+                    if content and len(content) > 500:  # Require substantial content
                         # Calculate score
-                        score = self._calculate_privacy_score_advanced(content, final_url)
-                        if score >= 60:
-                            logger.info(f"JavaScript fetch successful for {privacy_url}: {len(content)} chars, score: {score}")
-                            return content, final_url, score
+                        title = self._get_title(content)
+                        score = self._calculate_privacy_score_advanced(content, final_url, title)
+                        logger.info(f"JavaScript fetch result for {privacy_url}: {len(content)} chars, score: {score}")
+                        if score >= 40:  # Lower threshold for JS-rendered content
+                            logger.info(f"✓ JavaScript fetch successful: {final_url} (score: {score})")
+                            return (final_url, content, score)
                 except Exception as e:
                     logger.debug(f"JavaScript fetch failed for {privacy_url}: {e}")
                     continue
