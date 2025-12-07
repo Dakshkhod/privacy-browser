@@ -40,9 +40,23 @@ class LLMPrivacyAnalyzer:
             api_key = os.getenv('GROQ_API_KEY')
             if api_key:
                 try:
+                    # Initialize Groq client - use api_key parameter (not proxies)
+                    # Some versions of groq library don't support proxies parameter
                     self.groq_client = Groq(api_key=api_key)
                     self.groq_available = True
                     logger.info("Groq LLM initialized successfully")
+                except TypeError as e:
+                    # Handle version compatibility issues
+                    if 'proxies' in str(e) or 'unexpected keyword' in str(e):
+                        # Try with just api_key as positional argument
+                        try:
+                            self.groq_client = Groq(api_key)
+                            self.groq_available = True
+                            logger.info("Groq LLM initialized successfully (compatibility mode)")
+                        except Exception as e2:
+                            logger.warning(f"Groq initialization failed: {e2}")
+                    else:
+                        logger.warning(f"Groq initialization failed: {e}")
                 except Exception as e:
                     logger.warning(f"Groq initialization failed: {e}")
             else:

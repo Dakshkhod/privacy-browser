@@ -151,7 +151,11 @@ class UltraPrivacyFetcher:
             "{base}/user-privacy", "{base}/consumer-privacy",
             # Additional common patterns
             "{base}/terms-and-privacy", "{base}/privacy-terms", "{base}/privacy-security",
-            "{base}/privacystatement", "{base}/PrivacyPolicy", "{base}/Privacy"
+            "{base}/privacystatement", "{base}/PrivacyPolicy", "{base}/Privacy",
+            # Facebook/Meta specific URLs
+            "{base}/privacy/explanation", "{base}/about/privacy", "{base}/legal/privacy",
+            "{base}/policies/privacy", "{base}/policies/privacy-policy", "{base}/privacy/policy",
+            "{base}/privacy/update", "{base}/privacy/full", "{base}/privacy/statement"
         ]
 
     async def __aenter__(self):
@@ -202,9 +206,44 @@ class UltraPrivacyFetcher:
         return {
             # Social Media & Communication
             'google.com': {'paths': ['/policies/privacy', '/intl/en/policies/privacy', '/chrome/privacy'], 'priority': 10},
-            'facebook.com': {'paths': ['https://mbasic.facebook.com/privacy/policy/?locale=en_US', '/privacy/policy', '/about/privacy'], 'priority': 10},
-            'meta.com': {'paths': ['https://mbasic.facebook.com/privacy/policy/?locale=en_US', '/privacy/policy', '/legal/privacy'], 'priority': 10},
-            'instagram.com': {'paths': ['https://mbasic.facebook.com/privacy/policy/?locale=en_US', '/legal/privacy', '/privacy/policy'], 'priority': 10},
+            'facebook.com': {
+                'paths': [
+                    'https://www.facebook.com/privacy/policy',
+                    'https://www.facebook.com/privacy/policy/?entry_point=product_details&referrer=product_details',
+                    'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                    'https://www.facebook.com/privacy/explanation',
+                    'https://www.facebook.com/about/privacy',
+                    '/privacy/policy',
+                    '/privacy/explanation',
+                    '/about/privacy',
+                    '/legal/privacy'
+                ],
+                'priority': 10,
+                'requires_js': True  # Facebook often requires JavaScript
+            },
+            'meta.com': {
+                'paths': [
+                    'https://www.facebook.com/privacy/policy',
+                    'https://www.meta.com/privacy/',
+                    'https://www.meta.com/legal/privacy/',
+                    '/privacy/policy',
+                    '/privacy',
+                    '/legal/privacy'
+                ],
+                'priority': 10,
+                'requires_js': True
+            },
+            'instagram.com': {
+                'paths': [
+                    'https://www.facebook.com/privacy/policy',
+                    'https://help.instagram.com/519522125107875',
+                    'https://privacycenter.instagram.com/policy',
+                    '/legal/privacy',
+                    '/privacy/policy'
+                ],
+                'priority': 10,
+                'requires_js': True
+            },
             'twitter.com': {'paths': ['/en/privacy', '/privacy', '/privacy-policy', '/tos'], 'priority': 10},
             'x.com': {'paths': ['/en/privacy', '/privacy', '/privacy-policy'], 'priority': 10},
             'linkedin.com': {'paths': ['/legal/privacy-policy', '/privacy', '/privacy-policy'], 'priority': 10},
