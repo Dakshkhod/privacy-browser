@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: privacy-browser-backend
+    name: PrivacyBrowser-backend
     env: python
     region: oregon
     plan: free
