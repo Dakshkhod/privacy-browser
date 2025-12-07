@@ -327,9 +327,18 @@ class UltraPrivacyFetcher:
             'instacart.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
         }
 
+    def _normalize_domain_for_lookup(self, domain: str) -> str:
+        """Normalize domain for dictionary lookups (remove www. prefix)"""
+        domain = domain.lower().strip()
+        # Remove www. prefix for consistent lookups
+        if domain.startswith('www.'):
+            domain = domain[4:]
+        return domain
+
     def _get_cache_key(self, domain: str) -> str:
         """Generate cache key for domain"""
-        return hashlib.sha256(domain.lower().encode()).hexdigest()
+        normalized = self._normalize_domain_for_lookup(domain)
+        return hashlib.sha256(normalized.encode()).hexdigest()
 
     async def _get_from_memory_cache(self, domain: str) -> Optional[Dict]:
         """Check memory cache"""
@@ -613,10 +622,11 @@ class UltraPrivacyFetcher:
         """Strategy 1: Test direct privacy policy URLs (fastest)"""
         logger.info(f"Strategy 1: Testing direct URLs for {domain}")
         
-        # Get domain-specific patterns first
+        # Get domain-specific patterns first (use normalized domain for lookup)
+        normalized_domain = self._normalize_domain_for_lookup(domain)
         test_urls = []
-        if domain in self.domain_patterns:
-            pattern = self.domain_patterns[domain]
+        if normalized_domain in self.domain_patterns:
+            pattern = self.domain_patterns[normalized_domain]
             for path in pattern['paths']:
                 # Handle full URLs vs relative paths
                 if path.startswith('http'):
@@ -639,7 +649,8 @@ class UltraPrivacyFetcher:
         logger.info(f"Testing {len(unique_urls)} direct URLs for {domain}")
         
         # For JavaScript-required sites, limit direct URL attempts to avoid wasting time
-        domain_pattern = self.domain_patterns.get(domain, {})
+        # Use normalized_domain (already computed above)
+        domain_pattern = self.domain_patterns.get(normalized_domain, {})
         if domain_pattern.get('requires_js', False):
             # Only test top 10 URLs for JS-required sites, then move to JS strategy
             unique_urls = unique_urls[:10]
@@ -857,25 +868,26 @@ class UltraPrivacyFetcher:
             
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
+            normalized_domain = self._normalize_domain_for_lookup(domain)
             
             # Normalize domain - some sites require www
             www_required_domains = ['facebook.com', 'instagram.com', 'meta.com']
-            if domain in www_required_domains and not domain.startswith('www.'):
+            if normalized_domain in www_required_domains and not domain.startswith('www.'):
                 # Keep original for domain lookup, but use www for base_url
                 base_url = f"{parsed_url.scheme}://www.{domain}"
             else:
                 base_url = f"{parsed_url.scheme}://{domain}"
             
-            logger.info(f"Ultra Fetcher: Processing {domain} (base_url: {base_url})")
+            logger.info(f"Ultra Fetcher: Processing {domain} (normalized: {normalized_domain}, base_url: {base_url})")
             
-            # Check multi-tier cache
-            cached = await self._get_from_memory_cache(domain)
+            # Check multi-tier cache (use normalized domain for consistency)
+            cached = await self._get_from_memory_cache(normalized_domain)
             if cached:
                 cached['cached'] = True
                 cached['cache_type'] = 'memory'
                 return cached
             
-            cached = await self._get_from_disk_cache(domain)
+            cached = await self._get_from_disk_cache(normalized_domain)
             if cached:
                 cached['cached'] = True
                 cached['cache_type'] = 'disk'
@@ -892,7 +904,8 @@ class UltraPrivacyFetcher:
             ]
             
             # Add JavaScript fallback for sites that require it (like Facebook)
-            domain_pattern = self.domain_patterns.get(domain, {})
+            # Use normalized_domain for dictionary lookup
+            domain_pattern = self.domain_patterns.get(normalized_domain, {})
             if domain_pattern.get('requires_js', False):
                 strategies.append(('javascript', self._strategy_javascript_fallback))
             
@@ -914,12 +927,12 @@ class UltraPrivacyFetcher:
                                 'strategy': strategy_name,
                                 'fetch_time': time.time() - start_time,
                                 'cached': False,
-                                'domain': domain
+                                'domain': normalized_domain
                             }
                             
-                            # Save to cache
-                            await self._save_to_memory_cache(domain, response)
-                            await self._save_to_disk_cache(domain, response)
+                            # Save to cache (use normalized_domain for consistency)
+                            await self._save_to_memory_cache(normalized_domain, response)
+                            await self._save_to_disk_cache(normalized_domain, response)
                             
                             logger.info(f"Success for {domain} via {strategy_name} (score: {score}) in {time.time() - start_time:.2f}s")
                             return response
@@ -937,7 +950,7 @@ class UltraPrivacyFetcher:
             return {
                 'success': False,
                 'error': 'Privacy policy not found',
-                'domain': domain,
+                'domain': normalized_domain,
                 'fetch_time': fetch_time,
                 'strategies_tried': len(strategies)
             }
@@ -974,23 +987,21 @@ class UltraPrivacyFetcher:
             # Build list of URLs to try - use domain-specific patterns if available
             privacy_urls = []
             
-            # Get domain-specific URLs first
-            if domain in self.domain_patterns:
-                pattern = self.domain_patterns[domain]
+            # Get domain-specific URLs first (use normalized domain for lookup)
+            normalized_domain = self._normalize_domain_for_lookup(domain)
+            if normalized_domain in self.domain_patterns:
+                pattern = self.domain_patterns[normalized_domain]
                 for path in pattern['paths']:
                     if path.startswith('http'):
                         privacy_urls.append(path)
                     else:
                         privacy_urls.append(urljoin(base_url, path))
             
-            # Add common fallback URLs
+            # Add common fallback URLs (base_url already handles www correctly, no need to add it manually)
             common_urls = [
                 f"{base_url}/privacy",
                 f"{base_url}/privacy-policy",
-                f"{base_url}/privacy/policy",
-                f"https://www.{domain}/privacy",
-                f"https://www.{domain}/privacy-policy",
-                f"https://www.{domain}/privacy/policy"
+                f"{base_url}/privacy/policy"
             ]
             
             for url in common_urls:
@@ -1060,4 +1071,3 @@ async def get_ultra_fetcher() -> UltraPrivacyFetcher:
         ultra_fetcher = UltraPrivacyFetcher()
         await ultra_fetcher.__aenter__()
     return ultra_fetcher
-
