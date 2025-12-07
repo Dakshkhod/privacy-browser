@@ -19,9 +19,10 @@ timeout = 120
 keepalive = 2
 graceful_timeout = 30
 
-# Logging
-accesslog = "logs/gunicorn_access.log"
-errorlog = "logs/gunicorn_error.log"
+# Logging - Use stdout/stderr for cloud deployments (Render, etc.)
+# This allows Render to capture logs automatically
+accesslog = "-"  # stdout
+errorlog = "-"   # stderr
 loglevel = "info"
 access_log_format = ('%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s '
                      '"%(f)s" "%(a)s" %(D)s')
