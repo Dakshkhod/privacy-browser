@@ -5409,6 +5409,10 @@ body {
     display: flex !important;
     flex-direction: column !important;
     gap: 0.75rem !important;
+    max-height: 65vh;
+    overflow-y: auto;
+    padding-right: 0.35rem;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Style legend items as interactive cards on mobile */
@@ -5419,6 +5423,7 @@ body {
     padding: 1rem;
     margin-bottom: 0;
     width: 100%;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
   }
 
   .legend-item:active {
@@ -5434,12 +5439,7 @@ body {
 
   /* Add a subtitle for mobile users since chart is hidden */
   .chart-card h2::after {
-    content: " (Mobile View)";
-    display: block;
-    font-size: 0.8rem;
-    color: #64748b;
-    font-weight: normal;
-    margin-top: 0.25rem;
+    content: "";
   }
 }
 
