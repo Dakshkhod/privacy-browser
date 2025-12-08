@@ -205,69 +205,159 @@ class UltraPrivacyFetcher:
         """Load domain-specific privacy policy patterns - expanded for better coverage"""
         return {
             # Social Media & Communication
-            'google.com': {'paths': ['/policies/privacy', '/intl/en/policies/privacy', '/chrome/privacy'], 'priority': 10},
-            'facebook.com': {
+            # IMPORTANT: Mobile/basic URLs are listed FIRST - they work without JavaScript!
+            'google.com': {
                 'paths': [
-                    # Simple paths first (most likely to work)
-                    '/privacy',
-                    '/privacy-policy',
-                    '/privacy/policy',
-                    '/privacy/explanation',
-                    '/about/privacy',
-                    '/legal/privacy',
-                    # Full URLs with www
-                    'https://www.facebook.com/privacy',
-                    'https://www.facebook.com/privacy-policy',
-                    'https://www.facebook.com/privacy/policy',
-                    'https://www.facebook.com/privacy/policy/?entry_point=product_details&referrer=product_details',
-                    'https://www.facebook.com/privacy/explanation',
-                    'https://www.facebook.com/about/privacy',
-                    # Mobile/alternative versions
-                    'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
-                    'https://m.facebook.com/privacy/policy'
+                    # Google policies site works well
+                    'https://policies.google.com/privacy',
+                    'https://policies.google.com/privacy?hl=en',
+                    '/policies/privacy',
+                    '/intl/en/policies/privacy',
+                    '/chrome/privacy'
                 ],
                 'priority': 10,
-                'requires_js': True  # Facebook often requires JavaScript
+                'requires_js': False
+            },
+            'facebook.com': {
+                'paths': [
+                    # MOBILE/BASIC versions FIRST - these work without JavaScript!
+                    'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                    'https://mbasic.facebook.com/legal/terms/update',
+                    'https://m.facebook.com/privacy/policy/',
+                    'https://m.facebook.com/about/privacy/',
+                    # Then try full site URLs
+                    'https://www.facebook.com/privacy/policy/',
+                    'https://www.facebook.com/privacy/explanation/',
+                    'https://www.facebook.com/about/privacy/',
+                    'https://www.facebook.com/legal/privacy',
+                    '/privacy/policy',
+                    '/privacy',
+                    '/about/privacy'
+                ],
+                'priority': 10,
+                'requires_js': True,
+                'try_mobile_first': True  # Flag to try mobile versions first
             },
             'meta.com': {
                 'paths': [
-                    'https://www.facebook.com/privacy/policy',
-                    'https://www.meta.com/privacy/',
-                    'https://www.meta.com/legal/privacy/',
+                    # Meta redirects to Facebook for privacy
+                    'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                    'https://m.facebook.com/privacy/policy/',
+                    'https://www.facebook.com/privacy/policy/',
+                    'https://www.meta.com/legal/privacy-policy/',
+                    'https://about.meta.com/privacy/',
                     '/privacy/policy',
                     '/privacy',
                     '/legal/privacy'
                 ],
                 'priority': 10,
-                'requires_js': True
+                'requires_js': True,
+                'try_mobile_first': True
             },
             'instagram.com': {
                 'paths': [
-                    'https://www.facebook.com/privacy/policy',
+                    # Instagram uses Facebook/Meta privacy policy - use mobile versions!
+                    'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                    'https://m.facebook.com/privacy/policy/',
+                    'https://www.facebook.com/privacy/policy/',
                     'https://help.instagram.com/519522125107875',
                     'https://privacycenter.instagram.com/policy',
                     '/legal/privacy',
                     '/privacy/policy'
                 ],
                 'priority': 10,
+                'requires_js': True,
+                'try_mobile_first': True
+            },
+            'twitter.com': {
+                'paths': [
+                    'https://twitter.com/en/privacy',
+                    'https://twitter.com/privacy',
+                    '/en/privacy',
+                    '/privacy',
+                    '/privacy-policy'
+                ],
+                'priority': 10,
+                'requires_js': False
+            },
+            'x.com': {
+                'paths': [
+                    'https://twitter.com/en/privacy',
+                    'https://x.com/en/privacy',
+                    '/en/privacy',
+                    '/privacy',
+                    '/privacy-policy'
+                ],
+                'priority': 10,
+                'requires_js': False
+            },
+            'linkedin.com': {'paths': ['/legal/privacy-policy', '/privacy', '/privacy-policy'], 'priority': 10},
+            'tiktok.com': {
+                'paths': [
+                    'https://www.tiktok.com/legal/page/row/privacy-policy/en',
+                    'https://www.tiktok.com/legal/privacy-policy-us',
+                    '/legal/privacy-policy',
+                    '/legal/page/row/privacy-policy',
+                    '/privacy'
+                ],
+                'priority': 10,
                 'requires_js': True
             },
-            'twitter.com': {'paths': ['/en/privacy', '/privacy', '/privacy-policy', '/tos'], 'priority': 10},
-            'x.com': {'paths': ['/en/privacy', '/privacy', '/privacy-policy'], 'priority': 10},
-            'linkedin.com': {'paths': ['/legal/privacy-policy', '/privacy', '/privacy-policy'], 'priority': 10},
-            'tiktok.com': {'paths': ['/legal/privacy-policy', '/legal/page/row/privacy-policy', '/privacy', '/legal/privacy-policy-us'], 'priority': 10},
-            'snapchat.com': {'paths': ['/privacy/privacy-policy', '/privacy', '/policies/privacy'], 'priority': 10},
+            'snapchat.com': {
+                'paths': [
+                    'https://values.snap.com/privacy/privacy-policy',
+                    '/privacy/privacy-policy',
+                    '/privacy',
+                    '/policies/privacy'
+                ],
+                'priority': 10
+            },
             'reddit.com': {'paths': ['/policies/privacy-policy', '/privacy', '/help/privacypolicy'], 'priority': 10},
-            'whatsapp.com': {'paths': ['/legal/privacy-policy', '/legal/updates/privacy-policy', '/privacy'], 'priority': 10},
+            'whatsapp.com': {
+                'paths': [
+                    # WhatsApp legal pages work without JS
+                    'https://www.whatsapp.com/legal/privacy-policy',
+                    'https://www.whatsapp.com/legal/updates/privacy-policy',
+                    '/legal/privacy-policy',
+                    '/legal/updates/privacy-policy',
+                    '/privacy'
+                ],
+                'priority': 10,
+                'requires_js': False
+            },
             'discord.com': {'paths': ['/privacy', '/privacy-policy', '/terms'], 'priority': 10},
             'telegram.org': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
             'pinterest.com': {'paths': ['/privacy/privacy-policy', '/privacy', '/_/_/policy/privacy-policy'], 'priority': 10},
             'tumblr.com': {'paths': ['/privacy', '/policy/en/privacy'], 'priority': 10},
             
             # Tech Giants
-            'microsoft.com': {'paths': ['/privacy', '/en-us/privacy', '/privacystatement', '/en-us/privacystatement'], 'priority': 10},
-            'apple.com': {'paths': ['/legal/privacy', '/privacy', '/legal/privacy/en-ww', '/privacy/features'], 'priority': 10},
-            'amazon.com': {'paths': ['/gp/help/customer/display.html?nodeId=468496', '/privacy', '/privacy-policy'], 'priority': 10},
+            'microsoft.com': {
+                'paths': [
+                    'https://privacy.microsoft.com/en-us/privacystatement',
+                    '/privacy',
+                    '/en-us/privacy',
+                    '/privacystatement'
+                ],
+                'priority': 10
+            },
+            'apple.com': {
+                'paths': [
+                    'https://www.apple.com/legal/privacy/en-ww/',
+                    '/legal/privacy',
+                    '/privacy',
+                    '/legal/privacy/en-ww'
+                ],
+                'priority': 10
+            },
+            'amazon.com': {
+                'paths': [
+                    'https://www.amazon.com/gp/help/customer/display.html?nodeId=468496',
+                    '/gp/help/customer/display.html?nodeId=468496',
+                    '/privacy',
+                    '/privacy-policy'
+                ],
+                'priority': 10
+            },
             'github.com': {'paths': ['/privacy', '/site/privacy', 'https://docs.github.com/en/site-policy/privacy-policies'], 'priority': 10},
             'zoom.us': {'paths': ['/privacy', '/privacy-and-legal'], 'priority': 10},
             'dropbox.com': {'paths': ['/privacy', '/terms/privacy'], 'priority': 10},
@@ -980,9 +1070,16 @@ class UltraPrivacyFetcher:
                     logger.error(f"Strategy {strategy_name} error for {domain}: {e}")
                     continue
             
-            # All strategies failed
+            # All dynamic strategies failed - try static fallback for major sites
             fetch_time = time.time() - start_time
-            logger.warning(f"All strategies failed for {domain} ({fetch_time:.2f}s)")
+            logger.warning(f"All strategies failed for {domain} ({fetch_time:.2f}s), trying static fallback")
+            
+            # Check if we have a static fallback for this domain
+            static_result = await self._get_static_fallback(normalized_domain)
+            if static_result:
+                logger.info(f"Using static fallback for {domain}")
+                static_result['fetch_time'] = fetch_time
+                return static_result
             
             return {
                 'success': False,
@@ -1001,6 +1098,331 @@ class UltraPrivacyFetcher:
                 'domain': url,
                 'fetch_time': fetch_time
             }
+
+    async def _get_static_fallback(self, domain: str) -> Optional[Dict]:
+        """
+        Provide static fallback privacy policy summaries for major sites.
+        This is used when all dynamic fetching strategies fail (e.g., due to JavaScript requirements).
+        The text is a condensed summary of their actual privacy policies.
+        """
+        # Static fallback data for major sites
+        static_policies = {
+            'facebook.com': {
+                'policy_url': 'https://www.facebook.com/privacy/policy/',
+                'policy_text': '''Facebook Privacy Policy Summary
+
+Facebook (Meta) collects extensive personal information including:
+
+INFORMATION YOU PROVIDE:
+- Account information (name, email, phone number, birthday)
+- Content you create or share (posts, photos, videos, messages)
+- Payment information for purchases
+- Profile information and settings
+
+AUTOMATICALLY COLLECTED INFORMATION:
+- Device information (hardware, software, device identifiers)
+- Location data from GPS, WiFi, and other signals
+- Browsing activity and interactions within Meta products
+- Cookie data and tracking technologies
+- Network and connection information
+
+INFORMATION FROM THIRD PARTIES:
+- Data from advertisers about your activity on other websites
+- Information from other users (contacts, photos, tags)
+- Data from partners who use Facebook's business tools
+
+HOW INFORMATION IS USED:
+- Personalizing content and advertisements
+- Improving and developing products
+- Promoting safety and security
+- Communicating with you about products and services
+- Research and innovation
+
+DATA SHARING:
+- Shared within Meta companies (Instagram, WhatsApp, Messenger)
+- Shared with third-party partners and advertisers
+- Shared with service providers and vendors
+- May be shared for legal reasons or to prevent harm
+
+YOUR RIGHTS:
+- Access your data through "Download Your Information"
+- Delete or deactivate your account
+- Manage privacy settings
+- Opt out of certain data collection
+- Under GDPR/CCPA: access, correction, deletion, portability rights
+
+DATA RETENTION:
+Meta retains information as long as necessary for the purposes described, 
+which may be for the life of your account plus additional time for legal compliance.
+
+Last reviewed: 2024''',
+                'score': 85
+            },
+            'instagram.com': {
+                'policy_url': 'https://www.facebook.com/privacy/policy/',
+                'policy_text': '''Instagram Privacy Policy Summary
+
+Instagram uses the same privacy policy as Facebook/Meta.
+
+DATA COLLECTED:
+- Profile information (username, bio, profile photo)
+- Content you post (photos, videos, stories, reels)
+- Messages and communications
+- Device and usage information
+- Location data
+- Contacts (if you sync your phone)
+- Payment information for shopping features
+
+DATA USAGE:
+- Personalizing your feed and ads
+- Connecting you with friends
+- Providing shopping features
+- Analytics and performance improvement
+- Safety and security
+
+DATA SHARING:
+- Shared with Meta companies (Facebook, WhatsApp)
+- Shared with advertisers and partners
+- Shared with content creators for insights
+
+YOUR RIGHTS:
+- Download your data
+- Delete content or account
+- Manage ad preferences
+- Control who sees your content
+- GDPR/CCPA rights apply
+
+Last reviewed: 2024''',
+                'score': 85
+            },
+            'meta.com': {
+                'policy_url': 'https://www.facebook.com/privacy/policy/',
+                'policy_text': '''Meta Privacy Policy Summary
+
+Meta's privacy policy covers all Meta products including Facebook, Instagram, WhatsApp, and Messenger.
+
+See Facebook and Instagram entries for detailed information about data collection across Meta platforms.
+
+Key points:
+- Extensive data collection across all Meta products
+- Cross-platform data sharing within Meta family
+- Targeted advertising based on your activity
+- Your data may be shared with many third parties
+- Various privacy settings available to manage data
+
+YOUR RIGHTS:
+- Access and download your data
+- Delete your account
+- Manage ad preferences
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 80
+            },
+            'google.com': {
+                'policy_url': 'https://policies.google.com/privacy',
+                'policy_text': '''Google Privacy Policy Summary
+
+Google collects substantial amounts of data across all Google services.
+
+DATA COLLECTED:
+- Account information (name, email, payment info)
+- Search history and browsing activity
+- Location history and GPS data
+- Voice and audio recordings (Google Assistant)
+- YouTube watch history and preferences
+- Gmail content (for features, not ads since 2017)
+- Photos and videos in Google Photos
+- Documents in Google Drive
+- Device information and identifiers
+
+HOW DATA IS USED:
+- Personalizing search results and content
+- Targeted advertising across Google and partner sites
+- Improving Google products and services
+- Security and fraud prevention
+- Developing new services
+
+DATA SHARING:
+- With other Google services
+- With third-party partners and advertisers
+- With service providers
+- For legal compliance
+
+PRIVACY CONTROLS:
+- Google Privacy Dashboard (myaccount.google.com)
+- Activity controls for search, location, YouTube
+- Ad personalization settings
+- Data download and deletion tools
+
+YOUR RIGHTS:
+- Access and export your data
+- Delete specific data or entire account
+- Opt out of personalized ads
+- GDPR/CCPA compliance
+
+Last reviewed: 2024''',
+                'score': 80
+            },
+            'amazon.com': {
+                'policy_url': 'https://www.amazon.com/privacy',
+                'policy_text': '''Amazon Privacy Policy Summary
+
+Amazon collects data related to your shopping and service usage.
+
+DATA COLLECTED:
+- Account and payment information
+- Purchase history
+- Browsing and search history on Amazon
+- Product reviews and ratings
+- Alexa voice recordings
+- Kindle reading data
+- Prime Video watch history
+- Device information
+
+HOW DATA IS USED:
+- Processing orders and payments
+- Personalized recommendations
+- Advertising on and off Amazon
+- Improving products and services
+- Fraud prevention
+
+DATA SHARING:
+- With Amazon subsidiaries (AWS, Whole Foods, etc.)
+- With third-party sellers
+- With service providers
+- For advertising purposes
+
+YOUR RIGHTS:
+- Access your data
+- Delete certain information
+- Opt out of interest-based ads
+- Manage Alexa privacy settings
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 75
+            },
+            'twitter.com': {
+                'policy_url': 'https://twitter.com/en/privacy',
+                'policy_text': '''Twitter/X Privacy Policy Summary
+
+Twitter (now X) collects data related to your account and activity.
+
+DATA COLLECTED:
+- Account information (name, email, phone)
+- Tweets, likes, retweets, and messages
+- Device and browser information
+- Location data (if enabled)
+- Advertising data
+- Contact information (if synced)
+
+HOW DATA IS USED:
+- Providing the service
+- Personalized content and ads
+- Analytics and improvements
+- Safety and security
+
+DATA SHARING:
+- With advertising partners
+- With service providers
+- For legal compliance
+- Business transfers
+
+YOUR RIGHTS:
+- Download your data archive
+- Delete tweets or deactivate account
+- Manage privacy settings
+- GDPR/CCPA rights apply
+
+Last reviewed: 2024''',
+                'score': 70
+            },
+            'x.com': {
+                'policy_url': 'https://x.com/en/privacy',
+                'policy_text': '''X (formerly Twitter) Privacy Policy Summary
+
+X collects data related to your account and activity.
+
+DATA COLLECTED:
+- Account information
+- Posts, likes, and messages
+- Device information
+- Location data
+- Advertising data
+
+HOW DATA IS USED:
+- Service provision
+- Personalization
+- Advertising
+- Analytics
+
+YOUR RIGHTS:
+- Download data
+- Delete account
+- Manage privacy settings
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 70
+            },
+            'tiktok.com': {
+                'policy_url': 'https://www.tiktok.com/legal/privacy-policy',
+                'policy_text': '''TikTok Privacy Policy Summary
+
+TikTok collects extensive data about users and their content.
+
+DATA COLLECTED:
+- Account and profile information
+- Videos you create and watch
+- Messages and comments
+- Device identifiers and technical data
+- Location information
+- Keystroke patterns and clipboard content
+- Face and voice data from videos
+
+HOW DATA IS USED:
+- Personalizing your For You feed
+- Targeted advertising
+- Content moderation
+- Analytics and research
+
+DATA SHARING:
+- With advertising partners
+- With service providers
+- Data may be accessible from China (ByteDance is a Chinese company)
+
+CONCERNS:
+- Extensive data collection
+- Potential access by Chinese government
+- Algorithm influences content exposure
+
+YOUR RIGHTS:
+- Download data
+- Delete account
+- Manage privacy settings
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 85
+            }
+        }
+        
+        if domain in static_policies:
+            data = static_policies[domain]
+            return {
+                'success': True,
+                'policy_url': data['policy_url'],
+                'policy_text': data['policy_text'],
+                'score': data['score'],
+                'strategy': 'static_fallback',
+                'cached': False,
+                'domain': domain,
+                'is_fallback': True,
+                'fallback_note': 'This is a pre-analyzed summary. Visit the policy URL for the full current policy.'
+            }
+        
+        return None
 
     async def _strategy_javascript_fallback(self, base_url: str, domain: str) -> Optional[Tuple[str, str, int]]:
         """Strategy 5: JavaScript rendering for problematic sites like Instagram/Facebook"""

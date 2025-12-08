@@ -166,7 +166,7 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
                     log_security_event("POLICY_FETCH_SUCCESS", 
                                      f"Ultra fetcher found privacy policy for: {request.url} in {total_time:.2f}s", 
                                      client_ip)
-                    return {
+                    response_data = {
                         'success': True,
                         'policy_text': result['policy_text'],
                         'policy_url': result['policy_url'],
@@ -177,6 +177,11 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
                         'cached': result.get('cached', False),
                         'cache_type': result.get('cache_type', 'none')
                     }
+                    # Pass through fallback information if using static fallback
+                    if result.get('is_fallback'):
+                        response_data['is_fallback'] = True
+                        response_data['fallback_note'] = result.get('fallback_note', 'Using pre-analyzed summary')
+                    return response_data
             except Exception as e:
                 logger.error(f"Ultra fetcher error: {e}")
         
