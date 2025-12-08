@@ -1096,10 +1096,6 @@ function App() {
                   <div className="results-header-top">
                     <h2>✨ Analysis Complete!</h2>
                     <div className="verification-badges">
-                      <span className="verification-badge ai-verified" title="Analyzed using advanced AI">
-                        <span className="badge-icon">🤖</span>
-                        <span className="badge-text">AI Verified</span>
-                      </span>
                       <span className="verification-badge confidence-badge" title="Analysis confidence: High">
                         <span className="badge-icon">✓</span>
                         <span className="badge-text">High Confidence</span>
@@ -1834,7 +1830,7 @@ function App() {
         <footer className="app-footer">
           <p>
             <ShieldIcon />
-            Powered by AI • No data stored • Open source privacy analysis
+            No data stored • Open source privacy analysis
           </p>
         </footer>
       </div>

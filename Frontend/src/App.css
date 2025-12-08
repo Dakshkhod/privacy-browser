@@ -5408,78 +5408,97 @@ body {
     border-top: none !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 0.75rem !important;
-    max-height: 65vh;
-    overflow-y: auto;
-    padding-right: 0.35rem;
-    -webkit-overflow-scrolling: touch;
-    background: #ffffff;
+    gap: 0.5rem !important;
+    max-height: none;
+    overflow: visible;
+    background: transparent;
   }
 
-  /* Style legend items as interactive cards on mobile */
+  /* Clean card layout for each data type */
   .legend-item {
-    background: #ffffff;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 12px;
-    padding: 0.9rem 0.85rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.875rem;
     margin-bottom: 0;
     width: 100%;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
     display: flex;
+    flex-direction: row;
     align-items: flex-start;
-    gap: 0.6rem;
+    gap: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   .legend-item:active {
-    background: rgba(255, 255, 255, 0.8);
-    transform: scale(0.98);
-    transition: transform 0.1s;
+    background: #f1f5f9;
+    transform: scale(0.99);
   }
 
-  .chart-card h2 {
-    margin-bottom: 1.5rem;
-    text-align: center;
+  /* Color dot - fixed size, aligned to top */
+  .legend-color {
+    width: 10px !important;
+    height: 10px !important;
+    min-width: 10px;
+    border-radius: 50%;
+    margin-top: 4px;
+    flex-shrink: 0;
   }
 
-  /* Add a subtitle for mobile users since chart is hidden */
-  .chart-card h2::after {
-    content: "";
-  }
-
-  /* Improve text flow so lines don't overlap */
+  /* Content wrapper - takes remaining space */
   .legend-content {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-    width: 100%;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Icon and label row */
+  .legend-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
   }
 
   .legend-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
     width: 100%;
-    gap: 0.3rem;
   }
 
+  /* Label - bold and clear */
   .legend-label {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
     line-height: 1.3;
   }
 
+  /* Details - smaller, full width, wraps naturally */
   .legend-details {
-    width: 100%;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: 0.8rem;
+    color: #64748b;
     line-height: 1.4;
-    color: #475569;
-    font-size: 0.85rem;
-    word-break: break-word;
+    display: block;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
   }
 
+  /* Risk indicator - inline at end */
   .legend-risk {
-    margin-top: 0.1rem;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .chart-card h2 {
+    margin-bottom: 1rem;
+    text-align: center;
+    font-size: 1.1rem;
+  }
+
+  .chart-card h2::after {
+    content: "";
   }
 }
 
