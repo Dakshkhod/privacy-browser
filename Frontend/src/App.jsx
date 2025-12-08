@@ -1311,6 +1311,7 @@ function App() {
                           const typeData = safeAnalysis.data_types[type];
                           const severity = typeof typeData === 'object' ? typeData.severity : typeData;
                           const details = typeof typeData === 'object' ? typeData.details : [];
+                          const fallbackDetail = getDataTypeSummary(type);
 
                           return (
                             <div key={type} className="legend-item">
@@ -1322,11 +1323,9 @@ function App() {
                                 <span className="legend-icon">{getDataTypeIcon(type)}</span>
                                 <div className="legend-text-wrapper">
                                   <span className="legend-label">{getFriendlyLabel(type)}</span>
-                                  {details && details.length > 0 && (
-                                    <span className="legend-details" title={details.join(', ')}>
-                                      {details.join(', ')}
-                                    </span>
-                                  )}
+                                  <span className="legend-details" title={details && details.length ? details.join(', ') : fallbackDetail}>
+                                    {details && details.length ? details.join(', ') : fallbackDetail}
+                                  </span>
                                 </div>
                                 <span className="legend-risk">
                                   {getDataTypeWeight(type) > 6 ? '🔴' : getDataTypeWeight(type) > 3 ? '🟡' : '🟢'}
