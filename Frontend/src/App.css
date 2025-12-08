@@ -5408,11 +5408,11 @@ body {
     border-top: none !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 2rem !important;
-    max-height: 55vh;
+    gap: 1rem !important;
+    max-height: 60vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 0.75rem 0.5rem 1.5rem 0.5rem;
+    padding: 0.75rem 0.75rem 1.25rem 0.75rem;
     background: transparent;
   }
 
@@ -5426,6 +5426,7 @@ body {
     display: block !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
     position: relative;
+    overflow: hidden;
   }
 
   .legend-item:active {
@@ -5445,7 +5446,7 @@ body {
     align-items: flex-start !important;
     gap: 0.75rem !important;
     width: 100% !important;
-    padding-right: 2rem;
+    padding-right: 0.5rem;
   }
 
   /* Icon - large and clear */
@@ -5478,10 +5479,14 @@ body {
 
   /* Details - description text */
   .legend-details {
-    font-size: 0.875rem !important;
-    color: #64748b !important;
-    line-height: 1.5 !important;
-    display: block !important;
+    font-size: 0.9rem !important;
+    color: #475569 !important;
+    line-height: 1.45 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
     white-space: normal !important;
@@ -5489,10 +5494,10 @@ body {
 
   /* Risk indicator - top right corner */
   .legend-risk {
-    position: absolute !important;
-    top: 1rem !important;
-    right: 1rem !important;
-    font-size: 1.1rem;
+    position: static !important;
+    margin-left: auto;
+    font-size: 1rem;
+    padding-top: 0.2rem;
   }
 
   /* Section heading */
