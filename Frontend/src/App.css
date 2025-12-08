@@ -5359,7 +5359,58 @@ body {
     grid-template-columns: 1fr;
   }
 
+
   .privacy-tool-category {
     padding: 1rem;
+  }
+}
+
+/* Mobile optimizations for Chart/Data Section */
+@media (max-width: 768px) {
+
+  /* Hide the pie chart on mobile as it becomes too small/squished */
+  .chart-wrapper {
+    display: none !important;
+  }
+
+  /* Make the legend the primary data visualization on mobile */
+  .data-types-legend {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Style legend items as interactive cards on mobile */
+  .legend-item {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0;
+    width: 100%;
+  }
+
+  .legend-item:active {
+    background: rgba(255, 255, 255, 0.8);
+    transform: scale(0.98);
+    transition: transform 0.1s;
+  }
+
+  .chart-card h2 {
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  /* Add a subtitle for mobile users since chart is hidden */
+  .chart-card h2::after {
+    content: " (Mobile View)";
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: normal;
+    margin-top: 0.25rem;
   }
 }
