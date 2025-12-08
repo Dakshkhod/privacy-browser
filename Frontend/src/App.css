@@ -5413,17 +5413,21 @@ body {
     overflow-y: auto;
     padding-right: 0.35rem;
     -webkit-overflow-scrolling: touch;
+    background: #ffffff;
   }
 
   /* Style legend items as interactive cards on mobile */
   .legend-item {
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 12px;
-    padding: 1rem;
+    padding: 0.9rem 0.85rem;
     margin-bottom: 0;
     width: 100%;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
   }
 
   .legend-item:active {
@@ -5440,6 +5444,42 @@ body {
   /* Add a subtitle for mobile users since chart is hidden */
   .chart-card h2::after {
     content: "";
+  }
+
+  /* Improve text flow so lines don't overlap */
+  .legend-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    width: 100%;
+  }
+
+  .legend-text-wrapper {
+    width: 100%;
+    gap: 0.3rem;
+  }
+
+  .legend-label {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .legend-details {
+    width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+    color: #475569;
+    font-size: 0.85rem;
+    word-break: break-word;
+  }
+
+  .legend-risk {
+    margin-top: 0.1rem;
+    font-size: 0.9rem;
   }
 }
 
