@@ -399,8 +399,22 @@ class UltraPrivacyFetcher:
             'medium.com': {'paths': ['/policy/privacy-policy', '/privacy'], 'priority': 10},
             
             # Gaming
-            'steam.com': {'paths': ['/privacy_agreement', '/privacy'], 'priority': 10},
-            'steampowered.com': {'paths': ['/privacy_agreement'], 'priority': 10},
+            'steam.com': {
+                'paths': [
+                    'https://store.steampowered.com/privacy_agreement',
+                    '/privacy_agreement',
+                    '/privacy'
+                ],
+                'priority': 10
+            },
+            'steampowered.com': {
+                'paths': [
+                    'https://store.steampowered.com/privacy_agreement',
+                    '/privacy_agreement',
+                    '/privacy_agreement/english'
+                ],
+                'priority': 10
+            },
             'epicgames.com': {'paths': ['/privacypolicy', '/privacy'], 'priority': 10},
             'playstation.com': {'paths': ['/legal/privacy-policy', '/privacy'], 'priority': 10},
             'xbox.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
@@ -1613,6 +1627,79 @@ YOUR RIGHTS:
 
 Last reviewed: 2024''',
                 'score': 70
+            },
+            'steampowered.com': {
+                'policy_url': 'https://store.steampowered.com/privacy_agreement',
+                'policy_text': '''Steam Privacy Policy Summary
+
+Steam (Valve Corporation) collects data for gaming and digital distribution.
+
+DATA COLLECTED:
+- Account information (username, email, password)
+- Payment and billing information
+- Game library and playtime data
+- Achievements and statistics
+- Friends list and social features
+- Chat and voice communications
+- Hardware information (for Steam Hardware Survey)
+- IP address and location data
+
+HOW DATA IS USED:
+- Operating the Steam platform
+- Processing game purchases
+- Providing multiplayer and social features
+- Anti-cheat and fraud prevention
+- Customer support
+- Analytics and improvements
+
+DATA SHARING:
+- With game publishers (for games you play)
+- With service providers
+- For legal compliance
+- Community features are public (by default)
+
+YOUR RIGHTS:
+- Download your data
+- Delete your account
+- Manage privacy settings
+- Hide game activity
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 75
+            },
+            'steam.com': {
+                'policy_url': 'https://store.steampowered.com/privacy_agreement',
+                'policy_text': '''Steam Privacy Policy Summary
+
+Steam (Valve Corporation) collects data for gaming and digital distribution.
+
+DATA COLLECTED:
+- Account and payment information
+- Game library and playtime
+- Achievements and statistics
+- Friends list and social features
+- Hardware information
+- IP address and location
+
+HOW DATA IS USED:
+- Platform operation
+- Game purchases
+- Social features
+- Anti-cheat systems
+
+DATA SHARING:
+- With game publishers
+- With service providers
+
+YOUR RIGHTS:
+- Download your data
+- Delete account
+- Manage privacy settings
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 75
             }
         }
         
