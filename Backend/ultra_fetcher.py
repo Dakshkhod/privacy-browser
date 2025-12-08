@@ -1405,6 +1405,214 @@ YOUR RIGHTS:
 
 Last reviewed: 2024''',
                 'score': 85
+            },
+            'vercel.com': {
+                'policy_url': 'https://vercel.com/legal/privacy-policy',
+                'policy_text': '''Vercel Privacy Policy Summary
+
+Vercel collects data to provide their hosting and deployment platform.
+
+DATA COLLECTED:
+- Account information (name, email, company)
+- Payment and billing information
+- Usage data and analytics
+- Log data and IP addresses
+- Cookies and tracking data
+
+HOW DATA IS USED:
+- Providing the hosting service
+- Processing payments
+- Customer support
+- Analytics and improvements
+- Security and fraud prevention
+
+DATA SHARING:
+- With service providers
+- For legal compliance
+- With your consent
+
+YOUR RIGHTS:
+- Access your data
+- Delete your account
+- Manage cookie preferences
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 70
+            },
+            'linkedin.com': {
+                'policy_url': 'https://www.linkedin.com/legal/privacy-policy',
+                'policy_text': '''LinkedIn Privacy Policy Summary
+
+LinkedIn (Microsoft) collects extensive professional and personal data.
+
+DATA COLLECTED:
+- Profile information (name, work history, education)
+- Contact information
+- Job applications and searches
+- Messages and communications
+- Connection data
+- Device and usage information
+- Location data
+
+HOW DATA IS USED:
+- Professional networking features
+- Job recommendations
+- Content personalization
+- Targeted advertising
+- Analytics
+
+DATA SHARING:
+- With Microsoft companies
+- With employers (job applications)
+- With advertisers
+- With service providers
+
+YOUR RIGHTS:
+- Download your data
+- Delete your account
+- Manage privacy settings
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 80
+            },
+            'whatsapp.com': {
+                'policy_url': 'https://www.whatsapp.com/legal/privacy-policy',
+                'policy_text': '''WhatsApp Privacy Policy Summary
+
+WhatsApp (Meta) collects data for messaging and communication.
+
+DATA COLLECTED:
+- Phone number and contacts
+- Profile information
+- Messages (end-to-end encrypted)
+- Device and connection information
+- Location data
+- Usage and log information
+
+HOW DATA IS USED:
+- Providing messaging service
+- Connecting with contacts
+- Security and verification
+- Business messaging features
+
+DATA SHARING:
+- Shared with Meta companies (Facebook, Instagram)
+- With business accounts you message
+- With service providers
+
+YOUR RIGHTS:
+- Download your data
+- Delete your account
+- Manage privacy settings
+- GDPR/CCPA rights
+
+Note: Messages are end-to-end encrypted, but metadata is shared with Meta.
+
+Last reviewed: 2024''',
+                'score': 75
+            },
+            'netflix.com': {
+                'policy_url': 'https://help.netflix.com/legal/privacy',
+                'policy_text': '''Netflix Privacy Policy Summary
+
+Netflix collects data for streaming and personalization.
+
+DATA COLLECTED:
+- Account and payment information
+- Viewing history and preferences
+- Search history
+- Device information
+- Location data
+
+HOW DATA IS USED:
+- Streaming service provision
+- Content recommendations
+- Account management
+- Service improvement
+
+DATA SHARING:
+- With service providers
+- For content licensing
+- For legal compliance
+
+YOUR RIGHTS:
+- View your data
+- Download viewing history
+- Manage profile settings
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 65
+            },
+            'github.com': {
+                'policy_url': 'https://docs.github.com/en/site-policy/privacy-policies',
+                'policy_text': '''GitHub Privacy Policy Summary
+
+GitHub (Microsoft) collects data for developer collaboration.
+
+DATA COLLECTED:
+- Account information
+- Repository content and code
+- Contribution history
+- Device and usage information
+- Payment information (for paid features)
+
+HOW DATA IS USED:
+- Providing GitHub services
+- Code hosting and collaboration
+- Security scanning
+- Product improvement
+
+DATA SHARING:
+- With Microsoft companies
+- With service providers
+- For legal compliance
+- Public repositories are public
+
+YOUR RIGHTS:
+- Download your data
+- Delete your account
+- Manage repository visibility
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 70
+            },
+            'spotify.com': {
+                'policy_url': 'https://www.spotify.com/legal/privacy-policy/',
+                'policy_text': '''Spotify Privacy Policy Summary
+
+Spotify collects data for music streaming and personalization.
+
+DATA COLLECTED:
+- Account and payment information
+- Listening history
+- Playlists and saved content
+- Device and usage data
+- Location information
+- Voice data (if using voice features)
+
+HOW DATA IS USED:
+- Music streaming service
+- Personalized recommendations
+- Wrapped and analytics features
+- Targeted advertising (free tier)
+
+DATA SHARING:
+- With music labels and artists
+- With advertisers (free tier)
+- With service providers
+
+YOUR RIGHTS:
+- Download your data
+- Delete your account
+- Manage privacy settings
+- GDPR/CCPA rights
+
+Last reviewed: 2024''',
+                'score': 70
             }
         }
         
