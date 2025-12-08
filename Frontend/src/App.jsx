@@ -1319,8 +1319,8 @@ function App() {
                         <div className="action-icon">🚨</div>
                         <div className="action-content">
                           <h4>High Privacy Risk - Take Immediate Action</h4>
-                          <p>This service collects extensive personal data with {safeArray(safeAnalysis.warnings).length > 0 ? `${safeArray(safeAnalysis.warnings).length} major concerns` : 'significant privacy risks'}. 
-                          {safeAnalysis.safer_alternatives ? ' Consider using privacy-focused alternatives.' : ' Review all settings immediately and limit data sharing.'}</p>
+                          <p>This service collects extensive personal data with {safeArray(safeAnalysis.warnings).length > 0 ? `${safeArray(safeAnalysis.warnings).length} major concerns` : 'significant privacy risks'}.
+                            {safeAnalysis.safer_alternatives ? ' Consider using privacy-focused alternatives.' : ' Review all settings immediately and limit data sharing.'}</p>
                           {Object.keys(safeAnalysis.data_types || {}).length > 8 && (
                             <ul className="action-details">
                               <li>They collect {Object.keys(safeAnalysis.data_types || {}).length} different types of your personal data</li>
@@ -1340,7 +1340,7 @@ function App() {
                           return severity >= 4;
                         })
                         .slice(0, 3);
-                      
+
                       if (highRiskTypes.length > 0) {
                         return (
                           <div className="action-item warning">
@@ -1351,8 +1351,8 @@ function App() {
                               <ul className="action-details">
                                 {highRiskTypes.map(([type, info]) => (
                                   <li key={type}>
-                                    <strong>{type}</strong>: {typeof info === 'object' && info.details ? 
-                                      (Array.isArray(info.details) ? info.details.slice(0, 2).join(', ') : info.details) : 
+                                    <strong>{type}</strong>: {typeof info === 'object' && info.details ?
+                                      (Array.isArray(info.details) ? info.details.slice(0, 2).join(', ') : info.details) :
                                       'Sensitive personal information'}
                                   </li>
                                 ))}
@@ -1376,11 +1376,11 @@ function App() {
                           <li><strong>Location Services:</strong> Turn off location tracking if not essential</li>
                           <li><strong>Cookies & Tracking:</strong> Opt out of advertising and analytics cookies</li>
                           <li><strong>Profile Visibility:</strong> Limit who can see your personal information</li>
-                          {Object.keys(safeAnalysis.data_types || {}).some(type => 
+                          {Object.keys(safeAnalysis.data_types || {}).some(type =>
                             type.toLowerCase().includes('biometric') || type.toLowerCase().includes('health')
                           ) && (
-                            <li><strong>Biometric/Health Data:</strong> Disable facial recognition and health tracking features</li>
-                          )}
+                              <li><strong>Biometric/Health Data:</strong> Disable facial recognition and health tracking features</li>
+                            )}
                         </ul>
                         <p className="action-subtext">
                           {(() => {
@@ -1390,7 +1390,7 @@ function App() {
                                 const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
                                 return `Visit ${domain}/settings/privacy or ${domain}/account/privacy to adjust these settings.`;
                               }
-                            } catch {}
+                            } catch { }
                             return 'Look for "Privacy Settings" or "Account Settings" in the service menu.';
                           })()}
                         </p>
@@ -1424,7 +1424,7 @@ function App() {
                                   const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
                                   return `Contact ${domain}/privacy or ${domain}/support to exercise these rights. Most services have a "Data Request" or "Privacy Request" form.`;
                                 }
-                              } catch {}
+                              } catch { }
                               return 'Contact their privacy team or use their data request form (usually found in privacy settings).';
                             })()}
                           </p>
@@ -1433,23 +1433,23 @@ function App() {
                     )}
 
                     {/* Third-Party Sharing Warning */}
-                    {safeArray(safeAnalysis.warnings).some(w => 
+                    {safeArray(safeAnalysis.warnings).some(w =>
                       typeof w === 'string' && (w.toLowerCase().includes('third') || w.toLowerCase().includes('share') || w.toLowerCase().includes('partner'))
                     ) && (
-                      <div className="action-item warning">
-                        <div className="action-icon">🔗</div>
-                        <div className="action-content">
-                          <h4>Third-Party Data Sharing</h4>
-                          <p>Your data may be shared with external parties. Take these steps:</p>
-                          <ul className="action-details">
-                            <li><strong>Opt-Out:</strong> Look for "Do Not Sell My Personal Information" or "Opt-Out" links in privacy settings</li>
-                            <li><strong>Ad Preferences:</strong> Disable personalized advertising in your account settings</li>
-                            <li><strong>Partner Sharing:</strong> Review and disable data sharing with business partners</li>
-                            <li><strong>Analytics:</strong> Use browser extensions to block tracking cookies and pixels</li>
-                          </ul>
+                        <div className="action-item warning">
+                          <div className="action-icon">🔗</div>
+                          <div className="action-content">
+                            <h4>Third-Party Data Sharing</h4>
+                            <p>Your data may be shared with external parties. Take these steps:</p>
+                            <ul className="action-details">
+                              <li><strong>Opt-Out:</strong> Look for "Do Not Sell My Personal Information" or "Opt-Out" links in privacy settings</li>
+                              <li><strong>Ad Preferences:</strong> Disable personalized advertising in your account settings</li>
+                              <li><strong>Partner Sharing:</strong> Review and disable data sharing with business partners</li>
+                              <li><strong>Analytics:</strong> Use browser extensions to block tracking cookies and pixels</li>
+                            </ul>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {/* Data Minimization */}
                     {Object.keys(safeAnalysis.data_types || {}).length > 5 && (
@@ -1641,6 +1641,157 @@ function App() {
                   </div>
                 )}
 
+                {/* Privacy Tools & Resources Section - Always shown after analysis */}
+                <div className="result-card privacy-tools-card">
+                  <h2>🔧 Privacy Tools & Resources</h2>
+                  <div className="alternatives-intro">
+                    <p>Protect your privacy with these trusted tools and services. Use them to minimize your digital footprint and secure your data.</p>
+                  </div>
+
+                  <div className="privacy-tools-grid">
+                    {/* Email Privacy */}
+                    <div className="privacy-tool-category">
+                      <h3>📧 Email Privacy</h3>
+                      <div className="tools-list">
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">TempMail</span>
+                            <span className="tool-badge free">Free</span>
+                          </div>
+                          <p>Disposable email addresses for signups to avoid spam</p>
+                          <button onClick={() => window.open('https://temp-mail.org', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">ProtonMail</span>
+                            <span className="tool-badge secure">Encrypted</span>
+                          </div>
+                          <p>End-to-end encrypted email service based in Switzerland</p>
+                          <button onClick={() => window.open('https://proton.me/mail', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">SimpleLogin</span>
+                            <span className="tool-badge secure">Aliases</span>
+                          </div>
+                          <p>Create email aliases to hide your real email address</p>
+                          <button onClick={() => window.open('https://simplelogin.io', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* VPN & Security */}
+                    <div className="privacy-tool-category">
+                      <h3>🔐 VPN & Security</h3>
+                      <div className="tools-list">
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">Mullvad VPN</span>
+                            <span className="tool-badge secure">No Logs</span>
+                          </div>
+                          <p>Privacy-focused VPN with anonymous payments</p>
+                          <button onClick={() => window.open('https://mullvad.net', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">ProtonVPN</span>
+                            <span className="tool-badge free">Free tier</span>
+                          </div>
+                          <p>Secure VPN from the makers of ProtonMail</p>
+                          <button onClick={() => window.open('https://protonvpn.com', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">Bitwarden</span>
+                            <span className="tool-badge free">Free</span>
+                          </div>
+                          <p>Open-source password manager with encryption</p>
+                          <button onClick={() => window.open('https://bitwarden.com', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Browsers & Search */}
+                    <div className="privacy-tool-category">
+                      <h3>🌐 Private Browsing</h3>
+                      <div className="tools-list">
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">Brave Browser</span>
+                            <span className="tool-badge secure">Blocks Ads</span>
+                          </div>
+                          <p>Privacy-focused browser with built-in ad blocking</p>
+                          <button onClick={() => window.open('https://brave.com', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">DuckDuckGo</span>
+                            <span className="tool-badge secure">No Tracking</span>
+                          </div>
+                          <p>Private search engine that doesn't track you</p>
+                          <button onClick={() => window.open('https://duckduckgo.com', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">Firefox + uBlock</span>
+                            <span className="tool-badge free">Free</span>
+                          </div>
+                          <p>Firefox browser with uBlock Origin extension</p>
+                          <button onClick={() => window.open('https://www.mozilla.org/firefox', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Communication */}
+                    <div className="privacy-tool-category">
+                      <h3>💬 Secure Messaging</h3>
+                      <div className="tools-list">
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">Signal</span>
+                            <span className="tool-badge secure">E2E Encrypted</span>
+                          </div>
+                          <p>End-to-end encrypted messaging app</p>
+                          <button onClick={() => window.open('https://signal.org', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                        <div className="tool-item">
+                          <div className="tool-header">
+                            <span className="tool-name">Telegram</span>
+                            <span className="tool-badge free">Secret Chats</span>
+                          </div>
+                          <p>Messaging with optional end-to-end encryption</p>
+                          <button onClick={() => window.open('https://telegram.org', '_blank')} className="tool-link-btn">
+                            <ExternalLinkIcon /> Visit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="privacy-tools-footer">
+                    <p>💡 <strong>Tip:</strong> Combine multiple tools for better privacy. Use a VPN + private browser + encrypted email for maximum protection.</p>
+                  </div>
+                </div>
 
               </div>
             </ErrorBoundary>
