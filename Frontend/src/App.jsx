@@ -411,13 +411,43 @@ function App() {
   // Backend URL - use config (which handles environment variables)
   const BACKEND_URL = config.BACKEND_URL;
 
-  // Safe URL validation
+  // Safe URL validation - handles domain names without protocol
   const isValidUrl = (string) => {
     try {
+      // First, try to parse as-is
       new URL(string);
       return true;
     } catch {
-      return false;
+      // If that fails, try adding https://
+      try {
+        new URL(`https://${string}`);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  // Normalize URL - add https:// if missing and handle common patterns
+  const normalizeUrl = (input) => {
+    if (!input || !input.trim()) return null;
+
+    let normalized = input.trim();
+
+    // Remove any leading/trailing whitespace and common mistakes
+    normalized = normalized.replace(/^(https?:\/\/)+/i, 'https://');
+
+    // If no protocol, add https://
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      normalized = `https://${normalized}`;
+    }
+
+    // Validate the normalized URL
+    try {
+      new URL(normalized);
+      return normalized;
+    } catch {
+      return null;
     }
   };
 
@@ -455,15 +485,17 @@ function App() {
       return;
     }
 
-    // Handle demo URLs - ensure they have proper protocol
-    let processedUrl = urlToAnalyze.trim();
-    if (!processedUrl.startsWith('http://') && !processedUrl.startsWith('https://')) {
-      processedUrl = `https://${processedUrl}`;
+    // Normalize the URL (adds https:// if missing)
+    const processedUrl = normalizeUrl(urlToAnalyze);
+
+    if (!processedUrl) {
+      setError("Please enter a valid URL (e.g., google.com or https://example.com)");
+      return;
     }
 
-    if (!isValidUrl(processedUrl)) {
-      setError("Please enter a valid URL (e.g., https://example.com)");
-      return;
+    // Update the input field to show the normalized URL
+    if (processedUrl !== urlToAnalyze && !inputUrl) {
+      setUrl(processedUrl);
     }
 
     const urlType = detectUrlType(processedUrl);
