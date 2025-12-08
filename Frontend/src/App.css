@@ -5427,8 +5427,6 @@ body {
     width: 100%;
     display: block !important;
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-    min-height: 80px;
-    overflow: hidden;
   }
 
   .legend-item:active {
@@ -5464,7 +5462,6 @@ body {
     flex: 1 !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    overflow: hidden !important;
   }
 
   /* Label - bold and prominent */
