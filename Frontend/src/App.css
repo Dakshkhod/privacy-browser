@@ -5408,25 +5408,26 @@ body {
     border-top: none !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 1rem !important;
+    gap: 1.5rem !important;
     max-height: 50vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-right: 0.5rem;
-    padding-bottom: 0.5rem;
+    padding: 0.5rem;
+    padding-bottom: 1rem;
     background: transparent;
   }
 
   /* Simple card layout for each data type */
   .legend-item {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 0.5rem;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 0;
     width: 100%;
     display: block !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    min-height: 80px;
   }
 
   .legend-item:active {
