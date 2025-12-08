@@ -5408,11 +5408,12 @@ body {
     border-top: none !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 0.5rem !important;
+    gap: 1rem !important;
     max-height: 50vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-right: 0.25rem;
+    padding-right: 0.5rem;
+    padding-bottom: 0.5rem;
     background: transparent;
   }
 
@@ -5421,10 +5422,11 @@ body {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 1rem;
+    padding: 1.25rem;
+    margin-bottom: 0.5rem;
     width: 100%;
     display: block !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .legend-item:active {
