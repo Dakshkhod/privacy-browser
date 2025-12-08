@@ -1955,8 +1955,8 @@ body {
 }
 
 .evidence-text::before {
-  content: "" ";
- position: absolute;
+  content: '"';
+  position: absolute;
   top: -0.5rem;
   left: -0.25rem;
   font-size: 4rem;
@@ -1967,8 +1967,8 @@ body {
 }
 
 .evidence-text::after {
-  content: "" ";
- position: absolute;
+  content: '"';
+  position: absolute;
   bottom: -1rem;
   right: 0.5rem;
   font-size: 4rem;
@@ -4964,7 +4964,6 @@ body {
 .verification-badge {
   width: 100%;
   justify-content: center;
-}
 }
 
 /* ============================================
