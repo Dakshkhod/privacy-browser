@@ -899,12 +899,14 @@ function App() {
           <div className={`input-group ${isInputFocused ? 'focused' : ''} ${loading ? 'loading' : ''}`}>
             <SearchIcon />
             <input
-              type="url"
+              type="text"
+              inputMode="url"
+              autoComplete="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onFocus={() => setIsInputFocused(true)}
               onBlur={() => setIsInputFocused(false)}
-              placeholder={placeholder}
+              placeholder="google.com or https://example.com/privacy"
               className="modern-input"
               disabled={loading}
             />
