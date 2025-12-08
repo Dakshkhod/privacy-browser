@@ -5408,29 +5408,29 @@ body {
     border-top: none !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 1.5rem !important;
-    max-height: 50vh;
+    gap: 2rem !important;
+    max-height: 55vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 0.5rem;
-    padding-bottom: 1rem;
+    padding: 0.75rem 0.5rem 1.5rem 0.5rem;
     background: transparent;
   }
 
-  /* Simple card layout for each data type */
+  /* Clean card layout for each data type */
   .legend-item {
-    background: #f9fafb;
+    background: #ffffff;
     border: 2px solid #e5e7eb;
     border-radius: 14px;
-    padding: 1.5rem;
-    margin-bottom: 0;
+    padding: 1.25rem;
     width: 100%;
     display: block !important;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    position: relative;
   }
 
   .legend-item:active {
-    background: #f8fafc;
+    background: #f9fafb;
+    transform: scale(0.99);
   }
 
   /* Hide color dot on mobile - use icon instead */
@@ -5438,72 +5438,68 @@ body {
     display: none !important;
   }
 
-  /* Content wrapper - full width vertical stack */
+  /* Content wrapper - horizontal layout with icon and text */
   .legend-content {
     display: flex !important;
     flex-direction: row !important;
     align-items: flex-start !important;
-    gap: 0.5rem !important;
+    gap: 0.75rem !important;
     width: 100% !important;
+    padding-right: 2rem;
   }
 
-  /* Icon - larger and fixed */
+  /* Icon - large and clear */
   .legend-icon {
-    font-size: 1.5rem !important;
+    font-size: 1.75rem !important;
     line-height: 1 !important;
     flex-shrink: 0;
+    margin-top: 2px;
   }
 
-  /* Text wrapper - takes remaining space */
+  /* Text wrapper - vertical stack */
   .legend-text-wrapper {
     display: flex !important;
     flex-direction: column !important;
-    gap: 0.25rem !important;
+    gap: 0.35rem !important;
     flex: 1 !important;
     min-width: 0 !important;
-    max-width: 100% !important;
   }
 
-  /* Label - bold and prominent */
+  /* Label - bold title */
   .legend-label {
-    font-size: 1rem !important;
+    font-size: 1.05rem !important;
     font-weight: 600 !important;
     color: #1e293b !important;
-    line-height: 1.3 !important;
+    line-height: 1.35 !important;
     display: block !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
-    hyphens: auto !important;
   }
 
-  /* Details - smaller description */
+  /* Details - description text */
   .legend-details {
-    font-size: 0.85rem !important;
+    font-size: 0.875rem !important;
     color: #64748b !important;
-    line-height: 1.4 !important;
+    line-height: 1.5 !important;
     display: block !important;
     word-wrap: break-word !important;
     overflow-wrap: break-word !important;
-    hyphens: auto !important;
-    max-width: 100% !important;
+    white-space: normal !important;
   }
 
-  /* Risk indicator - inline after icon */
+  /* Risk indicator - top right corner */
   .legend-risk {
-    position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    font-size: 1rem;
-  }
-
-  .legend-item {
-    position: relative;
-  }
-
-  .chart-card h2 {
-    margin-bottom: 1rem;
-    text-align: center;
+    position: absolute !important;
+    top: 1rem !important;
+    right: 1rem !important;
     font-size: 1.1rem;
+  }
+
+  /* Section heading */
+  .chart-card h2 {
+    margin-bottom: 1.25rem;
+    text-align: center;
+    font-size: 1.15rem;
     color: #1e293b;
   }
 
