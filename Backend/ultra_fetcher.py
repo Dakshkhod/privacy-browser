@@ -433,6 +433,18 @@ class UltraPrivacyFetcher:
             'ubereats.com': {'paths': ['/privacy', '/legal/privacy'], 'priority': 10},
             'grubhub.com': {'paths': ['/legal/privacy-policy', '/privacy'], 'priority': 10},
             'instacart.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            
+            # Design & Productivity Tools
+            'canva.com': {'paths': ['/policies/privacy-policy', '/privacy'], 'priority': 10},
+            'figma.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'notion.so': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'asana.com': {'paths': ['/terms/privacy-statement', '/privacy'], 'priority': 10},
+            'trello.com': {'paths': ['/privacy', '/legal/privacy'], 'priority': 10},
+            'miro.com': {'paths': ['/legal/privacy-policy', '/privacy'], 'priority': 10},
+            'airtable.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'monday.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'clickup.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'zapier.com': {'paths': ['/privacy', '/legal/privacy'], 'priority': 10},
         }
     
     def _load_mobile_fallbacks(self) -> Dict:
@@ -611,6 +623,32 @@ class UltraPrivacyFetcher:
             'slack.com': [
                 'https://slack.com/trust/privacy/privacy-policy',
                 'https://slack.com/privacy-policy',
+            ],
+            
+            # Design & Productivity
+            'canva.com': [
+                'https://www.canva.com/policies/privacy-policy/',
+                'https://www.canva.com/en/privacy/',
+            ],
+            'figma.com': [
+                'https://www.figma.com/legal/privacy/',
+                'https://www.figma.com/privacy/',
+            ],
+            'notion.so': [
+                'https://www.notion.so/privacy',
+                'https://www.notion.so/Privacy-Policy-3468d120cf614d4c9014c09f6adc9091',
+            ],
+            'asana.com': [
+                'https://asana.com/terms/privacy-statement',
+                'https://asana.com/privacy',
+            ],
+            'trello.com': [
+                'https://trello.com/privacy',
+                'https://www.atlassian.com/legal/privacy-policy',
+            ],
+            'zapier.com': [
+                'https://zapier.com/privacy',
+                'https://zapier.com/legal/privacy',
             ],
         }
 
