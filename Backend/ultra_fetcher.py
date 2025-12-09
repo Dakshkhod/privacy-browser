@@ -1653,10 +1653,35 @@ class UltraPrivacyFetcher:
                     
                     logger.info(f"Direct fetch result: content_length={content_length}, score={score}, title='{title[:50] if title else 'None'}'")
                     
-                    # For user-provided direct URLs, be much more lenient
-                    # User knows what they're looking for, just validate we got SOME content
-                    min_content_length = 100  # Just need minimal content
-                    min_score = 10 if is_direct_privacy_url else 5  # Very low threshold for explicit URLs
+                    # FIRST: Check if this looks like a JS-rendered page (before accepting content)
+                    # This prevents accepting garbage shell content from SPAs
+                    content_issues = self._detect_content_issues(content)
+                    
+                    # Also do a quick inline check for common SPA patterns (case-sensitive where needed)
+                    spa_indicators = [
+                        '__NEXT_DATA__' in content,  # Next.js (case-sensitive)
+                        '__NUXT__' in content,  # Nuxt.js
+                        'window.__INITIAL_STATE__' in content,  # Redux SSR
+                        'data-reactroot' in content.lower(),
+                        'id="__next"' in content.lower(),
+                        'id="root"></div>' in content.lower(),  # Empty React root
+                        'id="app"></div>' in content.lower(),  # Empty Vue/generic app root
+                    ]
+                    
+                    is_spa_shell = any(spa_indicators) and content_length < 2000
+                    
+                    if is_spa_shell or content_issues.get('requires_javascript', False):
+                        logger.warning(f"Direct URL appears to be a JS-rendered SPA: {url} (content_length={content_length}, spa_indicators={sum(spa_indicators)})")
+                        base_url = f"{parsed_url.scheme}://{domain}"
+                        return await self._generate_detailed_error(
+                            url, base_url, domain, normalized_domain, 0,
+                            override_code='JAVASCRIPT_REQUIRED',
+                            override_message=f"📜 JavaScript Required: The page at {url} uses a JavaScript framework (like React/Next.js) to render content. Our fetcher cannot execute JavaScript. Please visit the link directly in your browser to view the content."
+                        )
+                    
+                    # For user-provided direct URLs, be lenient if we have good content
+                    min_content_length = 200  # Require minimum content to ensure it's not a shell
+                    min_score = 10 if is_direct_privacy_url else 5
                     
                     if content_length >= min_content_length and score >= min_score:
                         response = {
@@ -1674,18 +1699,6 @@ class UltraPrivacyFetcher:
                         await self._save_to_disk_cache(normalized_domain, response)
                         logger.info(f"✓ Direct fetch successful for {url} (score: {score}, chars: {content_length}) in {time.time() - start_time:.2f}s")
                         return response
-                    
-                    # Check if it looks like JS-rendered content (minimal HTML body)
-                    content_issues = self._detect_content_issues(content)
-                    if content_issues.get('requires_javascript', False):
-                        logger.warning(f"Direct URL appears to require JavaScript: {url}")
-                        # For JS-rendered sites with user-provided direct URLs, return a helpful error
-                        base_url = f"{parsed_url.scheme}://{domain}"
-                        return await self._generate_detailed_error(
-                            url, base_url, domain, normalized_domain, 0,
-                            override_code='JAVASCRIPT_REQUIRED',
-                            override_message=f"📜 JavaScript Required: The page at {url} requires JavaScript to render its content. Our fetcher cannot execute JavaScript. Please visit the link directly in your browser."
-                        )
                     
                     if content_length < min_content_length:
                         logger.warning(f"Direct URL returned too little content ({content_length} chars): {url}")
