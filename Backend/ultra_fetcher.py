@@ -879,11 +879,19 @@ class UltraPrivacyFetcher:
         
         return issues
     
-    async def _generate_detailed_error(self, url: str, base_url: str, domain: str, normalized_domain: str, strategies_tried: int) -> Dict:
-        """Generate detailed error information with user-friendly messages"""
+    async def _generate_detailed_error(self, url: str, base_url: str, domain: str, normalized_domain: str, strategies_tried: int, 
+                                       override_code: str = None, override_message: str = None) -> Dict:
+        """Generate detailed error information with user-friendly messages
         
-        # Try to fetch the homepage to detect specific issues
-        content, status, _ = await self._fetch_url(base_url, max_retries=1)
+        Args:
+            url: Original URL requested
+            base_url: Base URL of the domain
+            domain: Domain name
+            normalized_domain: Normalized domain for lookups
+            strategies_tried: Number of strategies attempted
+            override_code: Optional - Force a specific error code
+            override_message: Optional - Force a specific error message
+        """
         
         # Default error info
         error_info = {
@@ -892,6 +900,27 @@ class UltraPrivacyFetcher:
             'strategies_tried': strategies_tried,
             'url_attempted': url
         }
+        
+        # If override code is provided, use it immediately
+        if override_code:
+            custom_suggestions = []
+            if override_code == 'JAVASCRIPT_REQUIRED':
+                custom_suggestions = [
+                    f"Visit {url} directly in your browser",
+                    "The content loads dynamically and requires a real browser",
+                    "Try using a different website for analysis"
+                ]
+            error_info.update({
+                'error': override_message or 'Fetch failed',
+                'error_code': override_code,
+                'error_reason': override_message or 'Could not retrieve content',
+                'user_message': override_message or f"Unable to fetch content from {domain}",
+                'suggestions': custom_suggestions if custom_suggestions else [f"Visit {url} directly in your browser"]
+            })
+            return error_info
+        
+        # Try to fetch the homepage to detect specific issues
+        content, status, _ = await self._fetch_url(base_url, max_retries=1)
         
         # Check for specific HTTP status codes
         if status is not None:
@@ -1615,32 +1644,58 @@ class UltraPrivacyFetcher:
                 logger.info(f"Detected direct/specific URL: {url} - fetching directly first")
                 # Try to fetch the URL directly first
                 content, status, final_url = await self._fetch_url(url)
+                
                 if content and status == 200:
                     title = self._get_title(content)
+                    clean_text = self._extract_clean_text(content)
+                    content_length = len(clean_text)
                     score = self._calculate_privacy_score_advanced(content, final_url, title)
                     
-                    # For direct URLs, accept lower scores since user explicitly provided this URL
-                    min_score = 30 if is_direct_privacy_url else 20
+                    logger.info(f"Direct fetch result: content_length={content_length}, score={score}, title='{title[:50] if title else 'None'}'")
                     
-                    if score >= min_score:  # Accept lower scores for user-provided URLs
-                        clean_text = self._extract_clean_text(content)
-                        if len(clean_text) >= 50:
-                            response = {
-                                'success': True,
-                                'policy_url': final_url,
-                                'policy_text': clean_text[:15000],
-                                'score': score,
-                                'strategy': 'direct_fetch',
-                                'fetch_time': time.time() - start_time,
-                                'cached': False,
-                                'domain': normalized_domain
-                            }
-                            # Save to cache
-                            await self._save_to_memory_cache(normalized_domain, response)
-                            await self._save_to_disk_cache(normalized_domain, response)
-                            logger.info(f"✓ Direct fetch successful for {url} (score: {score}) in {time.time() - start_time:.2f}s")
-                            return response
-                    logger.info(f"Direct URL fetch returned low score ({score}), trying strategies...")
+                    # For user-provided direct URLs, be much more lenient
+                    # User knows what they're looking for, just validate we got SOME content
+                    min_content_length = 100  # Just need minimal content
+                    min_score = 10 if is_direct_privacy_url else 5  # Very low threshold for explicit URLs
+                    
+                    if content_length >= min_content_length and score >= min_score:
+                        response = {
+                            'success': True,
+                            'policy_url': final_url,
+                            'policy_text': clean_text[:15000],
+                            'score': score,
+                            'strategy': 'direct_fetch',
+                            'fetch_time': time.time() - start_time,
+                            'cached': False,
+                            'domain': normalized_domain
+                        }
+                        # Save to cache
+                        await self._save_to_memory_cache(normalized_domain, response)
+                        await self._save_to_disk_cache(normalized_domain, response)
+                        logger.info(f"✓ Direct fetch successful for {url} (score: {score}, chars: {content_length}) in {time.time() - start_time:.2f}s")
+                        return response
+                    
+                    # Check if it looks like JS-rendered content (minimal HTML body)
+                    content_issues = self._detect_content_issues(content)
+                    if content_issues.get('requires_javascript', False):
+                        logger.warning(f"Direct URL appears to require JavaScript: {url}")
+                        # For JS-rendered sites with user-provided direct URLs, return a helpful error
+                        base_url = f"{parsed_url.scheme}://{domain}"
+                        return await self._generate_detailed_error(
+                            url, base_url, domain, normalized_domain, 0,
+                            override_code='JAVASCRIPT_REQUIRED',
+                            override_message=f"📜 JavaScript Required: The page at {url} requires JavaScript to render its content. Our fetcher cannot execute JavaScript. Please visit the link directly in your browser."
+                        )
+                    
+                    if content_length < min_content_length:
+                        logger.warning(f"Direct URL returned too little content ({content_length} chars): {url}")
+                    else:
+                        logger.info(f"Direct URL fetch returned low score ({score}), trying other strategies...")
+                
+                elif status and status != 200:
+                    logger.warning(f"Direct URL fetch returned HTTP {status}: {url}")
+                else:
+                    logger.warning(f"Direct URL fetch returned no content: {url}")
             
             # Normalize domain - some sites require www
             www_required_domains = ['facebook.com', 'instagram.com', 'meta.com']
