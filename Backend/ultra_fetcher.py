@@ -78,12 +78,16 @@ class UltraPrivacyFetcher:
                 'sitemap': 0,
                 'robots_txt': 0,
                 'dom_scan': 0,
-                'domain_specific': 0
+                'domain_specific': 0,
+                'mobile_fallback': 0
             }
         }
         
         # Domain-specific knowledge base
         self.domain_patterns = self._load_domain_patterns()
+        
+        # Mobile/basic version fallback URLs for JS-heavy sites
+        self.mobile_fallbacks = self._load_mobile_fallbacks()
         
         # Privacy detection patterns (enhanced with GDPR/CCPA)
         self.privacy_indicators = {
@@ -430,6 +434,185 @@ class UltraPrivacyFetcher:
             'grubhub.com': {'paths': ['/legal/privacy-policy', '/privacy'], 'priority': 10},
             'instacart.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
         }
+    
+    def _load_mobile_fallbacks(self) -> Dict:
+        """
+        Load mobile/basic/lite URL patterns for JavaScript-heavy sites.
+        These versions often work without JavaScript and are easier to scrape.
+        
+        Strategies:
+        1. mbasic.* - Facebook's basic version (no JS)
+        2. m.* - Mobile versions (often simpler)
+        3. lite.* - Lite versions for low-bandwidth
+        4. mobile.* - Mobile subdomains
+        5. amp.* - AMP versions (simplified HTML)
+        6. Simple/basic HTML policy pages on the same domain
+        """
+        return {
+            # Meta/Facebook family - use mbasic for best results
+            'facebook.com': [
+                'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                'https://mbasic.facebook.com/about/privacy/',
+                'https://m.facebook.com/privacy/policy/',
+                'https://m.facebook.com/about/privacy/',
+            ],
+            'meta.com': [
+                'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                'https://m.facebook.com/privacy/policy/',
+            ],
+            'instagram.com': [
+                'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                'https://m.facebook.com/privacy/policy/',
+                'https://help.instagram.com/519522125107875',
+            ],
+            'messenger.com': [
+                'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                'https://m.facebook.com/privacy/policy/',
+            ],
+            'threads.net': [
+                'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+                'https://help.instagram.com/threads/privacy',
+            ],
+            'whatsapp.com': [
+                'https://www.whatsapp.com/legal/privacy-policy',  # WhatsApp's page works without JS
+                'https://mbasic.facebook.com/privacy/policy/?locale=en_US',
+            ],
+            
+            # Twitter/X - mobile versions
+            'twitter.com': [
+                'https://mobile.twitter.com/en/privacy',
+                'https://twitter.com/en/privacy',
+            ],
+            'x.com': [
+                'https://mobile.twitter.com/en/privacy',
+                'https://twitter.com/en/privacy',
+            ],
+            
+            # TikTok - try different regions
+            'tiktok.com': [
+                'https://www.tiktok.com/legal/page/row/privacy-policy/en',
+                'https://www.tiktok.com/legal/privacy-policy-us',
+                'https://www.tiktok.com/legal/page/eea/privacy-policy/en',
+                'https://www.tiktok.com/legal/privacy-policy-row',
+            ],
+            
+            # LinkedIn - mobile and simplified versions
+            'linkedin.com': [
+                'https://www.linkedin.com/legal/privacy-policy',
+                'https://mobile.linkedin.com/legal/privacy-policy',
+                'https://www.linkedin.com/legal/l/privacy-policy',
+            ],
+            
+            # Pinterest - mobile version
+            'pinterest.com': [
+                'https://policy.pinterest.com/en/privacy-policy',
+                'https://www.pinterest.com/_/_/policy/privacy-policy/',
+            ],
+            
+            # Snapchat
+            'snapchat.com': [
+                'https://values.snap.com/privacy/privacy-policy',
+                'https://snap.com/en-US/privacy/privacy-policy',
+            ],
+            
+            # Reddit - old reddit often works better
+            'reddit.com': [
+                'https://www.reddit.com/policies/privacy-policy',
+                'https://old.reddit.com/wiki/privacypolicy',
+                'https://www.redditinc.com/policies/privacy-policy',
+            ],
+            
+            # Discord
+            'discord.com': [
+                'https://discord.com/privacy',
+                'https://discordapp.com/privacy',
+            ],
+            
+            # Spotify - direct policy page
+            'spotify.com': [
+                'https://www.spotify.com/us/legal/privacy-policy/',
+                'https://www.spotify.com/legal/privacy-policy/',
+            ],
+            
+            # Netflix
+            'netflix.com': [
+                'https://help.netflix.com/legal/privacy',
+                'https://www.netflix.com/privacy',
+            ],
+            
+            # Amazon - help pages work without JS
+            'amazon.com': [
+                'https://www.amazon.com/gp/help/customer/display.html?nodeId=468496',
+                'https://www.amazon.com/privacy',
+            ],
+            
+            # Twitch
+            'twitch.tv': [
+                'https://www.twitch.tv/p/legal/privacy-notice/',
+                'https://www.twitch.tv/p/legal/privacy-policy/',
+            ],
+            
+            # YouTube - Google policies
+            'youtube.com': [
+                'https://policies.google.com/privacy',
+                'https://www.youtube.com/t/privacy',
+            ],
+            
+            # Uber
+            'uber.com': [
+                'https://www.uber.com/legal/en/document/?name=privacy-notice&country=united-states&lang=en',
+                'https://www.uber.com/legal/privacy/users/',
+            ],
+            
+            # Airbnb
+            'airbnb.com': [
+                'https://www.airbnb.com/terms/privacy_policy',
+                'https://www.airbnb.com/help/article/2855',
+            ],
+            
+            # GitHub - docs site works well
+            'github.com': [
+                'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+                'https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement',
+                'https://github.com/site/privacy',
+            ],
+            
+            # Microsoft
+            'microsoft.com': [
+                'https://privacy.microsoft.com/en-us/privacystatement',
+                'https://www.microsoft.com/en-us/privacy/privacystatement',
+            ],
+            
+            # Apple
+            'apple.com': [
+                'https://www.apple.com/legal/privacy/en-ww/',
+                'https://www.apple.com/privacy/privacy-policy/',
+            ],
+            
+            # Google
+            'google.com': [
+                'https://policies.google.com/privacy?hl=en',
+                'https://policies.google.com/privacy',
+            ],
+            
+            # Zoom
+            'zoom.us': [
+                'https://explore.zoom.us/en/privacy/',
+                'https://zoom.us/privacy',
+            ],
+            
+            # Dropbox
+            'dropbox.com': [
+                'https://www.dropbox.com/privacy',
+                'https://www.dropbox.com/terms/privacy',
+            ],
+            
+            # Slack
+            'slack.com': [
+                'https://slack.com/trust/privacy/privacy-policy',
+                'https://slack.com/privacy-policy',
+            ],
+        }
 
     def _normalize_domain_for_lookup(self, domain: str) -> str:
         """Normalize domain for dictionary lookups (remove www. prefix)"""
@@ -513,6 +696,9 @@ class UltraPrivacyFetcher:
 
     async def _fetch_url(self, url: str, max_retries: int = 2) -> Tuple[Optional[str], Optional[int], Optional[str]]:
         """Fetch URL with retries and comprehensive error handling"""
+        last_error_type = None
+        last_status_code = None
+        
         for attempt in range(max_retries + 1):
             try:
                 # Use different headers for different attempts
@@ -530,6 +716,7 @@ class UltraPrivacyFetcher:
                 
                 async with self.session.get(url, allow_redirects=True, ssl=False, headers=headers) as response:
                     content_type = response.headers.get('content-type', '').lower()
+                    last_status_code = response.status
                     
                     if response.status == 200:
                         if 'html' in content_type or 'text' in content_type or 'xml' in content_type:
@@ -542,16 +729,359 @@ class UltraPrivacyFetcher:
                     return None, response.status, str(response.url)
                     
             except asyncio.TimeoutError:
+                last_error_type = 'timeout'
                 if attempt < max_retries:
                     await asyncio.sleep(1.0 * (attempt + 1))  # Longer delays
                     continue
+            except aiohttp.ClientConnectionError as e:
+                last_error_type = 'connection_error'
+                logger.debug(f"Connection error for {url}: {e}")
+                if attempt < max_retries:
+                    await asyncio.sleep(1.0 * (attempt + 1))
+                    continue
+            except aiohttp.ClientSSLError as e:
+                last_error_type = 'ssl_error'
+                logger.debug(f"SSL error for {url}: {e}")
+                if attempt < max_retries:
+                    await asyncio.sleep(1.0 * (attempt + 1))
+                    continue
             except Exception as e:
+                last_error_type = 'unknown_error'
                 logger.debug(f"Fetch error for {url}: {e}")
                 if attempt < max_retries:
                     await asyncio.sleep(1.0 * (attempt + 1))
                     continue
         
+        # Store last error info for diagnostic purposes
+        self._last_fetch_error = {
+            'url': url,
+            'error_type': last_error_type,
+            'status_code': last_status_code
+        }
         return None, None, url
+    
+    def _detect_content_issues(self, content: str, url: str) -> Dict:
+        """Detect common content issues like JavaScript rendering requirements, bot protection, etc."""
+        issues = {
+            'requires_javascript': False,
+            'has_bot_protection': False,
+            'is_captcha_protected': False,
+            'is_login_required': False,
+            'is_geo_blocked': False,
+            'is_empty_or_minimal': False,
+            'detected_issues': []
+        }
+        
+        if not content:
+            issues['is_empty_or_minimal'] = True
+            issues['detected_issues'].append('empty_content')
+            return issues
+        
+        content_lower = content.lower()
+        
+        # Check for minimal content (likely JS-rendered)
+        if len(content.strip()) < 500:
+            issues['is_empty_or_minimal'] = True
+            issues['detected_issues'].append('minimal_content')
+        
+        # JavaScript detection patterns
+        js_patterns = [
+            'enable javascript',
+            'javascript is required',
+            'javascript is disabled',
+            'please enable javascript',
+            'this page requires javascript',
+            'you need to enable javascript',
+            'javascript must be enabled',
+            '<noscript>',
+            'react-root',
+            '__NEXT_DATA__',
+            'window.__INITIAL_STATE__',
+            'data-reactroot',
+            'id="app"',  # Common SPA mount point with no content
+        ]
+        
+        if any(pattern in content_lower for pattern in js_patterns):
+            # Check if there's actually content or just JS shell
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(content, 'html.parser')
+            text_content = soup.get_text(strip=True)
+            if len(text_content) < 1000:
+                issues['requires_javascript'] = True
+                issues['detected_issues'].append('javascript_required')
+        
+        # Bot protection detection
+        bot_patterns = [
+            'cloudflare',
+            'challenge-platform',
+            'cf-browser-verification',
+            'just a moment',
+            'checking your browser',
+            'security check',
+            'ddos protection',
+            'ray id:',
+            'access denied',
+            'please wait while we verify',
+            'bot detected',
+            'automated access',
+            'incapsula',
+            'sucuri',
+            'akamai',
+            'imperva',
+            'distil networks',
+        ]
+        
+        if any(pattern in content_lower for pattern in bot_patterns):
+            issues['has_bot_protection'] = True
+            issues['detected_issues'].append('bot_protection')
+        
+        # CAPTCHA detection
+        captcha_patterns = [
+            'captcha',
+            'recaptcha',
+            'hcaptcha',
+            'verify you are human',
+            'prove you are not a robot',
+            'i\'m not a robot',
+            'complete the security check',
+        ]
+        
+        if any(pattern in content_lower for pattern in captcha_patterns):
+            issues['is_captcha_protected'] = True
+            issues['detected_issues'].append('captcha_required')
+        
+        # Login detection
+        login_patterns = [
+            'please log in',
+            'please sign in',
+            'login required',
+            'you must be logged in',
+            'sign in to continue',
+            'authentication required',
+        ]
+        
+        if any(pattern in content_lower for pattern in login_patterns):
+            issues['is_login_required'] = True
+            issues['detected_issues'].append('login_required')
+        
+        # Geo-blocking detection
+        geo_patterns = [
+            'not available in your region',
+            'not available in your country',
+            'geo-restricted',
+            'blocked in your location',
+            'content is not available',
+        ]
+        
+        if any(pattern in content_lower for pattern in geo_patterns):
+            issues['is_geo_blocked'] = True
+            issues['detected_issues'].append('geo_blocked')
+        
+        return issues
+    
+    async def _generate_detailed_error(self, url: str, base_url: str, domain: str, normalized_domain: str, strategies_tried: int) -> Dict:
+        """Generate detailed error information with user-friendly messages"""
+        
+        # Try to fetch the homepage to detect specific issues
+        content, status, _ = await self._fetch_url(base_url, max_retries=1)
+        
+        # Default error info
+        error_info = {
+            'success': False,
+            'domain': normalized_domain,
+            'strategies_tried': strategies_tried,
+            'url_attempted': url
+        }
+        
+        # Check for specific HTTP status codes
+        if status is not None:
+            if status == 403:
+                error_info.update({
+                    'error': 'Access denied by the website',
+                    'error_code': 'ACCESS_DENIED',
+                    'error_reason': 'The website is blocking automated requests.',
+                    'user_message': f"⛔ Access Denied: {domain} is blocking our request. This usually means the site has bot protection enabled (like Cloudflare). Try accessing the privacy policy directly at the website.",
+                    'suggestions': [
+                        f"Visit {base_url}/privacy directly in your browser",
+                        "Search for the privacy policy on their website",
+                        "Try again later as the protection may be temporary"
+                    ]
+                })
+                return error_info
+            
+            elif status == 404:
+                error_info.update({
+                    'error': 'Privacy policy page not found',
+                    'error_code': 'PAGE_NOT_FOUND',
+                    'error_reason': 'The website does not have a privacy policy at common URL paths.',
+                    'user_message': f"🔍 Not Found: We couldn't locate a privacy policy on {domain}. The website may use an unusual URL for their policy, or may not have one publicly available.",
+                    'suggestions': [
+                        "Check the website's footer for a privacy policy link",
+                        "Look in their Terms of Service or Legal pages",
+                        "Contact the website directly to request their privacy policy"
+                    ]
+                })
+                return error_info
+            
+            elif status == 429:
+                error_info.update({
+                    'error': 'Rate limited by the website',
+                    'error_code': 'RATE_LIMITED',
+                    'error_reason': 'We sent too many requests and got temporarily blocked.',
+                    'user_message': f"⏳ Rate Limited: {domain} has temporarily blocked requests. Please wait a few minutes and try again.",
+                    'suggestions': [
+                        "Wait 2-5 minutes before trying again",
+                        "The block is usually temporary"
+                    ]
+                })
+                return error_info
+            
+            elif status >= 500:
+                error_info.update({
+                    'error': 'Website server error',
+                    'error_code': 'SERVER_ERROR',
+                    'error_reason': 'The website is experiencing technical issues.',
+                    'user_message': f"🔧 Server Error: {domain} is experiencing technical difficulties. This is not a problem on our end.",
+                    'suggestions': [
+                        "Try again in a few minutes",
+                        "The website may be under maintenance"
+                    ]
+                })
+                return error_info
+        
+        # Check for content-based issues
+        if content:
+            issues = self._detect_content_issues(content, base_url)
+            
+            if issues['has_bot_protection']:
+                error_info.update({
+                    'error': 'Website has bot protection',
+                    'error_code': 'BOT_PROTECTION',
+                    'error_reason': 'The website uses security measures (like Cloudflare) that block automated access.',
+                    'user_message': f"🛡️ Bot Protection: {domain} uses advanced security (likely Cloudflare or similar) that prevents automated access. The privacy policy content cannot be retrieved automatically.",
+                    'suggestions': [
+                        f"Visit the website directly and look for their privacy policy",
+                        "Common locations: footer links, 'Legal' or 'Privacy' menu items",
+                        "You may need to complete a CAPTCHA on the website first"
+                    ]
+                })
+                return error_info
+            
+            if issues['is_captcha_protected']:
+                error_info.update({
+                    'error': 'CAPTCHA verification required',
+                    'error_code': 'CAPTCHA_REQUIRED',
+                    'error_reason': 'The website requires human verification (CAPTCHA) to access content.',
+                    'user_message': f"🤖 CAPTCHA Required: {domain} requires human verification to access. We cannot automatically bypass CAPTCHA challenges.",
+                    'suggestions': [
+                        "Visit the website directly in your browser",
+                        "Complete the CAPTCHA and then try accessing the privacy policy"
+                    ]
+                })
+                return error_info
+            
+            if issues['requires_javascript']:
+                # Check if this is a known JS-heavy site
+                domain_pattern = self.domain_patterns.get(normalized_domain, {})
+                is_known_js_site = domain_pattern.get('requires_js', False)
+                
+                error_info.update({
+                    'error': 'JavaScript rendering required',
+                    'error_code': 'JAVASCRIPT_REQUIRED',
+                    'error_reason': 'The privacy policy page is built with JavaScript frameworks (like React or Angular) and requires a full browser to load.',
+                    'user_message': f"📜 JavaScript Required: {domain}'s privacy policy page uses JavaScript to render content. Our current fetcher cannot execute JavaScript to retrieve the full content.",
+                    'suggestions': [
+                        f"Visit {base_url}/privacy in your browser",
+                        "The content loads dynamically and requires a real browser",
+                        "We're working on improving support for JavaScript-heavy sites"
+                    ]
+                })
+                return error_info
+            
+            if issues['is_login_required']:
+                error_info.update({
+                    'error': 'Login required to view content',
+                    'error_code': 'LOGIN_REQUIRED',
+                    'error_reason': 'The website requires users to log in to view the privacy policy.',
+                    'user_message': f"🔐 Login Required: {domain} requires you to be logged in to view their privacy policy. This is unusual for privacy policies.",
+                    'suggestions': [
+                        "Log in to the website and navigate to the privacy policy",
+                        "Contact the website if you believe the privacy policy should be public"
+                    ]
+                })
+                return error_info
+            
+            if issues['is_geo_blocked']:
+                error_info.update({
+                    'error': 'Content geo-restricted',
+                    'error_code': 'GEO_BLOCKED',
+                    'error_reason': 'The website is blocking access based on geographic location.',
+                    'user_message': f"🌍 Geo-Blocked: {domain} appears to restrict access based on location. The content may not be available in your region.",
+                    'suggestions': [
+                        "The website may have regional restrictions",
+                        "Try accessing from a different network or location"
+                    ]
+                })
+                return error_info
+        
+        # Check last fetch error if available
+        if hasattr(self, '_last_fetch_error') and self._last_fetch_error:
+            last_error = self._last_fetch_error
+            
+            if last_error.get('error_type') == 'timeout':
+                error_info.update({
+                    'error': 'Connection timeout',
+                    'error_code': 'TIMEOUT',
+                    'error_reason': 'The website took too long to respond.',
+                    'user_message': f"⏱️ Timeout: {domain} is taking too long to respond. The server may be slow or experiencing high traffic.",
+                    'suggestions': [
+                        "Wait a few minutes and try again",
+                        "The website may be experiencing high load"
+                    ]
+                })
+                return error_info
+            
+            elif last_error.get('error_type') == 'connection_error':
+                error_info.update({
+                    'error': 'Connection failed',
+                    'error_code': 'CONNECTION_FAILED',
+                    'error_reason': 'Could not establish a connection to the website.',
+                    'user_message': f"🔌 Connection Failed: Unable to connect to {domain}. The website may be down or the URL may be incorrect.",
+                    'suggestions': [
+                        "Verify the website URL is correct",
+                        "Check if the website is accessible in your browser",
+                        "The website may be temporarily offline"
+                    ]
+                })
+                return error_info
+            
+            elif last_error.get('error_type') == 'ssl_error':
+                error_info.update({
+                    'error': 'SSL/Security certificate error',
+                    'error_code': 'SSL_ERROR',
+                    'error_reason': 'The website has an invalid or expired security certificate.',
+                    'user_message': f"🔒 SSL Error: {domain} has a security certificate issue. This may indicate a problem with the website's configuration.",
+                    'suggestions': [
+                        "The website may have an expired SSL certificate",
+                        "Try accessing the website directly to see if there are security warnings"
+                    ]
+                })
+                return error_info
+        
+        # Default fallback error
+        error_info.update({
+            'error': 'Privacy policy not found',
+            'error_code': 'NOT_FOUND',
+            'error_reason': 'We searched multiple common locations but could not find the privacy policy.',
+            'user_message': f"❓ Not Found: We couldn't locate a privacy policy on {domain} after trying {strategies_tried} different search strategies. The website may not have a publicly accessible privacy policy, or it may be in an unusual location.",
+            'suggestions': [
+                f"Check {base_url} directly and look in the footer",
+                "Look for 'Legal', 'Privacy', or 'Terms' links on the website",
+                "The privacy policy may be embedded within Terms of Service"
+            ]
+        })
+        
+        return error_info
 
     def _calculate_privacy_score_advanced(self, content: str, url: str = "", title: str = "") -> int:
         """Advanced privacy scoring with NLP and pattern matching"""
@@ -956,6 +1486,84 @@ class UltraPrivacyFetcher:
             logger.error(f"DOM scan error: {e}")
         
         return None
+    
+    async def _strategy_mobile_fallback(self, base_url: str, domain: str) -> Optional[Tuple[str, str, int]]:
+        """
+        Strategy 5: Try mobile/basic versions of JavaScript-heavy sites.
+        
+        Many modern sites like TikTok, Instagram, etc. require JavaScript to render.
+        This strategy tries alternative versions (mobile, basic, lite) that work without JS:
+        - mbasic.* - Facebook's basic version (no JS required)
+        - m.* - Mobile versions (often simpler HTML)
+        - Mobile-specific privacy policy pages
+        - AMP versions
+        """
+        logger.info(f"Strategy 5: Trying mobile fallback for {domain}")
+        
+        # Normalize domain for lookup
+        normalized_domain = self._normalize_domain_for_lookup(domain)
+        
+        # Check if we have mobile fallbacks for this domain
+        mobile_urls = self.mobile_fallbacks.get(normalized_domain, [])
+        
+        if not mobile_urls:
+            # Generate generic mobile fallbacks for any domain
+            parsed = urlparse(base_url)
+            scheme = parsed.scheme
+            domain_parts = parsed.netloc.split('.')
+            
+            # Remove www if present
+            if domain_parts[0] == 'www' and len(domain_parts) > 2:
+                base_domain = '.'.join(domain_parts[1:])
+            else:
+                base_domain = parsed.netloc
+            
+            # Try common mobile patterns
+            mobile_urls = [
+                f"{scheme}://m.{base_domain}/privacy",
+                f"{scheme}://mobile.{base_domain}/privacy",
+                f"{scheme}://m.{base_domain}/privacy-policy",
+                f"{scheme}://mobile.{base_domain}/privacy-policy",
+                f"{scheme}://m.{base_domain}/legal/privacy",
+            ]
+        
+        logger.debug(f"Trying {len(mobile_urls)} mobile URLs for {domain}")
+        
+        best_result = None
+        best_score = 0
+        
+        # Try each mobile URL
+        for mobile_url in mobile_urls:
+            try:
+                content, status, final_url = await self._fetch_url(mobile_url, max_retries=1)
+                
+                if content and status == 200:
+                    title = self._get_title(content)
+                    score = self._calculate_privacy_score_advanced(content, final_url, title)
+                    
+                    logger.debug(f"Mobile URL {final_url}: score={score}, content_len={len(content)}")
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_result = (final_url, content, score)
+                        
+                        # Early termination for excellent matches
+                        if score >= 60:
+                            logger.info(f"✓ Found excellent mobile match (score: {score}) at {final_url}")
+                            self.stats['strategy_success']['mobile_fallback'] += 1
+                            return best_result
+            
+            except Exception as e:
+                logger.debug(f"Mobile URL {mobile_url} failed: {e}")
+                continue
+        
+        if best_result and best_score >= 35:
+            logger.info(f"✓ Mobile fallback strategy found match (score: {best_score})")
+            self.stats['strategy_success']['mobile_fallback'] += 1
+            return best_result
+        
+        logger.debug(f"Mobile fallback strategy found no valid matches (best score: {best_score})")
+        return None
 
     async def fetch_privacy_policy(self, url: str) -> Dict:
         """
@@ -1044,9 +1652,16 @@ class UltraPrivacyFetcher:
                 ('dom_scan', self._strategy_dom_scan)
             ]
             
-            # Add JavaScript fallback for sites that require it (like Facebook)
+            # Add mobile fallback and JavaScript fallback for sites that require it
             # Use normalized_domain for dictionary lookup
             domain_pattern = self.domain_patterns.get(normalized_domain, {})
+            
+            # For JS-heavy sites, add mobile fallback BEFORE JavaScript fallback
+            # Also check if we have mobile fallbacks for this specific domain
+            if domain_pattern.get('requires_js', False) or normalized_domain in self.mobile_fallbacks:
+                strategies.append(('mobile_fallback', self._strategy_mobile_fallback))
+            
+            # Add JavaScript fallback as last resort (for sites like Facebook)
             if domain_pattern.get('requires_js', False):
                 strategies.append(('javascript', self._strategy_javascript_fallback))
             
@@ -1095,13 +1710,11 @@ class UltraPrivacyFetcher:
                 static_result['fetch_time'] = fetch_time
                 return static_result
             
-            return {
-                'success': False,
-                'error': 'Privacy policy not found',
-                'domain': normalized_domain,
-                'fetch_time': fetch_time,
-                'strategies_tried': len(strategies)
-            }
+            # Generate detailed error information
+            error_info = await self._generate_detailed_error(url, base_url, domain, normalized_domain, len(strategies))
+            error_info['fetch_time'] = fetch_time
+            
+            return error_info
         
         except Exception as e:
             fetch_time = time.time() - start_time

@@ -3054,6 +3054,238 @@ body {
   line-height: 1.5;
 }
 
+/* Enhanced Error Display Styles */
+.error-icon-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.error-icon-large {
+  font-size: 2rem;
+}
+
+.error-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.error-code-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-code-badge.severity-error {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.error-code-badge.severity-warning {
+  background: linear-gradient(135deg, #fef3c7, #fed7aa);
+  color: #d97706;
+  border: 1px solid #fed7aa;
+}
+
+.error-code-badge.severity-info {
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
+}
+
+.error-message {
+  color: #374151;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 0.5rem 0;
+}
+
+.error-reason {
+  color: #6b7280;
+  font-size: 0.875rem;
+  background: rgba(0, 0, 0, 0.03);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+  border-left: 3px solid #9ca3af;
+}
+
+/* Error Card Severity Variants */
+.error-card.error-error {
+  background: linear-gradient(135deg, #fee2e2, #fef3c7);
+  border: 1px solid #fca5a5;
+}
+
+.error-card.error-error .error-icon-container {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.error-card.error-warning {
+  background: linear-gradient(135deg, #fef3c7, #fef9c3);
+  border: 1px solid #fcd34d;
+}
+
+.error-card.error-warning .error-icon-container {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.error-card.error-info {
+  background: linear-gradient(135deg, #e0e7ff, #ede9fe);
+  border: 1px solid #a5b4fc;
+}
+
+.error-card.error-info .error-icon-container {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.error-card.error-info .error-text h3 {
+  color: #4f46e5;
+}
+
+.error-card.error-info .error-message {
+  color: #374151;
+}
+
+/* Backend Suggestions */
+.backend-suggestions {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: left;
+}
+
+.backend-suggestions h4 {
+  color: #374151;
+  font-size: 0.95rem;
+  margin: 0 0 0.75rem 0;
+}
+
+.suggestion-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.suggestion-list li {
+  position: relative;
+  padding: 0.5rem 0 0.5rem 1.5rem;
+  color: #4b5563;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.suggestion-list li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: #6366f1;
+  font-weight: bold;
+}
+
+/* Subdomain label */
+.subdomain-label {
+  color: #6b7280;
+  font-size: 0.85rem;
+  margin: 0.75rem 0 0.5rem 0;
+}
+
+/* Improved action buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.search-btn,
+.retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-btn {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.search-btn:hover {
+  background: linear-gradient(135deg, #4338ca, #4f46e5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.retry-btn {
+  background: white;
+  color: #4f46e5;
+  border: 2px solid #4f46e5;
+}
+
+.retry-btn:hover {
+  background: #f5f3ff;
+  transform: translateY(-1px);
+}
+
+/* Alternative actions container */
+.alternative-actions {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .error-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .error-icon-container {
+    margin: 0 auto;
+  }
+
+  .error-header {
+    justify-content: center;
+  }
+
+  .backend-suggestions,
+  .error-suggestions {
+    text-align: left;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-buttons button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* Status Text Improvements */
 .status-text {
   text-align: center;

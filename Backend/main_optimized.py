@@ -182,6 +182,27 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
                         response_data['is_fallback'] = True
                         response_data['fallback_note'] = result.get('fallback_note', 'Using pre-analyzed summary')
                     return response_data
+                else:
+                    # Fetch failed - return detailed error information
+                    total_time = time.time() - start_time
+                    error_response = {
+                        'success': False,
+                        'error': result.get('error', 'Privacy policy not found'),
+                        'error_code': result.get('error_code', 'UNKNOWN'),
+                        'error_reason': result.get('error_reason', 'Unable to fetch the privacy policy'),
+                        'user_message': result.get('user_message', 'We could not find or access the privacy policy for this website.'),
+                        'suggestions': result.get('suggestions', []),
+                        'domain': result.get('domain', ''),
+                        'fetch_time': total_time,
+                        'strategies_tried': result.get('strategies_tried', 0)
+                    }
+                    log_security_event("POLICY_FETCH_FAILED", 
+                                      f"Fetch failed for: {request.url} - {result.get('error_code', 'UNKNOWN')}: {result.get('error', 'unknown error')}", 
+                                      client_ip)
+                    # Return as JSON response with 404 status but include detailed error info
+                    return JSONResponse(status_code=404, content=error_response)
+            except HTTPException:
+                raise
             except Exception as e:
                 logger.error(f"Ultra fetcher error: {e}")
         
@@ -190,14 +211,32 @@ async def fetch_privacy_policy(request: URLRequest, http_request: Request):
         log_security_event("POLICY_FETCH_FAILED", 
                           f"All fetchers failed for: {request.url} in {total_time:.2f}s", 
                           client_ip)
-        raise HTTPException(status_code=404, detail="Privacy policy not found")
+        return JSONResponse(status_code=404, content={
+            'success': False,
+            'error': 'Privacy policy not found',
+            'error_code': 'NO_FETCHER',
+            'error_reason': 'No fetcher was available to process the request.',
+            'user_message': 'We could not find a privacy policy for this website. Please try again or check the URL.',
+            'suggestions': [
+                'Verify the website URL is correct',
+                'Try searching for the privacy policy directly on the website'
+            ],
+            'fetch_time': total_time
+        })
         
     except HTTPException:
         raise
     except Exception as e:
         total_time = time.time() - start_time
         log_security_event("POLICY_FETCH_ERROR", f"Unexpected error for {request.url} after {total_time:.2f}s: {str(e)}", client_ip)
-        raise HTTPException(status_code=500, detail=f"Error fetching privacy policy: {str(e)}")
+        return JSONResponse(status_code=500, content={
+            'success': False,
+            'error': 'Server error',
+            'error_code': 'SERVER_ERROR',
+            'error_reason': str(e),
+            'user_message': 'An unexpected error occurred while fetching the privacy policy. Please try again.',
+            'suggestions': ['Try again in a few moments', 'Check if the website is accessible']
+        })
 
 @app.post("/analyze-direct-policy")
 async def analyze_direct_policy(request: DirectAnalysisRequest, http_request: Request):
@@ -228,13 +267,38 @@ async def analyze_direct_policy(request: DirectAnalysisRequest, http_request: Re
                         policy_text = result.get('policy_text')
                         policy_url = result.get('policy_url')
                     else:
-                        detail = result.get('error', 'Privacy policy not found')
-                        raise HTTPException(status_code=404, detail=detail)
+                        # Return detailed error response
+                        return JSONResponse(status_code=404, content={
+                            'success': False,
+                            'error': result.get('error', 'Privacy policy not found'),
+                            'error_code': result.get('error_code', 'UNKNOWN'),
+                            'error_reason': result.get('error_reason', 'Unable to fetch the privacy policy'),
+                            'user_message': result.get('user_message', 'We could not find or access the privacy policy for this website.'),
+                            'suggestions': result.get('suggestions', []),
+                            'domain': result.get('domain', ''),
+                            'strategies_tried': result.get('strategies_tried', 0)
+                        })
+                except HTTPException:
+                    raise
                 except Exception as e:
                     logger.error(f"Ultra fetcher error in direct analysis: {e}")
-                    raise HTTPException(status_code=404, detail="Privacy policy not found")
+                    return JSONResponse(status_code=404, content={
+                        'success': False,
+                        'error': 'Privacy policy not found',
+                        'error_code': 'FETCH_ERROR',
+                        'error_reason': str(e),
+                        'user_message': 'We encountered an error while fetching the privacy policy. Please try again.',
+                        'suggestions': ['Verify the URL is correct', 'Try again in a few moments']
+                    })
             else:
-                raise HTTPException(status_code=500, detail="No fetcher available")
+                return JSONResponse(status_code=500, content={
+                    'success': False,
+                    'error': 'No fetcher available',
+                    'error_code': 'NO_FETCHER',
+                    'error_reason': 'The privacy policy fetcher is not available.',
+                    'user_message': 'Service temporarily unavailable. Please try again later.',
+                    'suggestions': ['Try again in a few moments']
+                })
 
         # If policy text is provided directly
         if not policy_text and request.policy_text:

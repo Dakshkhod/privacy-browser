@@ -536,35 +536,56 @@ function App() {
 
       clearTimeout(timeoutId);
 
+      // Parse response - may contain detailed error info even with non-200 status
+      const result = await response.json().catch(() => null);
+
       if (!response.ok) {
-        if (response.status === 404) {
+        // Check if we got detailed error info from the backend
+        if (result && result.error_code) {
+          // Store detailed error information
+          setError({
+            message: result.user_message || result.error || 'Failed to fetch privacy policy',
+            code: result.error_code,
+            reason: result.error_reason,
+            suggestions: result.suggestions || [],
+            domain: result.domain,
+            strategies_tried: result.strategies_tried
+          });
+        } else if (response.status === 404) {
           if (urlType === 'direct') {
-            throw new Error("Unable to fetch the privacy policy from this URL. Please check the URL and try again.");
+            setError({ message: "Unable to fetch the privacy policy from this URL. Please check the URL and try again.", code: "NOT_FOUND" });
           } else {
-            throw new Error("Privacy policy not found on this website");
+            setError({ message: "Privacy policy not found on this website", code: "NOT_FOUND" });
           }
         } else if (response.status === 400) {
-          const errorData = await response.json().catch(() => ({}));
-          const detail = errorData.detail || "Invalid URL or website not accessible";
-          throw new Error(`Privacy policy not found or website not accessible: ${detail}`);
+          const detail = result?.detail || "Invalid URL or website not accessible";
+          setError({ message: `Privacy policy not found or website not accessible: ${detail}`, code: "BAD_REQUEST" });
         } else if (response.status === 408) {
-          throw new Error("Request timed out. The website may be slow to respond.");
+          setError({ message: "Request timed out. The website may be slow to respond.", code: "TIMEOUT" });
         } else if (response.status === 500) {
-          throw new Error("Server error while analyzing the policy");
+          setError({ message: "Server error while analyzing the policy", code: "SERVER_ERROR" });
         } else {
-          throw new Error(`Request failed with status ${response.status}`);
+          setError({ message: `Request failed with status ${response.status}`, code: "UNKNOWN" });
         }
+        return;
       }
 
-      const result = await response.json();
-
       // Check if the response contains an error even with 200 status
-      if (result.error) {
-        if (result.error === 'not_found') {
-          throw new Error("Privacy policy not found on this website");
+      if (result && result.error && !result.success) {
+        if (result.error_code) {
+          setError({
+            message: result.user_message || result.error,
+            code: result.error_code,
+            reason: result.error_reason,
+            suggestions: result.suggestions || [],
+            domain: result.domain
+          });
+        } else if (result.error === 'not_found') {
+          setError({ message: "Privacy policy not found on this website", code: "NOT_FOUND" });
         } else {
-          throw new Error(`Website error: ${result.error}`);
+          setError({ message: `Website error: ${result.error}`, code: "UNKNOWN" });
         }
+        return;
       }
 
       if (urlType === 'direct') {
@@ -581,11 +602,11 @@ function App() {
     } catch (err) {
       console.error("Error analyzing privacy policy:", err);
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        setError("Network error: Unable to connect to the server");
+        setError({ message: "Network error: Unable to connect to the server", code: "NETWORK_ERROR" });
       } else if (err.name === 'AbortError' || err.message.includes('timed out')) {
-        setError("Request timed out. The website may be slow to respond.");
+        setError({ message: "Request timed out. The website may be slow to respond.", code: "TIMEOUT" });
       } else {
-        setError(err.message || "Failed to analyze privacy policy");
+        setError({ message: err.message || "Failed to analyze privacy policy", code: "UNKNOWN" });
       }
     } finally {
       setLoading(false);
@@ -763,105 +784,145 @@ function App() {
 
   // Enhanced error handling with smart suggestions
   const renderErrorSection = () => {
-    // Show suggestions for various error types, not just "not found"
-    const shouldShowSuggestions = error.includes('not found') ||
-      error.includes('status 400') ||
-      error.includes('status 404') ||
-      error.includes('not accessible') ||
-      error.includes('Unable to fetch') ||
-      error.includes('Invalid URL');
+    // Handle both new object format and legacy string format
+    const errorMessage = typeof error === 'object' ? error.message : error;
+    const errorCode = typeof error === 'object' ? error.code : null;
+    const errorReason = typeof error === 'object' ? error.reason : null;
+    const backendSuggestions = typeof error === 'object' ? (error.suggestions || []) : [];
 
-    const suggestions = getSmartSuggestions(url, shouldShowSuggestions ? 'not_found' : 'other');
+    // Determine error category for styling
+    const getErrorCategory = (code) => {
+      const categories = {
+        'BOT_PROTECTION': { icon: '🛡️', label: 'Bot Protection', severity: 'warning' },
+        'JAVASCRIPT_REQUIRED': { icon: '📜', label: 'JavaScript Required', severity: 'info' },
+        'CAPTCHA_REQUIRED': { icon: '🤖', label: 'CAPTCHA Required', severity: 'warning' },
+        'ACCESS_DENIED': { icon: '⛔', label: 'Access Denied', severity: 'error' },
+        'TIMEOUT': { icon: '⏱️', label: 'Timeout', severity: 'warning' },
+        'CONNECTION_FAILED': { icon: '🔌', label: 'Connection Failed', severity: 'error' },
+        'SSL_ERROR': { icon: '🔒', label: 'SSL Error', severity: 'error' },
+        'SERVER_ERROR': { icon: '🔧', label: 'Server Error', severity: 'error' },
+        'RATE_LIMITED': { icon: '⏳', label: 'Rate Limited', severity: 'warning' },
+        'LOGIN_REQUIRED': { icon: '🔐', label: 'Login Required', severity: 'info' },
+        'GEO_BLOCKED': { icon: '🌍', label: 'Geo-Blocked', severity: 'warning' },
+        'NOT_FOUND': { icon: '🔍', label: 'Not Found', severity: 'info' },
+        'PAGE_NOT_FOUND': { icon: '🔍', label: 'Page Not Found', severity: 'info' },
+        'NETWORK_ERROR': { icon: '📡', label: 'Network Error', severity: 'error' },
+      };
+      return categories[code] || { icon: '❓', label: code || 'Unknown Error', severity: 'error' };
+    };
+
+    const category = getErrorCategory(errorCode);
+
+    // Show suggestions for various error types
+    const shouldShowUrlSuggestions = errorCode && ['NOT_FOUND', 'PAGE_NOT_FOUND', 'JAVASCRIPT_REQUIRED', 'BOT_PROTECTION'].includes(errorCode);
+    const urlSuggestions = getSmartSuggestions(url, shouldShowUrlSuggestions ? 'not_found' : 'other');
 
     return (
       <div className="error-section">
-        <div className="error-card">
+        <div className={`error-card error-${category.severity}`}>
           <div className="error-content">
-            <AlertIcon />
+            <div className="error-icon-container">
+              <span className="error-icon-large">{category.icon}</span>
+            </div>
             <div className="error-text">
-              <h3>Analysis Failed</h3>
-              <p>{error}</p>
+              <div className="error-header">
+                <h3>Analysis Failed</h3>
+                {errorCode && (
+                  <span className={`error-code-badge severity-${category.severity}`}>
+                    {category.label}
+                  </span>
+                )}
+              </div>
+              <p className="error-message">{errorMessage}</p>
+              {errorReason && (
+                <p className="error-reason">
+                  <strong>Technical details:</strong> {errorReason}
+                </p>
+              )}
             </div>
           </div>
 
-          {shouldShowSuggestions && (
+          {/* Backend suggestions */}
+          {backendSuggestions.length > 0 && (
+            <div className="backend-suggestions">
+              <h4>💡 What you can try:</h4>
+              <ul className="suggestion-list">
+                {backendSuggestions.map((suggestion, index) => (
+                  <li key={index}>{suggestion}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* URL suggestions for not-found or JS-required errors */}
+          {shouldShowUrlSuggestions && urlSuggestions.length > 0 && (
             <div className="error-suggestions">
-              <h4>💡 Smart Suggestions:</h4>
-
-              {suggestions.length > 0 && (
-                <div className="smart-suggestions">
-                  <p>Try these direct privacy policy URLs:</p>
-                  <div className="suggestion-buttons">
-                    {suggestions.filter(s => s.type === 'direct').slice(0, 3).map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setUrl(suggestion.url)}
-                        className="suggestion-btn direct-suggestion"
-                        title={`Test ${suggestion.url}`}
-                      >
-                        🔗 {suggestion.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {suggestions.filter(s => s.type === 'subdomain').length > 0 && (
-                    <>
-                      <p>Or try these alternative domains:</p>
-                      <div className="suggestion-buttons">
-                        {suggestions.filter(s => s.type === 'subdomain').slice(0, 2).map((suggestion, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setUrl(suggestion.url)}
-                            className="suggestion-btn subdomain-suggestion"
-                            title={`Test ${suggestion.url}`}
-                          >
-                            🌐 {suggestion.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+              <h4>🔗 Try these direct links:</h4>
+              <div className="smart-suggestions">
+                <div className="suggestion-buttons">
+                  {urlSuggestions.filter(s => s.type === 'direct').slice(0, 3).map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setUrl(suggestion.url);
+                        setError("");
+                      }}
+                      className="suggestion-btn direct-suggestion"
+                      title={`Try ${suggestion.url}`}
+                    >
+                      🔗 {suggestion.label}
+                    </button>
+                  ))}
                 </div>
-              )}
 
-              <div className="general-suggestions">
-                <h5>General tips:</h5>
-                <ul>
-                  <li>Check the website's footer for privacy links</li>
-                  <li>Look for "Legal" or "Policies" sections in the menu</li>
-                  <li>Try adding "/privacy" to the end of the URL</li>
-                  <li>Search for "[company name] privacy policy" on Google</li>
-                  <li>Try the website's help or support section</li>
-                  <li>Check if the website has a mobile app with privacy settings</li>
-                </ul>
-              </div>
-
-              <div className="alternative-actions">
-                <p>You can also:</p>
-                <div className="action-buttons">
-                  <button
-                    onClick={() => {
-                      try {
-                        const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
-                        window.open(`https://www.google.com/search?q=${encodeURIComponent(domain + ' privacy policy')}`, '_blank');
-                      } catch {
-                        window.open(`https://www.google.com/search?q=${encodeURIComponent(url + ' privacy policy')}`, '_blank');
-                      }
-                    }}
-                    className="search-btn"
-                  >
-                    🔍 Search Google
-                  </button>
-                  <button
-                    onClick={() => setError("")}
-                    className="retry-btn"
-                  >
-                    🔄 Try Again
-                  </button>
-                </div>
+                {urlSuggestions.filter(s => s.type === 'subdomain').length > 0 && (
+                  <>
+                    <p className="subdomain-label">Or try alternative domains:</p>
+                    <div className="suggestion-buttons">
+                      {urlSuggestions.filter(s => s.type === 'subdomain').slice(0, 2).map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setUrl(suggestion.url);
+                            setError("");
+                          }}
+                          className="suggestion-btn subdomain-suggestion"
+                          title={`Try ${suggestion.url}`}
+                        >
+                          🌐 {suggestion.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
+
+          {/* Alternative actions */}
+          <div className="alternative-actions">
+            <div className="action-buttons">
+              <button
+                onClick={() => {
+                  try {
+                    const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+                    window.open(`https://www.google.com/search?q=${encodeURIComponent(domain + ' privacy policy')}`, '_blank');
+                  } catch {
+                    window.open(`https://www.google.com/search?q=${encodeURIComponent(url + ' privacy policy')}`, '_blank');
+                  }
+                }}
+                className="search-btn"
+              >
+                🔍 Search Google
+              </button>
+              <button
+                onClick={() => setError("")}
+                className="retry-btn"
+              >
+                🔄 Try Again
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
