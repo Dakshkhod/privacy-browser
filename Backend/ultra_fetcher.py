@@ -1668,10 +1668,19 @@ class UltraPrivacyFetcher:
                         'id="app"></div>' in content.lower(),  # Empty Vue/generic app root
                     ]
                     
-                    is_spa_shell = any(spa_indicators) and content_length < 2000
+                    spa_count = sum(spa_indicators)
+                    logger.info(f"SPA detection: indicators={spa_count}, content_length={content_length}, score={score}")
                     
-                    if is_spa_shell or content_issues.get('requires_javascript', False):
-                        logger.warning(f"Direct URL appears to be a JS-rendered SPA: {url} (content_length={content_length}, spa_indicators={sum(spa_indicators)})")
+                    # Detect SPA shell: either explicit SPA patterns with low content OR 
+                    # SPA indicators found AND very low privacy score (content probably not relevant)
+                    is_spa_shell = (
+                        (any(spa_indicators) and content_length < 5000) or  # SPA with low content
+                        (any(spa_indicators) and score < 15) or  # SPA with very low privacy score
+                        content_issues.get('requires_javascript', False)
+                    )
+                    
+                    if is_spa_shell:
+                        logger.warning(f"Direct URL appears to be a JS-rendered SPA: {url} (content_length={content_length}, spa_indicators={spa_count}, score={score})")
                         base_url = f"{parsed_url.scheme}://{domain}"
                         return await self._generate_detailed_error(
                             url, base_url, domain, normalized_domain, 0,
