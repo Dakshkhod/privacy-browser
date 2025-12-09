@@ -445,6 +445,72 @@ class UltraPrivacyFetcher:
             'monday.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
             'clickup.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
             'zapier.com': {'paths': ['/privacy', '/legal/privacy'], 'priority': 10},
+            
+            # E-commerce
+            'shopify.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            'etsy.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            'ebay.com': {'paths': ['/pages/help/policies/privacy-policy/privacy-policy', '/privacy'], 'priority': 10},
+            'wish.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'aliexpress.com': {'paths': ['/privacy', '/help/privacy'], 'priority': 10},
+            'walmart.com': {'paths': ['/help/privacy-security', '/privacy'], 'priority': 10},
+            'target.com': {'paths': ['/c/privacy-policy/-/N-4sr7l', '/privacy'], 'priority': 10},
+            'bestbuy.com': {'paths': ['/legal/privacy-policy', '/privacy'], 'priority': 10},
+            
+            # Entertainment & Streaming
+            'hulu.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'disneyplus.com': {'paths': ['/legal/privacy-policy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'hbomax.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'crunchyroll.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'soundcloud.com': {'paths': ['/pages/privacy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'vimeo.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'dailymotion.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            
+            # News & Media
+            'medium.com': {'paths': ['/policy/privacy-policy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'substack.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'reuters.com': {'paths': ['/privacy-policy', '/privacy'], 'priority': 10},
+            'bloomberg.com': {'paths': ['/notices/privacy', '/privacy'], 'priority': 10},
+            'nytimes.com': {'paths': ['/privacy/privacy-policy', '/privacy'], 'priority': 10},
+            'washingtonpost.com': {'paths': ['/privacy-policy', '/privacy'], 'priority': 10},
+            'bbc.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'cnn.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            
+            # Education
+            'coursera.org': {'paths': ['/about/privacy', '/privacy'], 'priority': 10},
+            'udemy.com': {'paths': ['/terms/privacy', '/privacy'], 'priority': 10},
+            'edx.org': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'khanacademy.org': {'paths': ['/about/privacy-policy', '/privacy'], 'priority': 10},
+            'duolingo.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'skillshare.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'codecademy.com': {'paths': ['/policy', '/privacy'], 'priority': 10, 'requires_js': True},
+            
+            # Crypto & Finance
+            'coinbase.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            'binance.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'kraken.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            'robinhood.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'venmo.com': {'paths': ['/legal/us-privacy-notice', '/privacy'], 'priority': 10},
+            'paypal.com': {'paths': ['/legalhub/privacy/privacy-full', '/privacy'], 'priority': 10},
+            'stripe.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            
+            # Travel & Booking
+            'expedia.com': {'paths': ['/p/support/privacy', '/privacy'], 'priority': 10},
+            'booking.com': {'paths': ['/general.en-gb.html?label=privacy', '/privacy'], 'priority': 10},
+            'airbnb.com': {'paths': ['/terms/privacy_policy', '/privacy'], 'priority': 10},
+            'tripadvisor.com': {'paths': ['/PrivacyPolicy', '/privacy'], 'priority': 10},
+            'kayak.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'hotels.com': {'paths': ['/customer_care/privacy_policy', '/privacy'], 'priority': 10},
+            
+            # Other Popular
+            'weather.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            'yelp.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'glassdoor.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'indeed.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            'quora.com': {'paths': ['/about/privacy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'stackoverflow.com': {'paths': ['/legal/privacy-policy', '/privacy'], 'priority': 10},
+            'producthunt.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'dribbble.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            'behance.net': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
         }
     
     def _load_mobile_fallbacks(self) -> Dict:
@@ -1687,33 +1753,73 @@ class UltraPrivacyFetcher:
                     title = self._get_title(content)
                     clean_text = self._extract_clean_text(content)
                     content_length = len(clean_text)
+                    raw_content_length = len(content)
                     score = self._calculate_privacy_score_advanced(content, final_url, title)
                     
-                    logger.info(f"Direct fetch result: content_length={content_length}, score={score}, title='{title[:50] if title else 'None'}'")
+                    logger.info(f"Direct fetch result: content_length={content_length}, raw_html={raw_content_length}, score={score}, title='{title[:50] if title else 'None'}'")
                     
                     # FIRST: Check if this looks like a JS-rendered page (before accepting content)
                     # This prevents accepting garbage shell content from SPAs
                     content_issues = self._detect_content_issues(content)
+                    content_lower = content.lower()
                     
-                    # Also do a quick inline check for common SPA patterns (case-sensitive where needed)
+                    # Comprehensive SPA framework detection patterns
                     spa_indicators = [
-                        '__NEXT_DATA__' in content,  # Next.js (case-sensitive)
-                        '__NUXT__' in content,  # Nuxt.js
-                        'window.__INITIAL_STATE__' in content,  # Redux SSR
-                        'data-reactroot' in content.lower(),
-                        'id="__next"' in content.lower(),
-                        'id="root"></div>' in content.lower(),  # Empty React root
-                        'id="app"></div>' in content.lower(),  # Empty Vue/generic app root
+                        # Next.js
+                        '__NEXT_DATA__' in content,
+                        'id="__next"' in content_lower,
+                        '_next/static' in content_lower,
+                        # Nuxt.js
+                        '__NUXT__' in content,
+                        '_nuxt/' in content_lower,
+                        # React
+                        'data-reactroot' in content_lower,
+                        'id="root"></div>' in content_lower,
+                        'react-dom' in content_lower and content_length < 3000,
+                        # Vue.js
+                        'id="app"></div>' in content_lower,
+                        '__VUE__' in content,
+                        'vue.runtime' in content_lower,
+                        # Angular
+                        'ng-version' in content_lower,
+                        'angular.io' in content_lower,
+                        '<app-root' in content_lower,
+                        # Gatsby
+                        '___gatsby' in content_lower,
+                        'gatsby-' in content_lower and content_length < 3000,
+                        # Svelte/SvelteKit
+                        'sveltekit' in content_lower,
+                        '__sveltekit' in content_lower,
+                        # Remix
+                        '__remixContext' in content,
+                        # Astro
+                        'astro-' in content_lower and content_length < 3000,
+                        # Vite
+                        '@vite/client' in content_lower,
+                        # Redux/State management
+                        'window.__INITIAL_STATE__' in content,
+                        'window.__PRELOADED_STATE__' in content,
+                        # Generic SPA indicators
+                        'window.__APP_DATA__' in content,
+                        'window.__DATA__' in content,
+                        # Empty body with just root div
+                        '<body><div id=' in content_lower and content_length < 500,
                     ]
                     
                     spa_count = sum(spa_indicators)
-                    logger.info(f"SPA detection: indicators={spa_count}, content_length={content_length}, score={score}")
                     
-                    # Detect SPA shell: either explicit SPA patterns with low content OR 
-                    # SPA indicators found AND very low privacy score (content probably not relevant)
+                    # Also check if the raw HTML is much larger than text content (JS-heavy)
+                    text_to_html_ratio = content_length / max(raw_content_length, 1)
+                    is_js_heavy = text_to_html_ratio < 0.05 and raw_content_length > 10000  # Less than 5% text
+                    
+                    logger.info(f"SPA detection: indicators={spa_count}, content_length={content_length}, raw_html={raw_content_length}, text_ratio={text_to_html_ratio:.2%}, score={score}")
+                    
+                    # Detect SPA shell: multiple conditions with aggressive detection
                     is_spa_shell = (
-                        (any(spa_indicators) and content_length < 5000) or  # SPA with low content
-                        (any(spa_indicators) and score < 15) or  # SPA with very low privacy score
+                        (spa_count >= 1 and content_length < 8000) or  # SPA with low text content
+                        (spa_count >= 1 and score < 20) or  # SPA with low privacy score
+                        (spa_count >= 2) or  # Multiple SPA indicators = definitely SPA
+                        is_js_heavy or  # Very low text-to-HTML ratio
                         content_issues.get('requires_javascript', False)
                     )
                     
