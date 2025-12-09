@@ -511,6 +511,18 @@ class UltraPrivacyFetcher:
             'producthunt.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
             'dribbble.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
             'behance.net': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10},
+            
+            # Known JavaScript-heavy sites (custom frameworks, Next.js, React, etc.)
+            'tle-eliminators.com': {'paths': ['/terms-and-conditions', '/privacy', '/terms'], 'priority': 10, 'requires_js': True},
+            'leetcode.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'codeforces.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'hackerrank.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'interviewbit.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'geeksforgeeks.org': {'paths': ['/privacy-policy', '/privacy'], 'priority': 10, 'requires_js': True},
+            'vercel.app': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'netlify.app': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'railway.app': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
+            'render.com': {'paths': ['/privacy', '/privacy-policy'], 'priority': 10, 'requires_js': True},
         }
     
     def _load_mobile_fallbacks(self) -> Dict:
@@ -1746,6 +1758,18 @@ class UltraPrivacyFetcher:
             # If user provided a direct URL to a specific page, try fetching it first
             if is_direct_privacy_url or is_specific_page:
                 logger.info(f"Detected direct/specific URL: {url} - fetching directly first")
+                
+                # Check if this domain is known to require JavaScript
+                domain_pattern = self.domain_patterns.get(normalized_domain, {})
+                if domain_pattern.get('requires_js', False):
+                    logger.warning(f"Domain {normalized_domain} is known to require JavaScript")
+                    base_url = f"{parsed_url.scheme}://{domain}"
+                    return await self._generate_detailed_error(
+                        url, base_url, domain, normalized_domain, 0,
+                        override_code='JAVASCRIPT_REQUIRED',
+                        override_message=f"📜 JavaScript Required: {normalized_domain} is a JavaScript-heavy site that requires a browser to render content. Our fetcher cannot execute JavaScript. Please visit {url} directly in your browser."
+                    )
+                
                 # Try to fetch the URL directly first
                 content, status, final_url = await self._fetch_url(url)
                 
