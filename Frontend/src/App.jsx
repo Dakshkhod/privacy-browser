@@ -928,6 +928,94 @@ function App() {
     );
   };
 
+  // Render dark patterns section
+  const renderDarkPatterns = () => {
+    const darkPatterns = analysis?.dark_patterns;
+
+    if (!darkPatterns || !darkPatterns.detected || !darkPatterns.patterns?.length) {
+      return null;
+    }
+
+    const getSeverityColor = (severity) => {
+      switch (severity) {
+        case 'critical': return '#dc2626';
+        case 'high': return '#ea580c';
+        case 'medium': return '#d97706';
+        case 'low': return '#65a30d';
+        default: return '#6b7280';
+      }
+    };
+
+    const getSeverityBadge = (severity) => {
+      const colors = {
+        critical: { bg: '#fef2f2', text: '#dc2626', border: '#fecaca' },
+        high: { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa' },
+        medium: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
+        low: { bg: '#f7fee7', text: '#65a30d', border: '#bef264' }
+      };
+      const c = colors[severity] || colors.medium;
+      return { backgroundColor: c.bg, color: c.text, borderColor: c.border, borderWidth: '1px', borderStyle: 'solid' };
+    };
+
+    return (
+      <div className="dark-patterns-section">
+        <div className="section-header">
+          <h3 className="section-title">
+            <span className="section-icon">⚠️</span>
+            Dark Patterns Detected
+            <span
+              className="severity-badge"
+              style={getSeverityBadge(darkPatterns.severity)}
+            >
+              {darkPatterns.severity.toUpperCase()}
+            </span>
+          </h3>
+          <p className="section-subtitle">
+            Found {darkPatterns.count} concerning practice{darkPatterns.count > 1 ? 's' : ''} in this privacy policy
+          </p>
+        </div>
+
+        <div className="dark-patterns-list">
+          {darkPatterns.patterns.map((pattern, index) => (
+            <div
+              key={index}
+              className="dark-pattern-card"
+              style={{ borderLeftColor: getSeverityColor(pattern.severity) }}
+            >
+              <div className="pattern-header">
+                <span className="pattern-title">{pattern.title}</span>
+                <span
+                  className="pattern-severity"
+                  style={getSeverityBadge(pattern.severity)}
+                >
+                  {pattern.severity}
+                </span>
+              </div>
+
+              <p className="pattern-description">{pattern.description}</p>
+
+              {pattern.examples && pattern.examples.length > 0 && (
+                <div className="pattern-examples">
+                  <span className="examples-label">Found:</span>
+                  {pattern.examples.map((ex, i) => (
+                    <span key={i} className="example-tag">{ex}</span>
+                  ))}
+                </div>
+              )}
+
+              {pattern.recommendation && (
+                <div className="pattern-recommendation">
+                  <span className="recommendation-icon">💡</span>
+                  <span>{pattern.recommendation}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   // Enhanced input section with better UX
   const renderInputSection = () => {
     const placeholder = analysisType === 'direct'
@@ -1395,6 +1483,9 @@ function App() {
                     </div>
                   </div>
                 )}
+
+                {/* Dark Patterns Section */}
+                {renderDarkPatterns()}
 
                 {/* Quick Actions */}
                 <div className="result-card actions-card">

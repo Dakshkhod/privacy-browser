@@ -155,6 +155,20 @@ Provide analysis in this exact JSON format:
         "details": ["list", "of", "measures"],
         "adequate": true/false
     }},
+    "dark_patterns": {{
+        "detected": true/false,
+        "patterns": [
+            {{
+                "type": "vague_language/unlimited_retention/broad_sharing/unclear_optout/weak_consent",
+                "severity": "high/medium/low",
+                "title": "Brief title with emoji",
+                "description": "Description of the dark pattern",
+                "examples": ["quotes from policy"],
+                "recommendation": "What user should do"
+            }}
+        ],
+        "severity": "critical/high/medium/low/none"
+    }},
     "risk_level": "Low/Medium/High/Critical",
     "risk_factors": ["list", "of", "specific", "concerns"],
     "positive_aspects": ["list", "of", "good", "practices"],
@@ -162,6 +176,7 @@ Provide analysis in this exact JSON format:
     "confidence": "High/Medium/Low"
 }}
 
+Look for dark patterns including: vague language (may/might/sometimes), unlimited retention, broad partner sharing, unclear opt-out, and weak/implied consent.
 Be thorough and specific. Focus on actual data collection practices."""
 
         try:
@@ -316,10 +331,19 @@ Be thorough and specific. Focus on actual data collection practices."""
         # Security measures
         security = self._detect_security_measures(text_lower)
         
+        # Dark patterns detection
+        dark_patterns = self._detect_dark_patterns(text_lower)
+        
         # Calculate risk level
         risk_level, risk_factors = self._calculate_risk_level(
             data_types, third_party, user_rights, security
         )
+        
+        # Add dark pattern warnings to risk factors
+        if dark_patterns['detected']:
+            for pattern in dark_patterns['patterns']:
+                if pattern['severity'] == 'high':
+                    risk_factors.append(f"Dark Pattern: {pattern['title']}")
         
         # Find positive aspects
         positive_aspects = self._find_positive_aspects(
@@ -335,6 +359,7 @@ Be thorough and specific. Focus on actual data collection practices."""
             "user_rights": user_rights,
             "data_retention": data_retention,
             "security_measures": security,
+            "dark_patterns": dark_patterns,
             "risk_level": risk_level,
             "risk_factors": risk_factors,
             "positive_aspects": positive_aspects,
@@ -927,6 +952,233 @@ Be thorough and specific. Focus on actual data collection practices."""
             summary += "User rights are limited."
         
         return summary
+    
+    def _detect_dark_patterns(self, text: str) -> Dict:
+        """
+        Detect dark patterns and problematic practices in privacy policies.
+        
+        Detects:
+        - Vague wording ("may", "might", "sometimes")
+        - Unlimited/unclear data retention
+        - Broad sharing with "partners"
+        - Unclear opt-out mechanisms
+        - Weak consent sections
+        - Other manipulative practices
+        """
+        dark_patterns = []
+        severity_score = 0
+        
+        # 1. VAGUE LANGUAGE DETECTION
+        vague_phrases = [
+            ('may share', 'Vague language about data sharing'),
+            ('may collect', 'Vague language about data collection'),
+            ('might share', 'Vague language about data sharing'),
+            ('might collect', 'Vague language about data collection'),
+            ('could share', 'Vague language about data sharing'),
+            ('could collect', 'Vague language about data collection'),
+            ('sometimes share', 'Vague language about data sharing'),
+            ('sometimes collect', 'Vague language about data collection'),
+            ('possibly share', 'Vague language about data sharing'),
+            ('may use', 'Vague language about data usage'),
+            ('might use', 'Vague language about data usage'),
+            ('from time to time', 'Vague timing language'),
+            ('at our discretion', 'Discretionary language without user control'),
+            ('we reserve the right', 'Broad reserved rights'),
+            ('as we see fit', 'Discretionary language without user control'),
+            ('without notice', 'Changes without user notification'),
+            ('at any time', 'Unlimited timing for changes'),
+        ]
+        
+        vague_count = 0
+        vague_examples = []
+        for phrase, description in vague_phrases:
+            if phrase in text:
+                vague_count += 1
+                if len(vague_examples) < 3:
+                    vague_examples.append(f'"{phrase}"')
+        
+        if vague_count >= 3:
+            dark_patterns.append({
+                'type': 'vague_language',
+                'severity': 'high',
+                'title': '🌫️ Excessive Vague Language',
+                'description': f'Policy uses vague wording {vague_count} times, making it unclear what data is actually collected.',
+                'examples': vague_examples,
+                'recommendation': 'Look for specific statements about exact data collected.'
+            })
+            severity_score += 4
+        elif vague_count >= 1:
+            dark_patterns.append({
+                'type': 'vague_language',
+                'severity': 'medium',
+                'title': '🌫️ Vague Language Used',
+                'description': 'Policy contains vague language that could be interpreted broadly.',
+                'examples': vague_examples,
+                'recommendation': 'Request clarification on specific data practices.'
+            })
+            severity_score += 2
+        
+        # 2. UNLIMITED/UNCLEAR RETENTION
+        unlimited_retention = ['indefinitely', 'as long as necessary', 'as long as needed',
+                               'for as long as', 'permanently stored', 'retain your information',
+                               'store indefinitely', 'foreseeable future']
+        
+        has_unlimited = any(phrase in text for phrase in unlimited_retention)
+        has_retention_policy = any(x in text for x in ['retain for', 'deleted after', 'retention period'])
+        
+        if has_unlimited and not has_retention_policy:
+            dark_patterns.append({
+                'type': 'unlimited_retention',
+                'severity': 'high',
+                'title': '♾️ Unlimited Data Retention',
+                'description': 'Data may be kept indefinitely without a clear retention limit.',
+                'examples': [p for p in unlimited_retention if p in text][:2],
+                'recommendation': 'Request specific data retention periods and request deletion.'
+            })
+            severity_score += 4
+        elif has_unlimited:
+            dark_patterns.append({
+                'type': 'unclear_retention',
+                'severity': 'medium',
+                'title': '⏳ Unclear Data Retention',
+                'description': 'Retention policy uses vague language.',
+                'examples': [p for p in unlimited_retention if p in text][:2],
+                'recommendation': 'Request clarification on how long data is kept.'
+            })
+            severity_score += 2
+        
+        # 3. BROAD PARTNER SHARING
+        broad_sharing = [('business partners', 'Vague business partners'),
+                        ('trusted partners', 'Vague trusted partners'),
+                        ('affiliated companies', 'Undefined affiliates'),
+                        ('third-party partners', 'Broad third-party sharing'),
+                        ('selected third parties', 'Vague selected third parties'),
+                        ('our partners', 'Vague partners')]
+        
+        broad_found = [(p, d) for p, d in broad_sharing if p in text]
+        
+        if len(broad_found) >= 2:
+            dark_patterns.append({
+                'type': 'broad_sharing',
+                'severity': 'high',
+                'title': '🤝 Broad Third-Party Sharing',
+                'description': 'Data shared with vaguely defined "partners" without specific identification.',
+                'examples': [f'"{p[0]}"' for p in broad_found[:3]],
+                'recommendation': 'Request a complete list of third parties receiving your data.'
+            })
+            severity_score += 4
+        elif broad_found:
+            dark_patterns.append({
+                'type': 'partner_sharing',
+                'severity': 'medium',
+                'title': '🤝 Vague Partner Sharing',
+                'description': 'Data sharing with "partners" mentioned without clear definition.',
+                'examples': [f'"{p[0]}"' for p in broad_found],
+                'recommendation': 'Look for specific partner lists.'
+            })
+            severity_score += 2
+        
+        # 4. UNCLEAR OPT-OUT
+        complex_optout = [('contact us to opt out', 'Requires contacting company'),
+                         ('email us to', 'Requires emailing'),
+                         ('write to us', 'Requires physical mail'),
+                         ('submit a request', 'Requires formal request')]
+        
+        optout_found = [(p, d) for p, d in complex_optout if p in text]
+        has_easy_optout = any(x in text for x in ['unsubscribe link', 'settings page', 'privacy dashboard'])
+        
+        if len(optout_found) >= 2 and not has_easy_optout:
+            dark_patterns.append({
+                'type': 'complex_optout',
+                'severity': 'high',
+                'title': '🚫 Complex Opt-Out Process',
+                'description': 'Opting out requires complex steps.',
+                'examples': [p[1] for p in optout_found[:3]],
+                'recommendation': 'Look for simpler opt-out mechanisms.'
+            })
+            severity_score += 4
+        elif optout_found:
+            dark_patterns.append({
+                'type': 'unclear_optout',
+                'severity': 'medium',
+                'title': '🚫 Unclear Opt-Out',
+                'description': 'Opt-out process is not straightforward.',
+                'examples': [p[1] for p in optout_found],
+                'recommendation': 'Check for account settings.'
+            })
+            severity_score += 2
+        
+        # 5. WEAK CONSENT
+        weak_consent = [('by using our service', 'Implied consent through use'),
+                       ('by continuing to use', 'Continued use implies consent'),
+                       ('deemed to accept', 'Automatic consent assumption'),
+                       ('pre-selected', 'Pre-checked consent boxes'),
+                       ('pre-checked', 'Pre-checked consent boxes'),
+                       ('unless you opt out', 'Opt-out rather than opt-in')]
+        
+        consent_found = [(p, d) for p, d in weak_consent if p in text]
+        
+        if len(consent_found) >= 2:
+            dark_patterns.append({
+                'type': 'weak_consent',
+                'severity': 'high',
+                'title': '✍️ Weak Consent Practices',
+                'description': 'Consent is implied rather than explicitly obtained.',
+                'examples': [f'"{p[0]}"' for p in consent_found[:3]],
+                'recommendation': 'Consent may have been assumed - consider revoking.'
+            })
+            severity_score += 4
+        elif consent_found:
+            dark_patterns.append({
+                'type': 'implied_consent',
+                'severity': 'medium',
+                'title': '✍️ Implied Consent',
+                'description': 'Some consent may be assumed through use.',
+                'examples': [f'"{p[0]}"' for p in consent_found],
+                'recommendation': 'Look for explicit consent options.'
+            })
+            severity_score += 2
+        
+        # 6. OTHER PATTERNS
+        if any(x in text for x in ['required to agree', 'must accept']):
+            dark_patterns.append({
+                'type': 'forced_consent',
+                'severity': 'high',
+                'title': '⚠️ Forced Consent',
+                'description': 'Consent required to use the service.',
+                'recommendation': 'Consider alternatives.'
+            })
+            severity_score += 3
+        
+        if any(x in text for x in ['update this policy at any time', 'right to amend']):
+            dark_patterns.append({
+                'type': 'unilateral_changes',
+                'severity': 'medium',
+                'title': '📝 Unilateral Policy Changes',
+                'description': 'Policy can change without your consent.',
+                'recommendation': 'Check policy regularly.'
+            })
+            severity_score += 2
+        
+        # Calculate overall severity
+        if severity_score >= 12:
+            overall_severity = 'critical'
+        elif severity_score >= 8:
+            overall_severity = 'high'
+        elif severity_score >= 4:
+            overall_severity = 'medium'
+        elif severity_score > 0:
+            overall_severity = 'low'
+        else:
+            overall_severity = 'none'
+        
+        return {
+            'detected': len(dark_patterns) > 0,
+            'patterns': dark_patterns,
+            'count': len(dark_patterns),
+            'severity': overall_severity,
+            'score': severity_score
+        }
 
 
 # Global instance

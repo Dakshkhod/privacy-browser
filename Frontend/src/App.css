@@ -5971,3 +5971,178 @@ body {
     justify-content: center;
   }
 }
+
+/* =========================================
+   Dark Patterns Section
+   ========================================= */
+
+.dark-patterns-section {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.05));
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.dark-patterns-section .section-header {
+  margin-bottom: 20px;
+}
+
+.dark-patterns-section .section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #fbbf24;
+  margin-bottom: 8px;
+}
+
+.dark-patterns-section .section-icon {
+  font-size: 1.4rem;
+}
+
+.dark-patterns-section .severity-badge {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dark-patterns-section .section-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.dark-patterns-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dark-pattern-card {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  border-left: 4px solid #d97706;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dark-pattern-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.pattern-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pattern-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.pattern-severity {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.pattern-description {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+.pattern-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.examples-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.example-tag {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fcd34d;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.pattern-recommendation {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-top: 4px;
+}
+
+.recommendation-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.pattern-recommendation span:last-child {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Mobile responsive for dark patterns */
+@media (max-width: 768px) {
+  .dark-patterns-section {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .dark-patterns-section .section-title {
+    font-size: 1.1rem;
+    flex-wrap: wrap;
+  }
+
+  .dark-pattern-card {
+    padding: 14px 16px;
+  }
+
+  .pattern-title {
+    font-size: 1rem;
+  }
+
+  .pattern-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pattern-examples {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .example-tag {
+    font-size: 0.8rem;
+  }
+}
