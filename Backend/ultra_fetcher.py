@@ -1583,23 +1583,46 @@ class UltraPrivacyFetcher:
             normalized_domain = self._normalize_domain_for_lookup(domain)
             url_path = parsed_url.path.lower()
             
-            # Check if URL is already a privacy policy page (direct link)
-            privacy_path_indicators = ['/privacy', '/privacy-policy', '/privacy_policy', '/privacypolicy',
-                                      '/privacy-notice', '/privacy-statement', '/data-protection', 
-                                      '/cookie-policy', '/legal/privacy', '/policies/privacy',
-                                      '/terms/privacy', '/about/privacy', '/help/privacy']
+            # Check if URL is already a privacy/legal policy page (direct link)
+            # Expanded list to include terms, conditions, legal pages, etc.
+            privacy_path_indicators = [
+                # Privacy-specific paths
+                '/privacy', '/privacy-policy', '/privacy_policy', '/privacypolicy',
+                '/privacy-notice', '/privacy-statement', '/data-protection', 
+                '/cookie-policy', '/legal/privacy', '/policies/privacy',
+                '/terms/privacy', '/about/privacy', '/help/privacy',
+                # Terms and conditions paths (often contain privacy info)
+                '/terms', '/terms-and-conditions', '/terms-of-service', '/tos',
+                '/terms-conditions', '/termsandconditions', '/termsofservice',
+                '/terms_and_conditions', '/terms_of_service',
+                # Legal paths
+                '/legal', '/legal/terms', '/policies', '/policy',
+                # GDPR/CCPA specific
+                '/gdpr', '/ccpa', '/your-privacy-choices',
+                # Other common legal paths
+                '/user-agreement', '/eula', '/license', '/disclaimer'
+            ]
             
             is_direct_privacy_url = any(indicator in url_path for indicator in privacy_path_indicators)
             
-            if is_direct_privacy_url:
-                logger.info(f"Detected direct privacy policy URL: {url} - fetching directly")
+            # Also treat as direct URL if the path has multiple segments (not just homepage)
+            # e.g., /some-page/terms or /legal/privacy - indicates a specific page
+            path_segments = [seg for seg in url_path.split('/') if seg]
+            is_specific_page = len(path_segments) > 0 and not url_path.endswith('/')
+            
+            # If user provided a direct URL to a specific page, try fetching it first
+            if is_direct_privacy_url or is_specific_page:
+                logger.info(f"Detected direct/specific URL: {url} - fetching directly first")
                 # Try to fetch the URL directly first
                 content, status, final_url = await self._fetch_url(url)
                 if content and status == 200:
                     title = self._get_title(content)
                     score = self._calculate_privacy_score_advanced(content, final_url, title)
                     
-                    if score >= 40:  # Valid privacy policy
+                    # For direct URLs, accept lower scores since user explicitly provided this URL
+                    min_score = 30 if is_direct_privacy_url else 20
+                    
+                    if score >= min_score:  # Accept lower scores for user-provided URLs
                         clean_text = self._extract_clean_text(content)
                         if len(clean_text) >= 50:
                             response = {
