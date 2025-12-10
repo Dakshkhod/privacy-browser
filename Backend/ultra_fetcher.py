@@ -377,6 +377,27 @@ class UltraPrivacyFetcher:
             'salesforce.com': {'paths': ['/company/privacy', '/privacy', '/legal/privacy'], 'priority': 10},
             'adobe.com': {'paths': ['/privacy', '/privacy/policy', '/legal/privacy'], 'priority': 10},
             'oracle.com': {'paths': ['/legal/privacy', '/privacy'], 'priority': 10},
+            'openai.com': {
+                'paths': [
+                    'https://openai.com/policies/privacy-policy',
+                    'https://openai.com/privacy',
+                    '/policies/privacy-policy',
+                    '/privacy',
+                    '/privacy-policy'
+                ],
+                'priority': 10
+            },
+            'chatgpt.com': {
+                'paths': [
+                    # ChatGPT redirects to OpenAI's privacy policy
+                    'https://openai.com/policies/privacy-policy',
+                    'https://openai.com/privacy',
+                    '/privacy',
+                    '/privacy-policy'
+                ],
+                'priority': 10,
+                'requires_js': True
+            },
             
             # Streaming & Entertainment
             'youtube.com': {'paths': ['/t/privacy', '/howyoutubeworks/our-commitments/protecting-user-data'], 'priority': 10},
