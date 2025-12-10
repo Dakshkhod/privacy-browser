@@ -2770,8 +2770,8 @@ Last reviewed: 2024''',
             
             logger.info(f"Trying {len(unique_urls)} URLs with Firecrawl API")
             
-            # Only try first 3 URLs to conserve API credits
-            for privacy_url in unique_urls[:3]:
+            # Only try first URL to conserve API credits
+            for privacy_url in unique_urls[:1]:
                 try:
                     logger.debug(f"Firecrawl fetch attempt: {privacy_url}")
                     content, status, final_url = await firecrawl_fetcher.fetch_with_firecrawl(privacy_url)
