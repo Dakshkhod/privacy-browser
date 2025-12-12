@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Browser</title>
+    <link rel="stylesheet" href="popup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="popup-container">
+        <!-- Header -->
+        <header class="popup-header">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <h1 class="app-title">Privacy Browser</h1>
+            </div>
+        </header>
+
+        <!-- Quick Stats Bar -->
+        <div class="quick-stats-bar">
+            <div class="quick-stat"
+                title="Trackers Blocked: Number of tracking requests blocked this session. Includes analytics, ads, and fingerprinting scripts.">
+                <span class="qs-icon">🛡️</span>
+                <span class="qs-value" id="qsTrackers">0</span>
+            </div>
+            <div class="quick-stat"
+                title="Cookies Rejected: Number of cookie consent banners where 'Reject All' was automatically clicked.">
+                <span class="qs-icon">🍪</span>
+                <span class="qs-value" id="qsCookies">0</span>
+            </div>
+            <div class="quick-stat"
+                title="Third-Party Scripts: External scripts running on this page. May include tracking, analytics, or ads from other companies.">
+                <span class="qs-icon">📜</span>
+                <span class="qs-value" id="qsScripts">0</span>
+            </div>
+            <div class="quick-stat" id="formSecurityStat"
+                title="Form Security: Checks for sensitive fields like credit cards or SSN. ✓ means safe, ⚠️ means sensitive data detected.">
+                <span class="qs-icon">📝</span>
+                <span class="qs-value" id="qsForms">✓</span>
+            </div>
+        </div>
+
+        <!-- Feature Toggles -->
+        <section class="feature-toggles">
+            <div class="feature-row"
+                title="Block tracking requests from analytics, advertising, and fingerprinting domains before they load.">
+                <div class="feature-info">
+                    <span class="feature-icon">🛡️</span>
+                    <span class="feature-name">Tracker Blocking</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="blockingToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="feature-row"
+                title="Automatically click 'Reject All' or 'Decline' on cookie consent popups to protect your privacy.">
+                <div class="feature-info">
+                    <span class="feature-icon">🍪</span>
+                    <span class="feature-name">Auto-Reject Cookies</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cookieToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="feature-row"
+                title="Scan forms for sensitive fields (SSN, credit cards, passwords) and warn if the page is insecure.">
+                <div class="feature-info">
+                    <span class="feature-icon">📝</span>
+                    <span class="feature-name">Form Field Scanner</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="formToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </section>
+
+        <!-- Privacy Signals -->
+        <div class="privacy-signals">
+            <span class="signal-badge gpc-badge">GPC ✓</span>
+            <span class="signal-badge dnt-badge">DNT ✓</span>
+        </div>
+
+        <!-- Page Security Section -->
+        <section class="page-security-section hidden" id="pageSecuritySection">
+            <div class="section-header">
+                <span class="section-icon">⚠️</span>
+                <span class="section-title">Page Security</span>
+            </div>
+            <div class="security-alerts" id="securityAlerts"></div>
+        </section>
+
+        <!-- Scripts Section -->
+        <section class="scripts-section">
+            <button class="section-toggle-btn" id="scriptsToggleBtn">
+                <div class="section-header-content">
+                    <span class="section-icon">📜</span>
+                    <span class="section-title">Third-Party Scripts</span>
+                    <span class="section-count" id="scriptsCount">0</span>
+                </div>
+                <span class="expand-icon" id="scriptsExpandIcon">▼</span>
+            </button>
+            <div class="scripts-list hidden" id="scriptsList">
+                <div class="scripts-empty">No third-party scripts detected</div>
+            </div>
+        </section>
+
+        <!-- Blocked Trackers Section -->
+        <section class="trackers-section">
+            <button class="section-toggle-btn" id="trackersToggleBtn">
+                <div class="section-header-content">
+                    <span class="section-icon">🚫</span>
+                    <span class="section-title">Blocked Trackers</span>
+                    <span class="section-count" id="trackersCount">0</span>
+                </div>
+                <span class="expand-icon" id="trackersExpandIcon">▼</span>
+            </button>
+            <div class="trackers-list hidden" id="trackersList">
+                <div class="trackers-empty" id="trackersEmpty">No trackers blocked yet</div>
+                <div class="trackers-container" id="trackersContainer"></div>
+            </div>
+            <button class="reset-btn" id="resetStatsBtn" title="Reset all stats">🗑️ Reset Stats</button>
+        </section>
+
+        <!-- Analyze Policy Button -->
+        <button class="analyze-policy-btn" id="analyzePolicyBtn">
+            <span class="btn-icon">📋</span>
+            <span>Analyze Privacy Policy</span>
+            <span class="btn-arrow">→</span>
+        </button>
+
+        <!-- Current Site -->
+        <div class="current-site">
+            <span class="site-label">Current Site:</span>
+            <span class="site-domain" id="currentDomain">Loading...</span>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>

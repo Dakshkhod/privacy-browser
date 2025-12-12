@@ -1,0 +1,88 @@
+{
+    "version": "1.0.0",
+    "lastUpdated": "2024-12-12",
+    "categories": {
+        "analytics": {
+            "name": "Analytics & Tracking",
+            "description": "Website analytics and user behavior tracking",
+            "domains": [
+                "google-analytics.com",
+                "googletagmanager.com",
+                "hotjar.com",
+                "mixpanel.com",
+                "segment.io",
+                "segment.com",
+                "amplitude.com",
+                "heapanalytics.com",
+                "kissmetrics.com",
+                "fullstory.com",
+                "mouseflow.com",
+                "crazyegg.com",
+                "luckyorange.com",
+                "clarity.ms",
+                "newrelic.com",
+                "nr-data.net"
+            ]
+        },
+        "advertising": {
+            "name": "Advertising Networks",
+            "description": "Ad targeting and retargeting networks",
+            "domains": [
+                "doubleclick.net",
+                "googlesyndication.com",
+                "googleadservices.com",
+                "criteo.com",
+                "taboola.com",
+                "outbrain.com",
+                "adsrvr.org",
+                "adnxs.com",
+                "rubiconproject.com",
+                "pubmatic.com",
+                "openx.net",
+                "quantserve.com",
+                "scorecardresearch.com"
+            ]
+        },
+        "social": {
+            "name": "Social Media Tracking",
+            "description": "Social media pixels and tracking widgets",
+            "domains": [
+                "connect.facebook.net",
+                "pixel.facebook.com",
+                "facebook.com/tr",
+                "analytics.twitter.com",
+                "ads-twitter.com",
+                "snap.licdn.com",
+                "px.ads.linkedin.com",
+                "linkedin.com/li/track",
+                "analytics.tiktok.com",
+                "sc-static.net"
+            ]
+        },
+        "marketing": {
+            "name": "Marketing Automation",
+            "description": "Marketing and lead tracking tools",
+            "domains": [
+                "hubspot.com",
+                "hs-scripts.com",
+                "hs-analytics.net",
+                "marketo.net",
+                "mktoresp.com",
+                "pardot.com",
+                "intercom.io",
+                "drift.com",
+                "optimizely.com"
+            ]
+        },
+        "fingerprinting": {
+            "name": "Browser Fingerprinting",
+            "description": "Device and browser fingerprinting services",
+            "domains": [
+                "fingerprintjs.com",
+                "fpjs.io"
+            ]
+        }
+    },
+    "totalDomains": 50,
+    "totalRules": 50
+}
