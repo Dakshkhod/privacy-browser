@@ -1,9 +1,10 @@
 // Configuration for Privacy Browser Frontend
 const config = {
   // Backend API URL - Uses VITE_BACKEND_URL if set, otherwise defaults
+  // For Vercel + EC2 setup: use '/api' in production to leverage Vercel rewrites proxy
   BACKEND_URL: import.meta.env.VITE_BACKEND_URL || (
     import.meta.env.PROD
-      ? 'https://privacybrowser-backend.onrender.com'  // Production default
+      ? '/api'  // Production: Use Vercel rewrites proxy (see vercel.json)
       : 'http://localhost:5001'  // Development default
   ),
 
@@ -11,6 +12,7 @@ const config = {
   ENDPOINTS: {
     FETCH_POLICY: '/fetch-privacy-policy',
     ANALYZE_DIRECT: '/analyze-direct-policy',
+    ANALYZE_POLICY: '/analyze-policy',
     HEALTH: '/',
     TEST_SIMPLE: '/test-simple',
   },
