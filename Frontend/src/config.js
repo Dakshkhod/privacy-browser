@@ -1,12 +1,11 @@
 // Configuration for Privacy Browser Frontend
 const config = {
-  // Backend API URL - Uses VITE_BACKEND_URL if set, otherwise defaults
-  // For Vercel + EC2 setup: use '/api' in production to leverage Vercel rewrites proxy
-  BACKEND_URL: import.meta.env.VITE_BACKEND_URL || (
-    import.meta.env.PROD
-      ? '/api'  // Production: Use Vercel rewrites proxy (see vercel.json)
-      : 'http://localhost:5001'  // Development default
-  ),
+  // Backend API URL - For Vercel + EC2 setup: use '/api' in production to leverage Vercel rewrites proxy
+  // In production, always use '/api' proxy (ignores VITE_BACKEND_URL to prevent mixed content)
+  // In development, use VITE_BACKEND_URL if set, otherwise default to localhost
+  BACKEND_URL: import.meta.env.PROD
+    ? '/api'  // Production: Always use Vercel rewrites proxy (see vercel.json)
+    : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001'),  // Development: Use env var or localhost
 
   // API endpoints
   ENDPOINTS: {
