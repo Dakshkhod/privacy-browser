@@ -672,54 +672,30 @@
            ========================================== */
         
         /* ==========================================
-           YOUTUBE AD BLOCKING
+           YOUTUBE AD BLOCKING (Conservative - Feed/Sidebar only)
+           DO NOT hide video player elements!
            ========================================== */
         
         /* YouTube Home/Feed Ads */
         ytd-ad-slot-renderer,
         ytd-banner-promo-renderer,
-        ytd-statement-banner-renderer,
         ytd-in-feed-ad-layout-renderer,
         ytd-promoted-sparkles-web-renderer,
-        ytd-promoted-sparkles-text-search-renderer,
         ytd-display-ad-renderer,
-        ytd-companion-slot-renderer,
-        ytd-action-companion-ad-renderer,
-        ytd-watch-next-secondary-results-renderer ytd-compact-promoted-video-renderer,
-        ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
-        ytd-rich-item-renderer:has([class*="ytd-ad"]),
         #masthead-ad,
-        #player-ads,
-        #panels > ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"],
         
         /* YouTube Search Ads */
         ytd-search-pyv-renderer,
         ytd-promoted-video-renderer,
         
-        /* YouTube Video Page Ads */
-        .ytp-ad-module,
-        .ytp-ad-overlay-container,
-        .ytp-ad-text-overlay,
-        .ytp-ad-overlay-close-button,
-        .ytp-ad-skip-button-container,
-        .video-ads,
-        #movie_player > .ytp-paid-content-overlay,
-        .ytp-ad-player-overlay,
-        .ytp-ad-action-interstitial,
-        .ytp-ad-image-overlay,
-        
         /* YouTube Sidebar Ads */
         #related ytd-compact-promoted-video-renderer,
         ytd-merch-shelf-renderer,
-        ytd-product-details-renderer,
         
-        /* YouTube Shorts Ads */
-        ytd-reel-video-renderer[is-ad],
-        
-        /* Sponsored badges */
-        .ytd-badge-supported-renderer[aria-label="Sponsored"],
-        [aria-label="Sponsored"],
-        span:contains("Sponsored"),
+        /* Overlay ads only (not player controls) */
+        .ytp-ad-overlay-container,
+        .ytp-ad-text-overlay,
+        .ytp-ad-overlay-slot,
         
         /* Only target sidebar elements with specific ad-related IDs/classes */
         aside[class*="ad"],
@@ -1437,15 +1413,15 @@
     }
 
     // ============================================
-    // FEATURE 8: YouTube Ad Handling
+    // FEATURE 8: YouTube Ad Handling (Conservative - Don't break player)
     // ============================================
     
     function handleYouTubeAds() {
         if (!settings.blockAds) return;
         if (!window.location.hostname.includes('youtube.com')) return;
         
-        // Remove ad elements from feed
-        const adSelectors = [
+        // ONLY remove ad elements from feed/sidebar - NOT from video player
+        const safeAdSelectors = [
             'ytd-ad-slot-renderer',
             'ytd-banner-promo-renderer',
             'ytd-in-feed-ad-layout-renderer',
@@ -1455,44 +1431,28 @@
             'ytd-compact-promoted-video-renderer',
             'ytd-search-pyv-renderer',
             '#masthead-ad',
-            '#player-ads',
             'ytd-merch-shelf-renderer'
         ];
         
-        adSelectors.forEach(selector => {
+        safeAdSelectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(el => {
-                el.remove();
+                // Don't remove if it's inside the video player
+                if (!el.closest('#movie_player, #player, .html5-video-player')) {
+                    el.style.display = 'none';
+                }
             });
         });
         
-        // Auto-skip video ads
-        const skipButton = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button');
-        if (skipButton) {
+        // Auto-skip video ads (just click the skip button, don't manipulate video)
+        const skipButton = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, button.ytp-ad-skip-button-modern');
+        if (skipButton && skipButton.offsetParent !== null) {
             skipButton.click();
             console.log('Privacy Browser: Skipped YouTube ad');
         }
         
-        // Skip "Skip in X seconds" countdown
-        const skipPreview = document.querySelector('.ytp-ad-preview-container');
-        if (skipPreview) {
-            const video = document.querySelector('video');
-            if (video && video.duration && video.duration < 60) {
-                // If ad is short, try to speed through it
-                video.currentTime = video.duration;
-            }
-        }
-        
-        // Remove overlay ads
-        document.querySelectorAll('.ytp-ad-overlay-container, .ytp-ad-text-overlay').forEach(el => {
-            el.remove();
-        });
-        
-        // Hide "Sponsored" labels
-        document.querySelectorAll('[aria-label="Sponsored"], .ytd-badge-supported-renderer').forEach(el => {
-            const parent = el.closest('ytd-rich-item-renderer, ytd-video-renderer, ytd-compact-video-renderer');
-            if (parent) {
-                parent.style.display = 'none';
-            }
+        // Hide overlay ads only (don't remove, just hide)
+        document.querySelectorAll('.ytp-ad-overlay-container, .ytp-ad-text-overlay, .ytp-ad-overlay-slot').forEach(el => {
+            el.style.display = 'none';
         });
     }
     
@@ -1601,12 +1561,11 @@
         setTimeout(cleanPageBraveStyle, 4000);
         setTimeout(cleanPageBraveStyle, 8000);
         
-        // YouTube Ad Handling (runs frequently to catch dynamic ads)
+        // YouTube Ad Handling (less frequent to not interfere with player)
         if (window.location.hostname.includes('youtube.com')) {
-            setInterval(handleYouTubeAds, 500);  // Check every 500ms
-            setTimeout(handleYouTubeAds, 100);
+            setInterval(handleYouTubeAds, 2000);  // Check every 2 seconds
             setTimeout(handleYouTubeAds, 1000);
-            setTimeout(handleYouTubeAds, 3000);
+            setTimeout(handleYouTubeAds, 5000);
         }
 
         // Observe for dynamic content
