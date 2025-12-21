@@ -56,7 +56,9 @@
         'vercel.app',
         'netlify.app',
         
-        // Video/Streaming (YouTube NOT whitelisted - we block ads there)
+        // Video/Streaming (YouTube whitelisted - ads deeply integrated with player)
+        'youtube.com',
+        'youtu.be',
         'netflix.com',
         'primevideo.com',
         'hotstar.com',
@@ -670,32 +672,6 @@
            SMART AD BLOCKING
            Only hide clear ad/promo content, preserve main content
            ========================================== */
-        
-        /* ==========================================
-           YOUTUBE AD BLOCKING (Conservative - Feed/Sidebar only)
-           DO NOT hide video player elements!
-           ========================================== */
-        
-        /* YouTube Home/Feed Ads */
-        ytd-ad-slot-renderer,
-        ytd-banner-promo-renderer,
-        ytd-in-feed-ad-layout-renderer,
-        ytd-promoted-sparkles-web-renderer,
-        ytd-display-ad-renderer,
-        #masthead-ad,
-        
-        /* YouTube Search Ads */
-        ytd-search-pyv-renderer,
-        ytd-promoted-video-renderer,
-        
-        /* YouTube Sidebar Ads */
-        #related ytd-compact-promoted-video-renderer,
-        ytd-merch-shelf-renderer,
-        
-        /* Overlay ads only (not player controls) */
-        .ytp-ad-overlay-container,
-        .ytp-ad-text-overlay,
-        .ytp-ad-overlay-slot,
         
         /* Only target sidebar elements with specific ad-related IDs/classes */
         aside[class*="ad"],
@@ -1413,51 +1389,7 @@
     }
 
     // ============================================
-    // FEATURE 8: YouTube Ad Handling (Conservative - Don't break player)
-    // ============================================
-    
-    function handleYouTubeAds() {
-        if (!settings.blockAds) return;
-        if (!window.location.hostname.includes('youtube.com')) return;
-        
-        // ONLY remove ad elements from feed/sidebar - NOT from video player
-        const safeAdSelectors = [
-            'ytd-ad-slot-renderer',
-            'ytd-banner-promo-renderer',
-            'ytd-in-feed-ad-layout-renderer',
-            'ytd-promoted-sparkles-web-renderer',
-            'ytd-display-ad-renderer',
-            'ytd-promoted-video-renderer',
-            'ytd-compact-promoted-video-renderer',
-            'ytd-search-pyv-renderer',
-            '#masthead-ad',
-            'ytd-merch-shelf-renderer'
-        ];
-        
-        safeAdSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(el => {
-                // Don't remove if it's inside the video player
-                if (!el.closest('#movie_player, #player, .html5-video-player')) {
-                    el.style.display = 'none';
-                }
-            });
-        });
-        
-        // Auto-skip video ads (just click the skip button, don't manipulate video)
-        const skipButton = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, button.ytp-ad-skip-button-modern');
-        if (skipButton && skipButton.offsetParent !== null) {
-            skipButton.click();
-            console.log('Privacy Browser: Skipped YouTube ad');
-        }
-        
-        // Hide overlay ads only (don't remove, just hide)
-        document.querySelectorAll('.ytp-ad-overlay-container, .ytp-ad-text-overlay, .ytp-ad-overlay-slot').forEach(el => {
-            el.style.display = 'none';
-        });
-    }
-    
-    // ============================================
-    // FEATURE 9: Brave-Level Clean Mode
+    // FEATURE 8: Brave-Level Clean Mode
     // ============================================
     
     function cleanPageBraveStyle() {
@@ -1561,12 +1493,6 @@
         setTimeout(cleanPageBraveStyle, 4000);
         setTimeout(cleanPageBraveStyle, 8000);
         
-        // YouTube Ad Handling (less frequent to not interfere with player)
-        if (window.location.hostname.includes('youtube.com')) {
-            setInterval(handleYouTubeAds, 2000);  // Check every 2 seconds
-            setTimeout(handleYouTubeAds, 1000);
-            setTimeout(handleYouTubeAds, 5000);
-        }
 
         // Observe for dynamic content
         observeDOM();
