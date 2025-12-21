@@ -5,6 +5,92 @@
     'use strict';
 
     // ============================================
+    // WHITELIST - Skip these domains entirely
+    // ============================================
+    const whitelistedDomains = [
+        // Google services (CSP issues + essential functionality)
+        'google.com',
+        'google.co.in',
+        'google.co.uk',
+        'googleapis.com',
+        'gstatic.com',
+        'gemini.google.com',
+        'bard.google.com',
+        'mail.google.com',
+        'drive.google.com',
+        'docs.google.com',
+        'sheets.google.com',
+        'slides.google.com',
+        'meet.google.com',
+        'calendar.google.com',
+        'photos.google.com',
+        'accounts.google.com',
+        'myaccount.google.com',
+        'classroom.google.com',
+        'chat.google.com',
+        'messages.google.com',
+        
+        // Other AI services
+        'openai.com',
+        'chat.openai.com',
+        'chatgpt.com',
+        'claude.ai',
+        'anthropic.com',
+        'perplexity.ai',
+        'copilot.microsoft.com',
+        'bing.com',
+        
+        // Banking/Finance (don't interfere)
+        'paypal.com',
+        'stripe.com',
+        'razorpay.com',
+        'paytm.com',
+        
+        // Development tools
+        'github.com',
+        'gitlab.com',
+        'stackoverflow.com',
+        'codepen.io',
+        'jsfiddle.net',
+        'replit.com',
+        'vercel.app',
+        'netlify.app',
+        
+        // Video/Streaming
+        'youtube.com',
+        'netflix.com',
+        'primevideo.com',
+        'hotstar.com',
+        'disneyplus.com',
+        'spotify.com',
+        
+        // Social Media (core functionality)
+        'twitter.com',
+        'x.com',
+        'linkedin.com',
+        'discord.com',
+        'slack.com',
+        'telegram.org',
+        'web.telegram.org',
+        'web.whatsapp.com'
+    ];
+    
+    // Check if current domain should be skipped
+    function isWhitelistedDomain() {
+        const hostname = window.location.hostname.toLowerCase();
+        return whitelistedDomains.some(domain => 
+            hostname === domain || 
+            hostname.endsWith('.' + domain)
+        );
+    }
+    
+    // Exit early if on whitelisted domain
+    if (isWhitelistedDomain()) {
+        console.log('Privacy Browser: Skipping whitelisted domain:', window.location.hostname);
+        return;
+    }
+
+    // ============================================
     // Configuration
     // ============================================
     let settings = {
