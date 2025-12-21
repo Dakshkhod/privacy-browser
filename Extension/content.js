@@ -399,40 +399,439 @@
     }
 
     // ============================================
-    // FEATURE 4: Ad Blocking (existing)
+    // FEATURE 4: Ad Blocking (Enhanced)
     // ============================================
 
     const hideCSS = `
-        /* Video popup players */
+        /* ==========================================
+           UNIVERSAL AD HIDING CSS
+           Works across all websites
+           ========================================== */
+
+        /* Generic Ad Containers - Class Based */
+        [class*="ad-container"],
+        [class*="ad_container"],
+        [class*="adContainer"],
+        [class*="ad-wrapper"],
+        [class*="ad_wrapper"],
+        [class*="adWrapper"],
+        [class*="ad-box"],
+        [class*="ad_box"],
+        [class*="adBox"],
+        [class*="ad-unit"],
+        [class*="ad_unit"],
+        [class*="adUnit"],
+        [class*="ad-slot"],
+        [class*="ad_slot"],
+        [class*="adSlot"],
+        [class*="ad-banner"],
+        [class*="ad_banner"],
+        [class*="adBanner"],
+        [class*="ad-block"],
+        [class*="ad_block"],
+        [class*="adBlock"],
+        [class*="ad-frame"],
+        [class*="ad_frame"],
+        [class*="adFrame"],
+        [class*="ad-placement"],
+        [class*="ad_placement"],
+        [class*="adPlacement"],
+        [class*="ad-zone"],
+        [class*="ad_zone"],
+        [class*="adZone"],
+        [class*="ad-space"],
+        [class*="ad_space"],
+        [class*="adSpace"],
+        [class*="ad-region"],
+        [class*="ad-holder"],
+        [class*="ad-insert"],
+        [class*="ad-label"],
+        
+        /* Generic Ad Containers - ID Based */
+        [id*="ad-container"],
+        [id*="ad_container"],
+        [id*="adContainer"],
+        [id*="ad-wrapper"],
+        [id*="ad_wrapper"],
+        [id*="adWrapper"],
+        [id*="ad-box"],
+        [id*="ad_box"],
+        [id*="adBox"],
+        [id*="ad-unit"],
+        [id*="ad_unit"],
+        [id*="adUnit"],
+        [id*="ad-slot"],
+        [id*="ad_slot"],
+        [id*="adSlot"],
+        [id*="ad-banner"],
+        [id*="ad_banner"],
+        [id*="adBanner"],
+        [id*="ad-frame"],
+        [id*="ad_frame"],
+        [id*="adFrame"],
+        [id*="google_ads"],
+        [id*="googleAds"],
+        [id*="div-gpt-ad"],
+        
+        /* Data Attribute Based */
+        [data-ad],
+        [data-ad-slot],
+        [data-ad-unit],
+        [data-ad-client],
+        [data-ad-channel],
+        [data-ad-format],
+        [data-ad-layout],
+        [data-adservice],
+        [data-google-query-id],
+        [data-freestar-ad],
+        [data-taboola],
+        [data-outbrain],
+        [data-native-ad],
+        
+        /* ==========================================
+           AFFILIATE & SHOPPING ADS
+           ========================================== */
+        
+        /* Shopping/Affiliate Widgets */
+        [class*="shop-the-story"],
+        [class*="shopTheStory"],
+        [class*="shop_the_story"],
+        [class*="shopping-widget"],
+        [class*="shoppingWidget"],
+        [class*="product-carousel"],
+        [class*="productCarousel"],
+        [class*="product-widget"],
+        [class*="productWidget"],
+        [class*="affiliate-widget"],
+        [class*="affiliateWidget"],
+        [class*="affiliate-links"],
+        [class*="affiliate-products"],
+        [class*="buy-now-widget"],
+        [class*="commerce-widget"],
+        [class*="ecommerce-widget"],
+        [class*="shopping-carousel"],
+        [class*="product-recommendations"],
+        [class*="recommended-products"],
+        [class*="product-ads"],
+        [class*="shopping-ads"],
+        
+        /* Amazon Affiliate Specific */
+        [class*="amazon-widget"],
+        [class*="amazonWidget"],
+        [class*="amazon-products"],
+        [class*="amazon-affiliate"],
+        [class*="amzn-native"],
+        [class*="amazon-carousel"],
+        [id*="amazon-widget"],
+        [id*="amzn"],
+        [data-amazon],
+        [data-affiliate],
+        iframe[src*="amazon"],
+        iframe[src*="amzn"],
+        a[href*="amazon"][href*="tag="],
+        
+        /* Flipkart Affiliate */
+        [class*="flipkart-widget"],
+        [class*="flipkart-affiliate"],
+        iframe[src*="flipkart"],
+        
+        /* Sponsored/Native Content */
+        [class*="sponsored"],
+        [class*="Sponsored"],
+        [class*="promoted"],
+        [class*="Promoted"],
+        [class*="native-ad"],
+        [class*="nativeAd"],
+        [class*="content-ad"],
+        [class*="contentAd"],
+        [class*="partner-content"],
+        [class*="paid-content"],
+        [class*="commercial"],
+        [class*="branded-content"],
+        [class*="advertorial"],
+        [class*="promo-widget"],
+        [class*="promotional"],
+        
+        /* Elements containing "Sponsored" text - more specific targeting */
+        div:has(> span:contains("Sponsored")),
+        section:has(> *:contains("Sponsored")),
+        
+        /* ==========================================
+           INDIAN NEWS SITES SPECIFIC
+           (Hindustan Times, TOI, etc.)
+           ========================================== */
+        
+        /* Hindustan Times */
+        .storyShopWidget,
+        .story-shop-widget,
+        [class*="story-shop"],
+        [class*="storyShop"],
+        .ht-ad,
+        .ht-ads,
+        [class*="ht-ad-"],
+        .rightAdsDiv,
+        .leftAdsDiv,
+        .bottomAdsDiv,
+        .topAdsDiv,
+        .mobileAdSlot,
+        .desktopAdSlot,
+        [class*="htBottomAd"],
+        [class*="htTopAd"],
+        [class*="htSideAd"],
+        .widget-container[class*="shop"],
+        .widget-container[class*="product"],
+        
+        /* Times of India - Enhanced */
+        .toi-ad,
+        .toiAd,
+        [class*="toi-ad"],
+        [class*="toiAd"],
+        .prime-widget,
+        .toi-video-widget,
+        .toi_advt,
+        [class*="toi_advt"],
+        .adDiv,
+        .adbox,
+        .sponsoredContent,
+        .RHS_ads,
+        .rhs_ad,
+        [class*="RHS"],
+        [class*="rhs-ad"],
+        [class*="_RHS"],
+        .rightSidebarAd,
+        .right-sidebar-ad,
+        aside[class*="ad"],
+        .top-ad,
+        .btm-ad,
+        .mid-ad,
+        [class*="daily-puzzles"],
+        [class*="DailyPuzzles"],
+        [class*="daily_puzzles"],
+        [class*="games-widget"],
+        [class*="trending-widget"],
+        .trending-stories-widget,
+        [class*="trending-stories"],
+        [class*="TrendingStories"],
+        [class*="PhotoStories"],
+        [class*="photo-stories"],
+        [class*="ePaper"],
+        [class*="e-paper"],
+        [class*="subscribe-widget"],
+        [class*="Subscribe"],
+        .miniTV,
+        [class*="miniTV"],
+        [class*="MiniTV"],
+        [class*="video-widget"],
+        [class*="VideoWidget"],
+        [class*="sticky-player"],
+        [class*="stickyPlayer"],
+        [class*="floating-player"],
+        [class*="articleshow_rhs"],
+        [class*="articleshow-rhs"],
+        [class*="_articleshow"],
+        [class*="TOI_"],
+        [class*="toi_"],
+        [class*="wdt_"],
+        [class*="Wdt_"],
+        [class*="Widget_"],
+        [class*="widget_"],
+        [id*="widget"],
+        [id*="Widget"],
+        [class*="relatedstory"],
+        [class*="relatedStory"],
+        [class*="related-story"],
+        [class*="MoreFrom"],
+        [class*="more-from"],
+        [class*="AlsoRead"],
+        [class*="also-read"],
+        .flyin,
+        [class*="flyin"],
+        [class*="fly-in"],
+        [class*="slideup"],
+        [class*="slide-up"],
+        [class*="bottombar"],
+        [class*="bottom-bar"],
+        [class*="notification-strip"],
+        [class*="notification_strip"],
+        [class*="notificationStrip"],
+        [class*="app-promo"],
+        [class*="appPromo"],
+        [class*="download-app"],
+        [class*="downloadApp"],
+        
+        /* NDTV */
+        .ndtv-ad,
+        [class*="ndtv-ad"],
+        [class*="ndtvAd"],
+        .gadgets-widget,
+        
+        /* India Today */
+        .it-ad,
+        [class*="it-ad"],
+        .newskarma,
+        
+        /* Economic Times */
+        .et-ad,
+        [class*="et-ad"],
+        
+        /* News18 */
+        .news18-ad,
+        [class*="news18-ad"],
+        
+        /* ==========================================
+           VIDEO ADS & OVERLAYS
+           ========================================== */
+        
+        [class*="video-ad"],
+        [class*="videoAd"],
+        [class*="video_ad"],
         [class*="video-popup"],
         [class*="video-overlay"],
         [class*="floating-video"],
         [class*="sticky-video"],
         [class*="video-widget"],
-        
-        /* Common popup containers */
-        [class*="popup-container"],
-        [class*="modal-ad"],
-        [class*="overlay-ad"],
-        [class*="interstitial"],
-        
-        /* Floating/Sticky ads */
-        [class*="floating-ad"],
-        [class*="sticky-ad"],
-        [class*="fixed-ad"],
-        
-        /* Ad containers */
-        [class*="ad-container"],
-        [class*="adContainer"],
-        [class*="sponsored-content"],
-        
-        /* Site-specific */
-        .prime-widget,
-        .toi-video-widget,
         [class*="primis"],
-        [data-ad-slot] {
+        [class*="connatix"],
+        [class*="vdo-ai"],
+        [class*="vidoomy"],
+        [class*="outstream"],
+        [class*="preroll"],
+        [class*="postroll"],
+        [class*="midroll"],
+        [id*="primis"],
+        [id*="connatix"],
+        .jwplayer [class*="ad"],
+        .video-js [class*="ad"],
+        
+        /* ==========================================
+           POPUP & OVERLAY ADS
+           ========================================== */
+        
+        [class*="popup-ad"],
+        [class*="popupAd"],
+        [class*="popup_ad"],
+        [class*="modal-ad"],
+        [class*="modalAd"],
+        [class*="overlay-ad"],
+        [class*="overlayAd"],
+        [class*="interstitial"],
+        [class*="lightbox-ad"],
+        [class*="splash-ad"],
+        [class*="welcome-ad"],
+        
+        /* ==========================================
+           FLOATING & STICKY ADS
+           ========================================== */
+        
+        [class*="floating-ad"],
+        [class*="floatingAd"],
+        [class*="sticky-ad"],
+        [class*="stickyAd"],
+        [class*="fixed-ad"],
+        [class*="fixedAd"],
+        [class*="bottom-ad"],
+        [class*="bottomAd"],
+        [class*="top-ad"],
+        [class*="topAd"],
+        [class*="side-ad"],
+        [class*="sideAd"],
+        [class*="rail-ad"],
+        [class*="sidebar-ad"],
+        [class*="footer-ad"],
+        [class*="header-ad"],
+        
+        /* ==========================================
+           AD NETWORKS
+           ========================================== */
+        
+        .adsbygoogle,
+        .google-ad,
+        .gpt-ad,
+        .dfp-ad,
+        .taboola,
+        .taboola-widget,
+        .taboola-container,
+        [class*="taboola"],
+        .outbrain,
+        .outbrain-widget,
+        [class*="outbrain"],
+        .mgid,
+        .mgid-widget,
+        [class*="mgid"],
+        .revcontent,
+        .content-ad,
+        .criteo,
+        .amazon-ad,
+        .adsense,
+        .colombia,
+        [class*="colombia"],
+        
+        /* ==========================================
+           NEWSLETTER & SUBSCRIBE POPUPS
+           ========================================== */
+        
+        [class*="newsletter-popup"],
+        [class*="newsletter-modal"],
+        [class*="subscribe-popup"],
+        [class*="subscribe-modal"],
+        [class*="email-popup"],
+        [class*="signup-popup"],
+        [class*="notification-bar"]:not(nav *),
+        [class*="push-notification"],
+        [class*="app-download"],
+        [class*="download-app"],
+        
+        /* ==========================================
+           IFRAMES & EMBEDDED ADS
+           ========================================== */
+        
+        iframe[src*="ads"],
+        iframe[src*="doubleclick"],
+        iframe[src*="googlesyndication"],
+        iframe[src*="taboola"],
+        iframe[src*="outbrain"],
+        iframe[src*="mgid"],
+        iframe[src*="amazon-adsystem"],
+        iframe[src*="primis"],
+        iframe[src*="connatix"],
+        iframe[id*="google_ads_iframe"],
+        iframe[name*="google_ads"],
+        
+        /* ==========================================
+           ADDITIONAL PATTERNS
+           ========================================== */
+        
+        [aria-label*="advertisement"],
+        [aria-label*="Advertisement"],
+        [aria-label*="Sponsored"],
+        [aria-label*="Shopping"],
+        [role="complementary"][class*="ad"],
+        ins.adsbygoogle,
+        amp-ad,
+        amp-embed,
+        amp-sticky-ad,
+        
+        /* Buy buttons in article context */
+        .article-body [class*="buy-now"],
+        .article-content [class*="shop"],
+        .story-body [class*="product"] {
             display: none !important;
             visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            position: absolute !important;
+            left: -9999px !important;
+        }
+        
+        /* Remove empty ad containers spacing */
+        [class*="ad-container"]:empty,
+        [class*="ad-wrapper"]:empty,
+        [class*="ad-slot"]:empty {
+            margin: 0 !important;
+            padding: 0 !important;
         }
     `;
 
@@ -445,10 +844,465 @@
     }
 
     // ============================================
+    // FEATURE 5: Anti-Adblock Bypass
+    // ============================================
+
+    function bypassAdblockDetection() {
+        if (!settings.blockAds) return;
+
+        // Create a script to inject into the page context
+        const script = document.createElement('script');
+        script.textContent = `
+            (function() {
+                'use strict';
+                
+                // Override common adblock detection variables
+                const adblockProps = [
+                    'adBlockEnabled', 'adBlockDetected', 'adblockEnabled', 'adblockDetected',
+                    'isAdBlockActive', 'adBlockActive', 'blockAdBlock', 'canRunAds',
+                    'adsBlocked', 'noAdBlock', 'adBlocker', 'hasAdBlock', 'showAds',
+                    'adsEnabled', 'adBlockerDetected', 'adBlockDetection'
+                ];
+                
+                adblockProps.forEach(prop => {
+                    try {
+                        Object.defineProperty(window, prop, {
+                            get: () => prop.includes('canRun') || prop.includes('show') || prop.includes('Enabled') || prop === 'noAdBlock' ? true : false,
+                            set: () => {},
+                            configurable: false
+                        });
+                    } catch(e) {}
+                });
+
+                // Create fake ad element for detection bypass
+                const fakeAd = document.createElement('div');
+                fakeAd.className = 'adsbox ad-placeholder pub_300x250';
+                fakeAd.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+                fakeAd.innerHTML = '&nbsp;';
+                document.documentElement.appendChild(fakeAd);
+
+                // Prevent adblock detection via element check
+                const originalGetComputedStyle = window.getComputedStyle;
+                window.getComputedStyle = function(element, pseudoElt) {
+                    const result = originalGetComputedStyle.call(this, element, pseudoElt);
+                    if (element && element.className && typeof element.className === 'string') {
+                        const className = element.className.toLowerCase();
+                        if (className.includes('ads') || className.includes('ad-') || className.includes('banner')) {
+                            return new Proxy(result, {
+                                get: (target, prop) => {
+                                    if (prop === 'display') return 'block';
+                                    if (prop === 'visibility') return 'visible';
+                                    if (prop === 'height' || prop === 'width') return '1px';
+                                    return target[prop];
+                                }
+                            });
+                        }
+                    }
+                    return result;
+                };
+
+                // Neutralize common detection functions
+                const neutralize = (obj, methods) => {
+                    methods.forEach(method => {
+                        try {
+                            if (typeof obj[method] === 'function') {
+                                const original = obj[method];
+                                obj[method] = function() {
+                                    const args = Array.from(arguments);
+                                    const fnStr = args[0] ? args[0].toString().toLowerCase() : '';
+                                    if (fnStr.includes('adblock') || fnStr.includes('ads') || fnStr.includes('blocker')) {
+                                        return method === 'setTimeout' || method === 'setInterval' ? 0 : undefined;
+                                    }
+                                    return original.apply(this, arguments);
+                                };
+                            }
+                        } catch(e) {}
+                    });
+                };
+
+                // Override eval to prevent obfuscated detection
+                const originalEval = window.eval;
+                window.eval = function(code) {
+                    if (typeof code === 'string') {
+                        const lowerCode = code.toLowerCase();
+                        if (lowerCode.includes('adblock') || lowerCode.includes('blockad')) {
+                            return undefined;
+                        }
+                    }
+                    return originalEval.call(this, code);
+                };
+
+                console.log('Privacy Browser: Anti-adblock bypass active');
+            })();
+        `;
+
+        // Inject at document_start to run before page scripts
+        (document.head || document.documentElement).appendChild(script);
+        script.remove();
+    }
+
+    // ============================================
+    // FEATURE 6: Content Restriction Remover
+    // ============================================
+
+    function removeContentRestrictions() {
+        if (!settings.blockAds) return;
+
+        // 1. Remove scroll lock
+        const enableScroll = () => {
+            document.body.style.overflow = 'auto';
+            document.body.style.overflowY = 'auto';
+            document.documentElement.style.overflow = 'auto';
+            document.documentElement.style.overflowY = 'auto';
+            document.body.style.position = 'static';
+            document.documentElement.style.position = 'static';
+        };
+
+        // 2. Remove blur effects on content
+        const removeBlur = () => {
+            document.querySelectorAll('[style*="blur"]').forEach(el => {
+                el.style.filter = 'none';
+                el.style.webkitFilter = 'none';
+            });
+            document.querySelectorAll('[class*="blur"], [class*="paywall"], [class*="premium-content"], [class*="subscriber-only"]').forEach(el => {
+                el.style.filter = 'none';
+                el.style.webkitFilter = 'none';
+            });
+        };
+
+        // 3. Re-enable text selection and copy
+        const enableCopy = () => {
+            document.body.style.userSelect = 'auto';
+            document.body.style.webkitUserSelect = 'auto';
+            document.documentElement.style.userSelect = 'auto';
+
+            // Remove nocopy handlers
+            ['copy', 'cut', 'contextmenu', 'selectstart', 'mousedown', 'mouseup', 'keydown'].forEach(event => {
+                document.addEventListener(event, e => e.stopPropagation(), true);
+            });
+        };
+
+        // 4. Remove overlay modals (adblock walls, subscription walls)
+        const removeOverlays = () => {
+            const overlaySelectors = [
+                '[class*="adblock-modal"]',
+                '[class*="adblock-overlay"]',
+                '[class*="adblock-wall"]',
+                '[class*="adblock-notice"]',
+                '[class*="adblocker-modal"]',
+                '[class*="paywall-modal"]',
+                '[class*="paywall-overlay"]',
+                '[class*="subscription-wall"]',
+                '[class*="subscriber-wall"]',
+                '[class*="piano-modal"]',
+                '[class*="tp-modal"]',
+                '[class*="regwall"]',
+                '[class*="login-wall"]',
+                '[class*="gate-overlay"]',
+                '[class*="content-gate"]',
+                '[id*="adblock-modal"]',
+                '[id*="paywall"]',
+                '[id*="piano-"]',
+                '.fc-ab-root',
+                '.fc-dialog-container',
+                '#credential_picker_container'
+            ];
+
+            overlaySelectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach(el => {
+                    el.style.display = 'none';
+                    el.remove();
+                });
+            });
+        };
+
+        // 5. Unhide truncated content
+        const unhideContent = () => {
+            document.querySelectorAll('[class*="truncate"], [class*="fade-out"], [class*="content-fade"], [class*="gradient-mask"]').forEach(el => {
+                el.style.maxHeight = 'none';
+                el.style.height = 'auto';
+                el.style.overflow = 'visible';
+                el.style.webkitMaskImage = 'none';
+                el.style.maskImage = 'none';
+            });
+
+            // Show hidden paragraphs
+            document.querySelectorAll('p[style*="display: none"], p.hidden, article[style*="display: none"]').forEach(el => {
+                el.style.display = 'block';
+            });
+        };
+
+        // Create CSS for restriction removal
+        const restrictionCSS = `
+            /* Re-enable scroll */
+            html, body {
+                overflow: auto !important;
+                overflow-y: auto !important;
+                position: static !important;
+                height: auto !important;
+            }
+            
+            /* Re-enable text selection */
+            * {
+                user-select: auto !important;
+                -webkit-user-select: auto !important;
+                -moz-user-select: auto !important;
+            }
+            
+            /* Remove blur */
+            [class*="blur"]:not(.no-deblur),
+            [class*="paywall"]:not([class*="button"]),
+            [class*="premium-lock"] {
+                filter: none !important;
+                -webkit-filter: none !important;
+            }
+            
+            /* Remove content fade/truncation */
+            [class*="truncate"],
+            [class*="fade-out"],
+            [class*="content-fade"],
+            [class*="gradient-overlay"]:not(nav *) {
+                max-height: none !important;
+                height: auto !important;
+                overflow: visible !important;
+                -webkit-mask-image: none !important;
+                mask-image: none !important;
+            }
+            
+            /* Hide common overlay walls */
+            [class*="adblock-modal"],
+            [class*="adblock-overlay"],
+            [class*="paywall-overlay"],
+            [class*="subscription-modal"],
+            [class*="piano-modal"],
+            [class*="regwall"],
+            .fc-ab-root,
+            .fc-dialog-container {
+                display: none !important;
+                visibility: hidden !important;
+            }
+        `;
+
+        const restrictionStyle = document.createElement('style');
+        restrictionStyle.id = 'privacy-browser-restriction-remover';
+        restrictionStyle.textContent = restrictionCSS;
+        (document.head || document.documentElement).appendChild(restrictionStyle);
+
+        // Run removal functions
+        enableScroll();
+        removeBlur();
+        enableCopy();
+        removeOverlays();
+        unhideContent();
+
+        // Re-run periodically for dynamically loaded content
+        const interval = setInterval(() => {
+            enableScroll();
+            removeOverlays();
+            removeBlur();
+        }, 2000);
+
+        // Stop after 30 seconds
+        setTimeout(() => clearInterval(interval), 30000);
+
+        console.log('Privacy Browser: Content restrictions removed');
+    }
+
+    // ============================================
+    // FEATURE 7: Aggressive DOM Ad Removal
+    // ============================================
+
+    function removeAdsFromDOM() {
+        if (!settings.blockAds) return;
+
+        // Selectors for elements to remove completely
+        const adSelectors = [
+            // Shopping/Affiliate widgets
+            '[class*="shop-the-story"]',
+            '[class*="shopTheStory"]',
+            '[class*="storyShop"]',
+            '[class*="story-shop"]',
+            '[class*="product-carousel"]',
+            '[class*="shopping-widget"]',
+            '[class*="affiliate"]',
+            '[class*="amazon-widget"]',
+            '[class*="amzn"]',
+
+            // Sponsored content sections
+            '[class*="sponsored"]',
+            '[class*="Sponsored"]',
+            '[class*="promoted"]',
+            '.sponsoredContent',
+
+            // Generic ads
+            '.adsbygoogle',
+            '[class*="taboola"]',
+            '[class*="outbrain"]',
+            '[class*="mgid"]',
+            '[id*="div-gpt-ad"]',
+            '[data-google-query-id]',
+
+            // Site-specific
+            '.prime-widget',
+            '.toi-video-widget',
+            '[class*="primis"]',
+            '[class*="connatix"]',
+
+            // Times of India specific
+            '[class*="RHS"]',
+            '[class*="rhs-ad"]',
+            '[class*="daily-puzzles"]',
+            '[class*="DailyPuzzles"]',
+            '[class*="games-widget"]',
+            '[class*="trending-widget"]',
+            '[class*="trending-stories"]',
+            '[class*="TrendingStories"]',
+            '[class*="PhotoStories"]',
+            '[class*="miniTV"]',
+            '[class*="MiniTV"]',
+            '[class*="video-widget"]',
+            '[class*="VideoWidget"]',
+            '[class*="sticky-player"]',
+            '[class*="floating-player"]',
+            '[class*="Widget_"]',
+            '[class*="widget_"]',
+            '[class*="wdt_"]',
+            '[class*="flyin"]',
+            '[class*="slideup"]',
+            '[class*="bottombar"]',
+            '[class*="notification-strip"]',
+            '[class*="app-promo"]',
+            '[class*="download-app"]',
+            '[role="complementary"]',
+            
+            // Sidebar and right column ads
+            '.rightColumn',
+            '.right-column',
+            '.rightCol',
+            '.right-col',
+            '.sidebar-right',
+            '.right-sidebar',
+            '.col-right',
+            '#rightCol',
+            '#right-col',
+            '#rightColumn',
+            
+            // Popups and overlays
+            '[class*="popup"]',
+            '[class*="modal"]:not([class*="cookie"]):not([class*="consent"])',
+            '[class*="interstitial"]',
+            '[class*="overlay-ad"]',
+            
+            // AliExpress and shopping widgets
+            '[class*="aliexpress"]',
+            '[class*="AliExpress"]',
+            '[href*="aliexpress"]',
+            '[class*="shopping"]',
+            '[class*="deals"]',
+            '[class*="coupons"]'
+        ];
+
+        let removedCount = 0;
+
+        adSelectors.forEach(selector => {
+            try {
+                document.querySelectorAll(selector).forEach(el => {
+                    // Don't remove navigation or header elements
+                    if (el.closest('nav, header, footer:not([class*="ad"])')) return;
+
+                    el.remove();
+                    removedCount++;
+                });
+            } catch (e) { }
+        });
+
+        // Also find elements by text content
+        findAndRemoveByText();
+
+        if (removedCount > 0) {
+            console.log('Privacy Browser: Removed', removedCount, 'ad elements');
+        }
+    }
+
+    function findAndRemoveByText() {
+        // Find containers with promotional text
+        const textPatterns = [
+            'Sponsored',
+            'Shop The Story',
+            'Shop the Story',
+            'Advertisement',
+            'Promoted',
+            'Daily Puzzles',
+            'Trending Stories',
+            'Photo Stories',
+            'More From TOI',
+            'Also Read',
+            'Explore More',
+            'Subscribe Now',
+            'Download App',
+            'MiniTV',
+            'You May Like',
+            'Recommended For You',
+            'FROM AROUND THE WEB',
+            'Vintage Wax',
+            'AliExpress',
+            'PS4 Xbox',
+            'DIY Scrapbooking'
+        ];
+
+        textPatterns.forEach(pattern => {
+            // Find elements containing this text
+            const walker = document.createTreeWalker(
+                document.body,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode: (node) => {
+                        return node.textContent.includes(pattern)
+                            ? NodeFilter.FILTER_ACCEPT
+                            : NodeFilter.FILTER_REJECT;
+                    }
+                }
+            );
+
+            const nodesToRemove = [];
+            while (walker.nextNode()) {
+                // Find the parent container (usually 2-4 levels up)
+                let el = walker.currentNode.parentElement;
+                for (let i = 0; i < 5 && el; i++) {
+                    // Check if this looks like an ad container
+                    const tagName = el.tagName.toLowerCase();
+                    if ((tagName === 'div' || tagName === 'section' || tagName === 'aside') &&
+                        !el.closest('nav, header, article > p, .article-body > p')) {
+
+                        // Check size - ad containers are usually large blocks
+                        const rect = el.getBoundingClientRect();
+                        if (rect.height > 100 && rect.width > 200) {
+                            nodesToRemove.push(el);
+                            break;
+                        }
+                    }
+                    el = el.parentElement;
+                }
+            }
+
+            // Remove found containers
+            nodesToRemove.forEach(node => {
+                try {
+                    node.style.display = 'none';
+                    node.remove();
+                } catch (e) { }
+            });
+        });
+    }
+
+    // ============================================
     // Initialization
     // ============================================
 
     function init() {
+        // Inject anti-adblock bypass FIRST (before page scripts load)
+        bypassAdblockDetection();
+
         // Inject ad-hiding CSS
         injectHideCSS();
 
@@ -472,31 +1326,66 @@
         // Script analysis
         setTimeout(analyzeScripts, 1500);
 
+        // Content restriction removal (paywall bypass, scroll unlock, etc.)
+        setTimeout(removeContentRestrictions, 500);
+
+        // Aggressive DOM ad removal at multiple intervals
+        // (catches dynamically loaded ads)
+        setTimeout(removeAdsFromDOM, 100);
+        setTimeout(removeAdsFromDOM, 1000);
+        setTimeout(removeAdsFromDOM, 3000);
+        setTimeout(removeAdsFromDOM, 5000);
+        setTimeout(removeAdsFromDOM, 10000);
+
         // Observe for dynamic content
         observeDOM();
     }
 
     function observeDOM() {
+        let adRemovalScheduled = false;
+
         const observer = new MutationObserver((mutations) => {
             let hasCookieBanner = false;
             let hasNewInputs = false;
+            let hasNewContent = false;
 
             for (const mutation of mutations) {
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        // Check for cookie banners
                         const el = node;
+
+                        // Check for cookie banners
                         if (el.className && typeof el.className === 'string') {
-                            if (el.className.toLowerCase().includes('cookie') ||
-                                el.className.toLowerCase().includes('consent') ||
-                                el.className.toLowerCase().includes('gdpr')) {
+                            const className = el.className.toLowerCase();
+                            if (className.includes('cookie') ||
+                                className.includes('consent') ||
+                                className.includes('gdpr')) {
                                 hasCookieBanner = true;
+                            }
+
+                            // Check for ad-related content
+                            if (className.includes('ad') ||
+                                className.includes('sponsor') ||
+                                className.includes('promo') ||
+                                className.includes('shop') ||
+                                className.includes('affiliate') ||
+                                className.includes('taboola') ||
+                                className.includes('outbrain')) {
+                                hasNewContent = true;
                             }
                         }
 
                         // Check for new form inputs
-                        if (el.tagName === 'INPUT' || el.querySelector('input')) {
+                        if (el.tagName === 'INPUT' || el.querySelector?.('input')) {
                             hasNewInputs = true;
+                        }
+
+                        // Check for ads by content
+                        if (el.textContent && (
+                            el.textContent.includes('Sponsored') ||
+                            el.textContent.includes('Shop The Story') ||
+                            el.textContent.includes('Advertisement'))) {
+                            hasNewContent = true;
                         }
                     }
                 }
@@ -508,6 +1397,15 @@
 
             if (hasNewInputs) {
                 setTimeout(scanFormFields, 200);
+            }
+
+            // Debounce ad removal to avoid excessive calls
+            if (hasNewContent && !adRemovalScheduled) {
+                adRemovalScheduled = true;
+                setTimeout(() => {
+                    removeAdsFromDOM();
+                    adRemovalScheduled = false;
+                }, 300);
             }
         });
 

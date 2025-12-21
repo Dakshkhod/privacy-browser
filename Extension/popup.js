@@ -13,6 +13,7 @@ const elements = {
     blockingToggle: document.getElementById('blockingToggle'),
     cookieToggle: document.getElementById('cookieToggle'),
     formToggle: document.getElementById('formToggle'),
+    adBlockToggle: document.getElementById('adBlockToggle'),
 
     // Page security
     pageSecuritySection: document.getElementById('pageSecuritySection'),
@@ -224,6 +225,7 @@ async function loadSettings() {
         const { settings } = await chrome.runtime.sendMessage({ type: 'GET_PRIVACY_SETTINGS' });
         elements.cookieToggle.checked = settings.autoRejectCookies !== false;
         elements.formToggle.checked = settings.scanForms !== false;
+        elements.adBlockToggle.checked = settings.blockAds !== false;
 
         const statusResponse = await chrome.runtime.sendMessage({ type: 'GET_BLOCKING_STATUS' });
         elements.blockingToggle.checked = statusResponse.enabled !== false;
@@ -267,6 +269,7 @@ async function init() {
 elements.blockingToggle.addEventListener('change', handleBlockingToggle);
 elements.cookieToggle.addEventListener('change', () => handleToggleChange('autoRejectCookies', elements.cookieToggle.checked));
 elements.formToggle.addEventListener('change', () => handleToggleChange('scanForms', elements.formToggle.checked));
+elements.adBlockToggle.addEventListener('change', () => handleToggleChange('blockAds', elements.adBlockToggle.checked));
 
 elements.scriptsToggleBtn.addEventListener('click', () => toggleSection(elements.scriptsList, elements.scriptsExpandIcon));
 elements.trackersToggleBtn.addEventListener('click', () => toggleSection(elements.trackersList, elements.trackersExpandIcon));

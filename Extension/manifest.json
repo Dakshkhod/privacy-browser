@@ -20,6 +20,7 @@
     "host_permissions": [
         "<all_urls>",
         "https://privacybrowser-backend.onrender.com/*",
+        "http://98.130.128.254/*",
         "http://localhost:5001/*"
     ],
     "declarative_net_request": {
