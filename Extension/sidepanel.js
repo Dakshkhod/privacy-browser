@@ -5,7 +5,7 @@
 // Configuration
 // ============================================
 const config = {
-    BACKEND_URL: 'https://privacybrowser-backend.onrender.com',
+    BACKEND_URL: 'http://98.130.128.254',  // EC2 backend
     DEV_BACKEND_URL: 'http://localhost:5001',
     TIMEOUT: 60000,
     MAX_RETRIES: 3
