@@ -625,7 +625,6 @@
         [class*="video-overlay"],
         [class*="floating-video"],
         [class*="sticky-video"],
-        [class*="video-widget"],
         [class*="primis"],
         [class*="connatix"],
         [class*="vdo-ai"],
@@ -638,6 +637,36 @@
         [id*="connatix"],
         .jwplayer [class*="ad"],
         .video-js [class*="ad"],
+        
+        /* Floating/Sticky Video Players (bottom-right popups) */
+        [class*="sticky-player"],
+        [class*="stickyPlayer"],
+        [class*="sticky_player"],
+        [class*="floating-player"],
+        [class*="floatingPlayer"],
+        [class*="floating_player"],
+        [class*="pip-player"],
+        [class*="pipPlayer"],
+        [class*="mini-player"],
+        [class*="miniPlayer"],
+        [class*="corner-video"],
+        [class*="cornerVideo"],
+        [class*="video-float"],
+        [class*="videoFloat"],
+        [class*="persist-video"],
+        [class*="persistVideo"],
+        [class*="detached-video"],
+        [class*="detachedVideo"],
+        [class*="docked-video"],
+        [class*="dockedVideo"],
+        [class*="minimized-video"],
+        [class*="minimizedVideo"],
+        [class*="video-sticky"],
+        [class*="videoSticky"],
+        [class*="jw-float"],
+        [class*="vjs-floating"],
+        div[style*="position: fixed"][style*="bottom"][style*="right"] video,
+        div[style*="position:fixed"][style*="bottom"][style*="right"] video,
         
         /* ==========================================
            POPUP & OVERLAY ADS
@@ -1088,7 +1117,22 @@
             '.RHS_ads',
             '.rhs_ad',
             '.prime-widget',
-            '.toi-video-widget'
+            '.toi-video-widget',
+            
+            // Floating video players
+            '[class*="sticky-player"]',
+            '[class*="stickyPlayer"]',
+            '[class*="floating-player"]',
+            '[class*="floatingPlayer"]',
+            '[class*="pip-player"]',
+            '[class*="mini-player"]',
+            '[class*="miniPlayer"]',
+            '[class*="corner-video"]',
+            '[class*="video-float"]',
+            '[class*="persist-video"]',
+            '[class*="detached-video"]',
+            '[class*="docked-video"]',
+            '[class*="minimized-video"]'
         ];
 
         let removedCount = 0;
@@ -1111,6 +1155,47 @@
         if (removedCount > 0) {
             console.log('Privacy Browser: Removed', removedCount, 'ad elements');
         }
+        
+        // Also remove floating video players by position
+        removeFloatingVideos();
+    }
+    
+    function removeFloatingVideos() {
+        // Find fixed-position elements in corners that contain videos
+        document.querySelectorAll('div, section, aside').forEach(el => {
+            try {
+                const style = window.getComputedStyle(el);
+                const isFixed = style.position === 'fixed';
+                const isAbsolute = style.position === 'absolute';
+                
+                if (!isFixed && !isAbsolute) return;
+                
+                const rect = el.getBoundingClientRect();
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                // Check if element is in bottom-right corner
+                const isBottomRight = rect.right > windowWidth - 400 && rect.bottom > windowHeight - 400;
+                // Check if element is in bottom-left corner  
+                const isBottomLeft = rect.left < 400 && rect.bottom > windowHeight - 400;
+                
+                if ((isBottomRight || isBottomLeft) && (isFixed || isAbsolute)) {
+                    // Check if it contains video or iframe
+                    const hasVideo = el.querySelector('video, iframe');
+                    const hasVideoClass = el.className && typeof el.className === 'string' && 
+                        (el.className.toLowerCase().includes('video') || 
+                         el.className.toLowerCase().includes('player') ||
+                         el.className.toLowerCase().includes('sticky') ||
+                         el.className.toLowerCase().includes('float'));
+                    
+                    if (hasVideo || hasVideoClass) {
+                        el.style.display = 'none';
+                        el.remove();
+                        console.log('Privacy Browser: Removed floating video player');
+                    }
+                }
+            } catch (e) {}
+        });
     }
 
     function findAndRemoveByText() {
@@ -1209,6 +1294,12 @@
         setTimeout(removeAdsFromDOM, 3000);
         setTimeout(removeAdsFromDOM, 5000);
         setTimeout(removeAdsFromDOM, 10000);
+        
+        // Extra checks for floating videos (they often load late)
+        setTimeout(removeFloatingVideos, 2000);
+        setTimeout(removeFloatingVideos, 7000);
+        setTimeout(removeFloatingVideos, 15000);
+        setTimeout(removeFloatingVideos, 30000);
 
         // Observe for dynamic content
         observeDOM();
