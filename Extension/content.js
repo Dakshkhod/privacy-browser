@@ -665,6 +665,14 @@
         [class*="videoSticky"],
         [class*="jw-float"],
         [class*="vjs-floating"],
+        [class*="now-playing"],
+        [class*="nowPlaying"],
+        [class*="NowPlaying"],
+        [class*="view-more-videos"],
+        [class*="ViewMoreVideos"],
+        [class*="recommended-videos"],
+        [class*="playlist-popup"],
+        [class*="video-playlist"][style*="fixed"],
         div[style*="position: fixed"][style*="bottom"][style*="right"] video,
         div[style*="position:fixed"][style*="bottom"][style*="right"] video,
         
@@ -1161,48 +1169,67 @@
     }
     
     function removeFloatingVideos() {
-        // Only target SMALL fixed-position video players (floating/pip style)
-        // Don't remove main content videos
+        // Target fixed-position video players in corners
         document.querySelectorAll('div, section, aside').forEach(el => {
             try {
                 const style = window.getComputedStyle(el);
                 
-                // ONLY target fixed position (not absolute - main videos can be absolute)
+                // ONLY target fixed position
                 if (style.position !== 'fixed') return;
                 
                 const rect = el.getBoundingClientRect();
                 const windowWidth = window.innerWidth;
                 const windowHeight = window.innerHeight;
                 
-                // Only target SMALL elements (floating videos are typically small)
-                // Main videos are usually larger than 450px wide
-                const isSmall = rect.width < 450 && rect.height < 350;
-                if (!isSmall) return;
+                // Skip if it's the main content area (full width or very large)
+                if (rect.width > windowWidth * 0.7) return;
+                if (rect.height > windowHeight * 0.7) return;
                 
-                // Check if element is in corners (floating videos appear in corners)
-                const isBottomRight = rect.right > windowWidth - 50 && rect.bottom > windowHeight - 50;
-                const isBottomLeft = rect.left < 50 && rect.bottom > windowHeight - 50;
+                // Check if element is in bottom corners
+                const isBottomRight = rect.right > windowWidth - 100 && rect.bottom > windowHeight - 100;
+                const isBottomLeft = rect.left < 100 && rect.bottom > windowHeight - 100;
                 const isInCorner = isBottomRight || isBottomLeft;
                 
                 if (!isInCorner) return;
                 
-                // Must have video/iframe AND look like a floating player
-                const hasVideo = el.querySelector('video, iframe');
+                // Check for video-related content
+                const hasVideo = el.querySelector('video, iframe[src*="youtube"], iframe[src*="player"]');
+                const hasCloseButton = el.querySelector('[class*="close"], [class*="Close"], button[aria-label*="close"], button[aria-label*="Close"], .close-btn, .closeBtn');
+                const innerText = el.innerText || '';
+                const hasPlayingIndicator = innerText.includes('Now Playing') || innerText.includes('View More Videos');
+                
                 const className = (el.className && typeof el.className === 'string') ? el.className.toLowerCase() : '';
                 const hasFloatingClass = className.includes('sticky') || 
                                          className.includes('float') || 
                                          className.includes('pip') ||
                                          className.includes('mini') ||
                                          className.includes('corner') ||
-                                         className.includes('detach');
+                                         className.includes('player') ||
+                                         className.includes('video');
                 
-                // Only remove if it has video AND looks like floating player
-                if (hasVideo && hasFloatingClass) {
+                // Remove if: has close button OR has playing indicator OR (has video AND floating class)
+                const shouldRemove = hasCloseButton || hasPlayingIndicator || (hasVideo && hasFloatingClass);
+                
+                if (shouldRemove) {
                     el.style.display = 'none';
                     el.remove();
                     console.log('Privacy Browser: Removed floating video player');
                 }
             } catch (e) {}
+        });
+        
+        // Also specifically target elements with "Now Playing" or video close buttons
+        document.querySelectorAll('[class*="now-playing"], [class*="nowPlaying"], [class*="NowPlaying"]').forEach(el => {
+            try {
+                const parent = el.closest('div[style*="fixed"], section[style*="fixed"]') || el.parentElement?.parentElement?.parentElement;
+                if (parent) {
+                    const style = window.getComputedStyle(parent);
+                    if (style.position === 'fixed') {
+                        parent.style.display = 'none';
+                        parent.remove();
+                    }
+                }
+            } catch(e) {}
         });
     }
 
