@@ -582,108 +582,19 @@
         .widget-container[class*="product"],
         
         /* ==========================================
-           BRAVE-LEVEL AGGRESSIVE BLOCKING
-           Hide ALL sidebar/promotional content
+           SMART AD BLOCKING
+           Only hide clear ad/promo content, preserve main content
            ========================================== */
         
-        /* Entire Right Sidebar - Hide completely */
-        aside,
-        [class*="sidebar"],
-        [class*="Sidebar"],
-        [class*="side-bar"],
-        [class*="right-rail"],
-        [class*="rightRail"],
-        [class*="right_rail"],
-        [class*="rightrail"],
-        [class*="RightRail"],
-        [id*="sidebar"],
-        [id*="Sidebar"],
-        [id*="right-rail"],
-        [id*="rightRail"],
-        [role="complementary"],
+        /* Only target sidebar elements with specific ad-related IDs/classes */
+        aside[class*="ad"],
+        aside[class*="Ad"],
+        aside[class*="promo"],
+        aside[class*="sponsor"],
+        [id*="sidebar"][class*="ad"],
+        [role="complementary"][class*="ad"],
         
-        /* Trending/Recommended/Related sections */
-        [class*="trending"],
-        [class*="Trending"],
-        [class*="recommended"],
-        [class*="Recommended"],
-        [class*="related"],
-        [class*="Related"],
-        [class*="also-read"],
-        [class*="alsoRead"],
-        [class*="AlsoRead"],
-        [class*="also-watch"],
-        [class*="alsoWatch"],
-        [class*="AlsoWatch"],
-        [class*="more-from"],
-        [class*="moreFrom"],
-        [class*="MoreFrom"],
-        [class*="more-stories"],
-        [class*="moreStories"],
-        [class*="popular"],
-        [class*="Popular"],
-        [class*="viral"],
-        [class*="Viral"],
-        [class*="must-read"],
-        [class*="mustRead"],
-        [class*="top-stories"],
-        [class*="topStories"],
-        [class*="latest-news"],
-        [class*="latestNews"],
-        [class*="breaking-news"]:not(article *),
-        
-        /* Video widgets/sections in sidebar */
-        [class*="video-section"]:not(article *),
-        [class*="videoSection"]:not(article *),
-        [class*="video-widget"],
-        [class*="videoWidget"],
-        [class*="video-list"],
-        [class*="videoList"],
-        [class*="view-more"],
-        [class*="viewMore"],
-        [class*="ViewMore"],
-        
-        /* Games/Puzzles/Entertainment widgets */
-        [class*="puzzle"],
-        [class*="Puzzle"],
-        [class*="games"],
-        [class*="Games"],
-        [class*="quiz"],
-        [class*="Quiz"],
-        [class*="horoscope"],
-        [class*="Horoscope"],
-        [class*="astro"],
-        [class*="Astro"],
-        [class*="weather"]:not(header *),
-        [class*="Weather"]:not(header *),
-        
-        /* Social/Share widgets (keep minimal) */
-        [class*="social-share"]:not(article *),
-        [class*="socialShare"]:not(article *),
-        [class*="follow-us"],
-        [class*="followUs"],
-        
-        /* Newsletter/Subscribe */
-        [class*="newsletter"],
-        [class*="Newsletter"],
-        [class*="subscribe"],
-        [class*="Subscribe"],
-        [class*="signup"],
-        [class*="SignUp"],
-        
-        /* Promotional sections */
-        [class*="promo"],
-        [class*="Promo"],
-        [class*="spotlight"],
-        [class*="Spotlight"],
-        [class*="featured"]:not(article *),
-        [class*="Featured"]:not(article *),
-        [class*="partner"],
-        [class*="Partner"],
-        [class*="brand"],
-        [class*="Brand"],
-        
-        /* Times of India specific */
+        /* Specific ad containers */
         .toi-ad,
         .toiAd,
         .prime-widget,
@@ -1397,72 +1308,17 @@
     function cleanPageBraveStyle() {
         if (!settings.blockAds) return;
         
-        // Aggressively hide all sidebar and promotional content
+        // Only hide elements that are CLEARLY promotional/ad content
+        // Be very careful not to hide main content
         const selectorsToHide = [
-            // Sidebars
-            'aside',
-            '[role="complementary"]',
-            '[class*="sidebar"]:not(nav *)',
-            '[class*="Sidebar"]:not(nav *)',
-            '[id*="sidebar"]',
-            '[class*="right-rail"]',
-            '[class*="rightRail"]',
-            '[class*="left-rail"]',
-            '[class*="leftRail"]',
-            
-            // Widgets
-            '[class*="widget"]:not(article *):not(main *)',
-            '[class*="Widget"]:not(article *):not(main *)',
-            
-            // Trending/Related
-            '[class*="trending"]',
-            '[class*="Trending"]',
-            '[class*="related"]:not(article *)',
-            '[class*="Related"]:not(article *)',
-            '[class*="recommended"]',
-            '[class*="Recommended"]',
-            '[class*="popular"]',
-            '[class*="Popular"]',
-            '[class*="viral"]',
-            '[class*="Viral"]',
-            '[class*="also-read"]',
-            '[class*="alsoRead"]',
-            '[class*="also-watch"]',
-            '[class*="alsoWatch"]',
-            '[class*="more-from"]',
-            '[class*="moreFrom"]',
-            '[class*="must-read"]',
-            '[class*="top-stories"]',
-            '[class*="latest-news"]:not(article *)',
-            
-            // Games/Puzzles
-            '[class*="puzzle"]',
-            '[class*="Puzzle"]',
-            '[class*="games"]',
-            '[class*="Games"]',
-            '[class*="quiz"]',
-            '[class*="horoscope"]',
-            '[class*="astro"]',
-            
-            // Videos in sidebar
-            '[class*="video-list"]',
-            '[class*="videoList"]',
-            '[class*="video-widget"]',
-            '[class*="view-more-videos"]',
-            
-            // Subscribe/Newsletter
-            '[class*="newsletter"]',
-            '[class*="subscribe"]:not(button)',
-            '[class*="signup"]',
-            
-            // Promos
-            '[class*="promo"]:not(nav *)',
-            '[class*="spotlight"]',
-            '[class*="partner"]',
-            '[class*="brand-story"]',
+            // Only specific ad-related containers
+            '.adsbygoogle',
+            '[class*="taboola"]',
+            '[class*="outbrain"]',
+            '[class*="mgid"]',
+            '[data-google-query-id]',
             '[class*="sponsored"]',
-            
-            // Specific site patterns
+            '[class*="Sponsored"]',
             '.prime-widget',
             '.toi-video-widget',
             '[class*="daily-puzzles"]',
@@ -1473,12 +1329,16 @@
         selectorsToHide.forEach(selector => {
             try {
                 document.querySelectorAll(selector).forEach(el => {
+                    // Safety checks - don't hide main content
+                    const rect = el.getBoundingClientRect();
+                    // Don't hide if element is very large (likely main content)
+                    if (rect.width > window.innerWidth * 0.6 && rect.height > 300) return;
                     // Don't hide if it's part of main article
-                    if (el.closest('article, main, [role="main"], .article-body, .story-body, .post-content')) return;
+                    if (el.closest('article, main, [role="main"], .article-body, .story-body, .post-content, .content-body')) return;
                     // Don't hide navigation
-                    if (el.closest('nav, header, footer')) return;
+                    if (el.closest('nav, header')) return;
                     // Don't hide if it contains the main content
-                    if (el.querySelector('article, [role="main"]')) return;
+                    if (el.querySelector('article, [role="main"], .article-body')) return;
                     
                     el.style.display = 'none';
                     hiddenCount++;
@@ -1489,37 +1349,8 @@
         if (hiddenCount > 0) {
             console.log('Privacy Browser: Clean mode hidden', hiddenCount, 'elements');
         }
-        
-        // Make main content full width
-        expandMainContent();
     }
     
-    function expandMainContent() {
-        // Try to expand main content to full width when sidebar is hidden
-        const mainSelectors = [
-            'article',
-            'main',
-            '[role="main"]',
-            '.article-body',
-            '.story-body',
-            '.post-content',
-            '.article-content',
-            '.main-content',
-            '.content-area'
-        ];
-        
-        mainSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(el => {
-                // Don't modify if nested
-                if (el.closest(selector) !== el) return;
-                
-                el.style.maxWidth = '100%';
-                el.style.width = '100%';
-                el.style.margin = '0 auto';
-                el.style.padding = '0 20px';
-            });
-        });
-    }
 
     // ============================================
     // Initialization
