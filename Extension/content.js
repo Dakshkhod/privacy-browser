@@ -56,8 +56,7 @@
         'vercel.app',
         'netlify.app',
         
-        // Video/Streaming
-        'youtube.com',
+        // Video/Streaming (YouTube NOT whitelisted - we block ads there)
         'netflix.com',
         'primevideo.com',
         'hotstar.com',
@@ -671,6 +670,56 @@
            SMART AD BLOCKING
            Only hide clear ad/promo content, preserve main content
            ========================================== */
+        
+        /* ==========================================
+           YOUTUBE AD BLOCKING
+           ========================================== */
+        
+        /* YouTube Home/Feed Ads */
+        ytd-ad-slot-renderer,
+        ytd-banner-promo-renderer,
+        ytd-statement-banner-renderer,
+        ytd-in-feed-ad-layout-renderer,
+        ytd-promoted-sparkles-web-renderer,
+        ytd-promoted-sparkles-text-search-renderer,
+        ytd-display-ad-renderer,
+        ytd-companion-slot-renderer,
+        ytd-action-companion-ad-renderer,
+        ytd-watch-next-secondary-results-renderer ytd-compact-promoted-video-renderer,
+        ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
+        ytd-rich-item-renderer:has([class*="ytd-ad"]),
+        #masthead-ad,
+        #player-ads,
+        #panels > ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"],
+        
+        /* YouTube Search Ads */
+        ytd-search-pyv-renderer,
+        ytd-promoted-video-renderer,
+        
+        /* YouTube Video Page Ads */
+        .ytp-ad-module,
+        .ytp-ad-overlay-container,
+        .ytp-ad-text-overlay,
+        .ytp-ad-overlay-close-button,
+        .ytp-ad-skip-button-container,
+        .video-ads,
+        #movie_player > .ytp-paid-content-overlay,
+        .ytp-ad-player-overlay,
+        .ytp-ad-action-interstitial,
+        .ytp-ad-image-overlay,
+        
+        /* YouTube Sidebar Ads */
+        #related ytd-compact-promoted-video-renderer,
+        ytd-merch-shelf-renderer,
+        ytd-product-details-renderer,
+        
+        /* YouTube Shorts Ads */
+        ytd-reel-video-renderer[is-ad],
+        
+        /* Sponsored badges */
+        .ytd-badge-supported-renderer[aria-label="Sponsored"],
+        [aria-label="Sponsored"],
+        span:contains("Sponsored"),
         
         /* Only target sidebar elements with specific ad-related IDs/classes */
         aside[class*="ad"],
@@ -1388,7 +1437,67 @@
     }
 
     // ============================================
-    // FEATURE 8: Brave-Level Clean Mode
+    // FEATURE 8: YouTube Ad Handling
+    // ============================================
+    
+    function handleYouTubeAds() {
+        if (!settings.blockAds) return;
+        if (!window.location.hostname.includes('youtube.com')) return;
+        
+        // Remove ad elements from feed
+        const adSelectors = [
+            'ytd-ad-slot-renderer',
+            'ytd-banner-promo-renderer',
+            'ytd-in-feed-ad-layout-renderer',
+            'ytd-promoted-sparkles-web-renderer',
+            'ytd-display-ad-renderer',
+            'ytd-promoted-video-renderer',
+            'ytd-compact-promoted-video-renderer',
+            'ytd-search-pyv-renderer',
+            '#masthead-ad',
+            '#player-ads',
+            'ytd-merch-shelf-renderer'
+        ];
+        
+        adSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => {
+                el.remove();
+            });
+        });
+        
+        // Auto-skip video ads
+        const skipButton = document.querySelector('.ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button');
+        if (skipButton) {
+            skipButton.click();
+            console.log('Privacy Browser: Skipped YouTube ad');
+        }
+        
+        // Skip "Skip in X seconds" countdown
+        const skipPreview = document.querySelector('.ytp-ad-preview-container');
+        if (skipPreview) {
+            const video = document.querySelector('video');
+            if (video && video.duration && video.duration < 60) {
+                // If ad is short, try to speed through it
+                video.currentTime = video.duration;
+            }
+        }
+        
+        // Remove overlay ads
+        document.querySelectorAll('.ytp-ad-overlay-container, .ytp-ad-text-overlay').forEach(el => {
+            el.remove();
+        });
+        
+        // Hide "Sponsored" labels
+        document.querySelectorAll('[aria-label="Sponsored"], .ytd-badge-supported-renderer').forEach(el => {
+            const parent = el.closest('ytd-rich-item-renderer, ytd-video-renderer, ytd-compact-video-renderer');
+            if (parent) {
+                parent.style.display = 'none';
+            }
+        });
+    }
+    
+    // ============================================
+    // FEATURE 9: Brave-Level Clean Mode
     // ============================================
     
     function cleanPageBraveStyle() {
@@ -1491,6 +1600,14 @@
         setTimeout(cleanPageBraveStyle, 1500);
         setTimeout(cleanPageBraveStyle, 4000);
         setTimeout(cleanPageBraveStyle, 8000);
+        
+        // YouTube Ad Handling (runs frequently to catch dynamic ads)
+        if (window.location.hostname.includes('youtube.com')) {
+            setInterval(handleYouTubeAds, 500);  // Check every 500ms
+            setTimeout(handleYouTubeAds, 100);
+            setTimeout(handleYouTubeAds, 1000);
+            setTimeout(handleYouTubeAds, 3000);
+        }
 
         // Observe for dynamic content
         observeDOM();
