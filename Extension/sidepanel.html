@@ -248,6 +248,24 @@
                         <h3>📁 Data Collected</h3>
                         <div class="data-types-grid" id="dataTypesList"></div>
                     </div>
+                    
+                    <!-- Data Blocking Controls -->
+                    <div class="result-card data-blocking-card" id="dataBlockingCard">
+                        <div class="data-blocking-header">
+                            <h3>🔒 Block Data Collection</h3>
+                            <button class="block-all-btn" id="blockAllDataBtn" title="Block all data types">
+                                Block All
+                            </button>
+                        </div>
+                        <p class="data-blocking-desc">Control what data this site can collect from you:</p>
+                        <div class="data-blocking-list" id="dataBlockingList">
+                            <!-- Dynamic toggles will be inserted here -->
+                        </div>
+                        <div class="blocking-note">
+                            <span class="note-icon">ℹ️</span>
+                            <span class="note-text">Some blocks may affect site functionality. Toggle off if needed.</span>
+                        </div>
+                    </div>
 
                     <!-- Dark Patterns -->
                     <div class="result-card dark-patterns-card hidden" id="darkPatternsCard">

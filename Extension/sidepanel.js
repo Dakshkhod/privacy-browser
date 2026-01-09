@@ -106,7 +106,11 @@ const elements = {
     alternativesCard: document.getElementById('alternativesCard'),
     alternativesList: document.getElementById('alternativesList'),
     newAnalysisBtn: document.getElementById('newAnalysisBtn'),
-    metricsDashboard: document.getElementById('metricsDashboard')
+    metricsDashboard: document.getElementById('metricsDashboard'),
+    // Data blocking
+    dataBlockingCard: document.getElementById('dataBlockingCard'),
+    dataBlockingList: document.getElementById('dataBlockingList'),
+    blockAllDataBtn: document.getElementById('blockAllDataBtn')
 };
 
 // Setup clickable metric cards
@@ -767,6 +771,9 @@ async function renderResults(analysis) {
     // Data types
     renderDataTypes(dataTypes);
     renderChart(dataTypes);
+    
+    // Data blocking controls
+    renderDataBlockingControls(dataTypes);
 
     // Dark patterns
     renderDarkPatterns(analysis.dark_patterns);
@@ -907,6 +914,267 @@ function renderDataTypes(dataTypes) {
             </div>
         `;
     }).join('');
+}
+
+// ============================================
+// Data Blocking Controls
+// ============================================
+
+// Map data types from analysis to blockable categories
+const dataTypeToBlockCategory = {
+    'location_data': { key: 'location', name: 'Location Data', icon: '📍', desc: 'GPS, IP-based location' },
+    'device_info': { key: 'device', name: 'Device Information', icon: '📱', desc: 'Hardware, browser info' },
+    'usage_data': { key: 'usage', name: 'Usage Tracking', icon: '📊', desc: 'Page views, clicks, behavior' },
+    'contact_info': { key: 'contact', name: 'Contact Information', icon: '📧', desc: 'Email, phone autofill' },
+    'financial_data': { key: 'financial', name: 'Financial Data', icon: '💳', desc: 'Payment, banking info' },
+    'biometric_data': { key: 'biometric', name: 'Biometric Data', icon: '🔐', desc: 'Fingerprint, face ID' },
+    'health_data': { key: 'health', name: 'Health Data', icon: '🏥', desc: 'Medical, fitness info' },
+    'social_data': { key: 'social', name: 'Social Data', icon: '👥', desc: 'Social login, sharing' },
+    'behavioral_data': { key: 'behavioral', name: 'Behavioral/Profiling', icon: '🎯', desc: 'Fingerprinting, tracking' },
+    // Aliases
+    'personal_info': { key: 'contact', name: 'Personal Information', icon: '👤', desc: 'Name, contact details' },
+    'browsing_history': { key: 'usage', name: 'Browsing History', icon: '🌐', desc: 'Sites visited, searches' },
+    'cookies': { key: 'behavioral', name: 'Cookies & Tracking', icon: '🍪', desc: 'Tracking cookies' },
+    'third_party_sharing': { key: 'usage', name: 'Third-party Sharing', icon: '🔄', desc: 'Data shared externally' },
+    'advertising': { key: 'behavioral', name: 'Advertising Profile', icon: '📢', desc: 'Ad targeting data' }
+};
+
+// Load current blocking preferences
+let currentBlockingPrefs = {};
+
+async function loadBlockingPreferences() {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(['dataBlocking'], (result) => {
+            currentBlockingPrefs = result.dataBlocking || {};
+            resolve(currentBlockingPrefs);
+        });
+    });
+}
+
+// Save blocking preferences
+async function saveBlockingPreferences(prefs) {
+    currentBlockingPrefs = { ...currentBlockingPrefs, ...prefs };
+    return new Promise((resolve) => {
+        chrome.storage.local.set({ dataBlocking: currentBlockingPrefs }, resolve);
+    });
+}
+
+// Render data blocking controls based on detected data types
+async function renderDataBlockingControls(dataTypes) {
+    if (!elements.dataBlockingList || !elements.dataBlockingCard) return;
+    
+    await loadBlockingPreferences();
+    
+    const types = Object.keys(dataTypes).filter(type => {
+        if (!type || typeof type !== 'string') return false;
+        const value = dataTypes[type];
+        if (typeof value === 'object' && value !== null) {
+            return value.severity > 0 || (value.details && value.details.length > 0);
+        }
+        return (value || 0) > 0;
+    });
+    
+    if (types.length === 0) {
+        elements.dataBlockingCard.classList.add('hidden');
+        return;
+    }
+    
+    elements.dataBlockingCard.classList.remove('hidden');
+    
+    // Get unique blockable categories
+    const blockableCategories = new Map();
+    types.forEach(type => {
+        const typeLower = type.toLowerCase().replace(/\s+/g, '_');
+        const mapping = dataTypeToBlockCategory[typeLower];
+        if (mapping && !blockableCategories.has(mapping.key)) {
+            blockableCategories.set(mapping.key, {
+                ...mapping,
+                originalTypes: [type]
+            });
+        } else if (mapping) {
+            blockableCategories.get(mapping.key).originalTypes.push(type);
+        } else {
+            // Try to match by keywords
+            let matched = false;
+            for (const [pattern, mapping] of Object.entries(dataTypeToBlockCategory)) {
+                if (typeLower.includes(pattern.split('_')[0])) {
+                    if (!blockableCategories.has(mapping.key)) {
+                        blockableCategories.set(mapping.key, { ...mapping, originalTypes: [type] });
+                    }
+                    matched = true;
+                    break;
+                }
+            }
+            // Default fallback for unknown types - map to behavioral
+            if (!matched && typeLower.includes('track') || typeLower.includes('profile') || typeLower.includes('analytic')) {
+                if (!blockableCategories.has('behavioral')) {
+                    blockableCategories.set('behavioral', {
+                        key: 'behavioral',
+                        name: 'Behavioral/Profiling',
+                        icon: '🎯',
+                        desc: 'Fingerprinting, tracking',
+                        originalTypes: [type]
+                    });
+                }
+            }
+        }
+    });
+    
+    // Render the blocking controls
+    const categories = Array.from(blockableCategories.values());
+    
+    elements.dataBlockingList.innerHTML = categories.map(cat => {
+        const isBlocked = currentBlockingPrefs[cat.key] || false;
+        return `
+            <div class="data-block-item ${isBlocked ? 'blocked' : ''}" data-category="${cat.key}">
+                <div class="data-block-info">
+                    <div class="data-block-icon">${cat.icon}</div>
+                    <div class="data-block-text">
+                        <span class="data-block-name">${cat.name}</span>
+                        <span class="data-block-desc">${cat.desc}</span>
+                    </div>
+                </div>
+                <span class="data-block-status ${isBlocked ? 'blocked' : 'active'}">${isBlocked ? 'Blocked' : 'Allowed'}</span>
+                <label class="data-block-toggle">
+                    <input type="checkbox" data-category="${cat.key}" ${isBlocked ? 'checked' : ''}>
+                    <span class="data-block-slider"></span>
+                </label>
+            </div>
+        `;
+    }).join('');
+    
+    // Add event listeners for toggles
+    elements.dataBlockingList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.addEventListener('change', handleDataBlockToggle);
+    });
+    
+    // Update block all button state
+    updateBlockAllButton();
+}
+
+// Handle individual toggle
+async function handleDataBlockToggle(event) {
+    const checkbox = event.target;
+    const category = checkbox.dataset.category;
+    const isBlocked = checkbox.checked;
+    
+    // Update preferences
+    await saveBlockingPreferences({ [category]: isBlocked });
+    
+    // Update UI
+    const item = checkbox.closest('.data-block-item');
+    if (item) {
+        item.classList.toggle('blocked', isBlocked);
+        const status = item.querySelector('.data-block-status');
+        if (status) {
+            status.textContent = isBlocked ? 'Blocked' : 'Allowed';
+            status.classList.toggle('blocked', isBlocked);
+            status.classList.toggle('active', !isBlocked);
+        }
+    }
+    
+    updateBlockAllButton();
+    
+    // Notify user
+    showBlockingNotification(category, isBlocked);
+}
+
+// Update block all button state
+function updateBlockAllButton() {
+    if (!elements.blockAllDataBtn) return;
+    
+    const checkboxes = elements.dataBlockingList.querySelectorAll('input[type="checkbox"]');
+    const allBlocked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    elements.blockAllDataBtn.textContent = allBlocked ? 'Unblock All' : 'Block All';
+    elements.blockAllDataBtn.classList.toggle('unblock', allBlocked);
+}
+
+// Handle block all button
+async function handleBlockAllData() {
+    const checkboxes = elements.dataBlockingList.querySelectorAll('input[type="checkbox"]');
+    const allBlocked = Array.from(checkboxes).every(cb => cb.checked);
+    const newState = !allBlocked;
+    
+    const prefs = {};
+    checkboxes.forEach(cb => {
+        cb.checked = newState;
+        prefs[cb.dataset.category] = newState;
+        
+        // Update UI
+        const item = cb.closest('.data-block-item');
+        if (item) {
+            item.classList.toggle('blocked', newState);
+            const status = item.querySelector('.data-block-status');
+            if (status) {
+                status.textContent = newState ? 'Blocked' : 'Allowed';
+                status.classList.toggle('blocked', newState);
+                status.classList.toggle('active', !newState);
+            }
+        }
+    });
+    
+    await saveBlockingPreferences(prefs);
+    updateBlockAllButton();
+    
+    // Notify user
+    showBlockingNotification('all', newState);
+}
+
+// Show notification for blocking action
+function showBlockingNotification(category, isBlocked) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'blocking-notification';
+    notification.innerHTML = `
+        <span class="notif-icon">${isBlocked ? '🔒' : '🔓'}</span>
+        <span class="notif-text">${category === 'all' ? 'All data types' : category} ${isBlocked ? 'blocked' : 'unblocked'}</span>
+    `;
+    notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${isBlocked ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, #22c55e, #16a34a)'};
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        z-index: 10000;
+        animation: slideUp 0.3s ease;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 2 seconds
+    setTimeout(() => {
+        notification.style.animation = 'fadeOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
+}
+
+// Add notification animation styles
+const notifStyles = document.createElement('style');
+notifStyles.textContent = `
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+    @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+    }
+`;
+document.head.appendChild(notifStyles);
+
+// Initialize block all button listener
+if (elements.blockAllDataBtn) {
+    elements.blockAllDataBtn.addEventListener('click', handleBlockAllData);
 }
 
 // Render chart

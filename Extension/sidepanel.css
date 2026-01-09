@@ -1579,3 +1579,211 @@ body {
 .result-card:nth-child(8) {
     animation-delay: 0.35s;
 }
+
+/* ========================================
+   Data Blocking Controls
+   ======================================== */
+.data-blocking-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(99, 102, 241, 0.05));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.data-blocking-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.data-blocking-header h3 {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.block-all-btn {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.block-all-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.block-all-btn.unblock {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.data-blocking-desc {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
+}
+
+.data-blocking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.data-block-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.data-block-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.data-block-item.blocked {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.data-block-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.data-block-icon {
+    font-size: 1.1rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(99, 102, 241, 0.15);
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.data-block-item.blocked .data-block-icon {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.data-block-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.data-block-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    display: block;
+}
+
+.data-block-desc {
+    font-size: 0.65rem;
+    color: #64748b;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.data-block-status {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 8px;
+}
+
+.data-block-status.active {
+    background: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+}
+
+.data-block-status.blocked {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+/* Data Block Toggle */
+.data-block-toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.data-block-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.data-block-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(34, 197, 94, 0.5);
+    transition: 0.3s;
+    border-radius: 22px;
+}
+
+.data-block-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.data-block-toggle input:checked + .data-block-slider {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.data-block-toggle input:checked + .data-block-slider:before {
+    transform: translateX(18px);
+}
+
+/* Blocking Note */
+.blocking-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: 8px;
+}
+
+.blocking-note .note-icon {
+    flex-shrink: 0;
+}
+
+.blocking-note .note-text {
+    font-size: 0.7rem;
+    color: #fcd34d;
+    line-height: 1.4;
+}

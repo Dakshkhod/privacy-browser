@@ -43,6 +43,7 @@
                 "<all_urls>"
             ],
             "js": [
+                "data-blocker.js",
                 "content.js"
             ],
             "run_at": "document_start",
