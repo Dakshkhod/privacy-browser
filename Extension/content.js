@@ -89,63 +89,12 @@
         return;
     }
     
-    // YouTube special handling - CSS only, no JS (to not break video player)
+    // YouTube is handled by dedicated youtube-adblock.js
     const isYouTube = window.location.hostname.includes('youtube.com') || 
                       window.location.hostname.includes('youtu.be');
     
     if (isYouTube) {
-        console.log('Privacy Browser: YouTube detected - applying CSS-only ad blocking');
-        const ytAdCSS = document.createElement('style');
-        ytAdCSS.id = 'privacy-browser-youtube-ads';
-        ytAdCSS.textContent = `
-            /* YouTube Feed/Homepage Ads */
-            ytd-ad-slot-renderer,
-            ytd-banner-promo-renderer,
-            ytd-in-feed-ad-layout-renderer,
-            ytd-promoted-sparkles-web-renderer,
-            ytd-promoted-sparkles-text-search-renderer,
-            ytd-display-ad-renderer,
-            ytd-promoted-video-renderer,
-            ytd-compact-promoted-video-renderer,
-            ytd-video-masthead-ad-v3-renderer,
-            ytd-primetime-promo-renderer,
-            #masthead-ad,
-            
-            /* Search Ads */
-            ytd-search-pyv-renderer,
-            
-            /* Sidebar Ads */
-            #related ytd-compact-promoted-video-renderer,
-            ytd-merch-shelf-renderer,
-            ytd-statement-banner-renderer,
-            
-            /* Rich items containing ads */
-            ytd-rich-item-renderer:has(ytd-ad-slot-renderer),
-            ytd-rich-section-renderer:has(ytd-ad-slot-renderer),
-            
-            /* Overlay ads (not player controls) */
-            .ytp-ad-overlay-container,
-            .ytp-ad-text-overlay,
-            .ytp-ad-overlay-slot,
-            .ytp-ad-overlay-image,
-            
-            /* Companion ads next to video */
-            #companion,
-            #player-ads,
-            ytd-companion-slot-renderer,
-            
-            /* Sponsored label hiding parent */
-            ytd-display-ad-renderer,
-            div#player-ads,
-            
-            /* Homepage masthead ad */
-            ytd-brand-video-shelf-renderer,
-            ytd-brand-video-singleton-renderer {
-                display: none !important;
-            }
-        `;
-        document.head.appendChild(ytAdCSS);
-        // Exit - don't run any other JS on YouTube
+        console.log('Privacy Browser: YouTube detected - handled by youtube-adblock.js');
         return;
     }
 

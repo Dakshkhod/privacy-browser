@@ -29,6 +29,11 @@
                 "id": "tracker_rules",
                 "enabled": true,
                 "path": "rules/trackers.json"
+            },
+            {
+                "id": "youtube_ad_rules",
+                "enabled": true,
+                "path": "rules/youtube-ads.json"
             }
         ]
     },
@@ -42,6 +47,18 @@
             ],
             "run_at": "document_start",
             "all_frames": true
+        },
+        {
+            "matches": [
+                "*://*.youtube.com/*",
+                "*://youtube.com/*",
+                "*://*.youtu.be/*"
+            ],
+            "js": [
+                "youtube-adblock.js"
+            ],
+            "run_at": "document_start",
+            "all_frames": false
         }
     ],
     "side_panel": {
