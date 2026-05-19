@@ -68,6 +68,39 @@
             } catch (_) {}
         }
 
+        // --- Anti-adblock alert/confirm/prompt suppressor (always on) ---
+        // Sites detecting blocked ad domains pop alert("...allow html-load.com...").
+        // Silently dismiss any modal whose message names a known ad domain or
+        // contains anti-adblock language.
+        try {
+            const adblockKeywords = [
+                'html-load', 'content-loader', 'amazon-adsystem', 'doubleclick',
+                'googlesyndication', 'taboola', 'outbrain', 'adblock', 'ad-block',
+                'ad blocker', 'adblocker', 'disable your ad', 'allow ads',
+                'whitelist', 'turn off your ad', 'support us by disabling'
+            ];
+            const isAdblockMessage = (msg) => {
+                if (typeof msg !== 'string') return false;
+                const lower = msg.toLowerCase();
+                return adblockKeywords.some(k => lower.includes(k));
+            };
+            const origAlert = window.alert;
+            const origConfirm = window.confirm;
+            const origPrompt = window.prompt;
+            window.alert = function (msg) {
+                if (isAdblockMessage(msg)) return undefined;
+                return origAlert.apply(window, arguments);
+            };
+            window.confirm = function (msg) {
+                if (isAdblockMessage(msg)) return false;
+                return origConfirm.apply(window, arguments);
+            };
+            window.prompt = function (msg, def) {
+                if (isAdblockMessage(msg)) return null;
+                return origPrompt.apply(window, arguments);
+            };
+        } catch (_) {}
+
         // --- Anti-adblock bypass (opt-in per-origin via prefs.antiAdblock) ---
         if (prefs.antiAdblock) {
             try {
