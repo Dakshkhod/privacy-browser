@@ -1,8 +1,13 @@
-// Privacy Browser - Background Service Worker
-// Handles extension icon click, tracker blocking, and GPC/DNT signals
+// Privacy Browser - Background Service Worker (MV3)
+// Handles tracker blocking, stats, GPC/DNT signals, and tab security info.
+
+const BACKEND_ORIGIN = 'privacybrowser-backend.onrender.com';
+const STATS_STORAGE_KEY = 'blockingStats';
+const GPC_DNT_RULE_ID = 9999;
+const POLL_INTERVAL_MS = 4000; // poll matched rules per active tab
 
 // ============================================
-// State Management
+// State
 // ============================================
 let blockingStats = {
     totalBlocked: 0,
@@ -16,87 +21,87 @@ let blockingStats = {
     blockedDomains: {},
     sessionStart: Date.now()
 };
-
-// Tracker domain to category mapping (loaded from data file)
-let trackerCategories = {};
+let trackerCategoriesMap = {};       // domain -> category
+let trackerCategoriesSuffix = [];    // [{suffix, category}] for endsWith match
+let initialized = false;
+let pollTimer = null;
+let lastSeenRuleIdsPerTab = new Map(); // tabId -> Set<ruleId-requestId> dedupe
 
 // ============================================
-// Initialization
+// Helpers
 // ============================================
-async function initialize() {
-    console.log('Privacy Browser: Initializing...');
-
-    // Load tracker categories
-    await loadTrackerCategories();
-
-    // Load saved stats from storage
-    await loadStats();
-
-    // Set up GPC and DNT headers
-    await setupPrivacyHeaders();
-
-    // Load blocking enabled state
-    const { blockingEnabled = true } = await chrome.storage.local.get('blockingEnabled');
-    if (!blockingEnabled) {
-        await disableBlocking();
-    }
-
-    console.log('Privacy Browser: Initialized successfully');
+function safeStringify(value) {
+    try { return JSON.stringify(value); } catch (_) { return ''; }
 }
 
-// Load tracker categories from data file
+function findCategoryForDomain(domain) {
+    if (!domain) return 'analytics';
+    if (trackerCategoriesMap[domain]) return trackerCategoriesMap[domain];
+    for (const entry of trackerCategoriesSuffix) {
+        if (domain === entry.suffix || domain.endsWith('.' + entry.suffix)) {
+            return entry.category;
+        }
+    }
+    return 'analytics';
+}
+
 async function loadTrackerCategories() {
     try {
         const response = await fetch(chrome.runtime.getURL('data/tracker_domains.json'));
         const data = await response.json();
-
-        // Build domain to category mapping
-        for (const [category, info] of Object.entries(data.categories)) {
-            for (const domain of info.domains) {
-                trackerCategories[domain] = category;
+        const map = {};
+        const suffix = [];
+        for (const [category, info] of Object.entries(data.categories || {})) {
+            for (const domain of (info.domains || [])) {
+                map[domain] = category;
+                suffix.push({ suffix: domain, category });
             }
         }
-        console.log('Privacy Browser: Loaded tracker categories');
+        trackerCategoriesMap = map;
+        trackerCategoriesSuffix = suffix;
     } catch (error) {
         console.error('Privacy Browser: Failed to load tracker categories:', error);
     }
 }
 
-// Load stats from storage
 async function loadStats() {
     try {
-        const saved = await chrome.storage.local.get('blockingStats');
-        if (saved.blockingStats) {
-            blockingStats = { ...blockingStats, ...saved.blockingStats };
-            blockingStats.sessionStart = Date.now();
+        const saved = await chrome.storage.local.get(STATS_STORAGE_KEY);
+        if (saved[STATS_STORAGE_KEY]) {
+            blockingStats = {
+                ...blockingStats,
+                ...saved[STATS_STORAGE_KEY]
+            };
         }
+        blockingStats.sessionStart = Date.now();
     } catch (error) {
         console.error('Privacy Browser: Failed to load stats:', error);
     }
 }
 
-// Save stats to storage
-async function saveStats() {
-    try {
-        await chrome.storage.local.set({ blockingStats });
-    } catch (error) {
-        console.error('Privacy Browser: Failed to save stats:', error);
-    }
+let saveTimer = null;
+function saveStatsDeferred() {
+    if (saveTimer) return;
+    saveTimer = setTimeout(async () => {
+        saveTimer = null;
+        try {
+            await chrome.storage.local.set({ [STATS_STORAGE_KEY]: blockingStats });
+        } catch (e) {
+            console.error('Privacy Browser: Failed to save stats:', e);
+        }
+    }, 250);
 }
 
 // ============================================
-// GPC & DNT Header Setup
+// GPC & DNT header injection (production-friendly priority and scope)
 // ============================================
-const GPC_DNT_RULE_ID = 9999;
-
 async function setupPrivacyHeaders() {
     try {
-        // Add dynamic rule to set GPC and DNT headers on all requests
         await chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [GPC_DNT_RULE_ID],
             addRules: [{
                 id: GPC_DNT_RULE_ID,
-                priority: 1,
+                priority: 100,
                 action: {
                     type: 'modifyHeaders',
                     requestHeaders: [
@@ -105,23 +110,18 @@ async function setupPrivacyHeaders() {
                     ]
                 },
                 condition: {
-                    urlFilter: '*',
-                    resourceTypes: [
-                        'main_frame', 'sub_frame', 'stylesheet', 'script',
-                        'image', 'font', 'object', 'xmlhttprequest', 'ping',
-                        'media', 'websocket', 'other'
-                    ]
+                    resourceTypes: ['main_frame', 'sub_frame', 'xmlhttprequest'],
+                    excludedRequestDomains: [BACKEND_ORIGIN]
                 }
             }]
         });
-        console.log('Privacy Browser: GPC and DNT headers configured');
     } catch (error) {
         console.error('Privacy Browser: Failed to set up privacy headers:', error);
     }
 }
 
 // ============================================
-// Blocking Control
+// Blocking ruleset toggles
 // ============================================
 async function enableBlocking() {
     try {
@@ -129,9 +129,8 @@ async function enableBlocking() {
             enableRulesetIds: ['tracker_rules']
         });
         await chrome.storage.local.set({ blockingEnabled: true });
-        console.log('Privacy Browser: Blocking enabled');
-    } catch (error) {
-        console.error('Privacy Browser: Failed to enable blocking:', error);
+    } catch (e) {
+        console.error('Privacy Browser: Failed to enable blocking:', e);
     }
 }
 
@@ -141,283 +140,279 @@ async function disableBlocking() {
             disableRulesetIds: ['tracker_rules']
         });
         await chrome.storage.local.set({ blockingEnabled: false });
-        console.log('Privacy Browser: Blocking disabled');
-    } catch (error) {
-        console.error('Privacy Browser: Failed to disable blocking:', error);
-    }
-}
-
-// ============================================
-// Blocked Request Tracking
-// ============================================
-// Listen for matched rules (blocked requests)
-chrome.declarativeNetRequest.onRuleMatchedDebug?.addListener((info) => {
-    // Only count static tracker rules, not our GPC/DNT header rule
-    if (info.rule.rulesetId === 'tracker_rules') {
-        const url = new URL(info.request.url);
-        const domain = url.hostname;
-
-        // Update stats
-        blockingStats.totalBlocked++;
-
-        // Find category for this domain
-        const category = findCategoryForDomain(domain);
-        if (category && blockingStats.blockedByCategory[category] !== undefined) {
-            blockingStats.blockedByCategory[category]++;
-        }
-
-        // Track by domain
-        if (!blockingStats.blockedDomains[domain]) {
-            blockingStats.blockedDomains[domain] = 0;
-        }
-        blockingStats.blockedDomains[domain]++;
-
-        // Save periodically (every 10 blocks)
-        if (blockingStats.totalBlocked % 10 === 0) {
-            saveStats();
-        }
-
-        // Notify sidepanel of update
-        chrome.runtime.sendMessage({
-            type: 'TRACKER_BLOCKED',
-            stats: blockingStats
-        }).catch(() => {
-            // Sidepanel may not be open
-        });
-    }
-});
-
-function findCategoryForDomain(domain) {
-    // Check exact match first
-    if (trackerCategories[domain]) {
-        return trackerCategories[domain];
-    }
-
-    // Check if any known tracker is a suffix of this domain
-    for (const [knownDomain, category] of Object.entries(trackerCategories)) {
-        if (domain.endsWith(knownDomain) || domain.endsWith('.' + knownDomain)) {
-            return category;
-        }
-    }
-
-    return 'analytics'; // Default category
-}
-
-// ============================================
-// Message Handlers
-// ============================================
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.type === 'GET_BLOCKING_STATS') {
-        sendResponse({ stats: blockingStats });
-        return true;
-    }
-
-    if (message.type === 'GET_BLOCKING_STATUS') {
-        chrome.storage.local.get('blockingEnabled').then(result => {
-            sendResponse({ enabled: result.blockingEnabled !== false });
-        });
-        return true;
-    }
-
-    if (message.type === 'TOGGLE_BLOCKING') {
-        const enable = message.enabled;
-        (enable ? enableBlocking() : disableBlocking()).then(() => {
-            sendResponse({ success: true, enabled: enable });
-        });
-        return true;
-    }
-
-    if (message.type === 'RESET_STATS') {
-        blockingStats = {
-            totalBlocked: 0,
-            blockedByCategory: {
-                analytics: 0,
-                advertising: 0,
-                social: 0,
-                marketing: 0,
-                fingerprinting: 0
-            },
-            blockedDomains: {},
-            sessionStart: Date.now()
-        };
-        saveStats();
-        sendResponse({ success: true, stats: blockingStats });
-        return true;
-    }
-
-    // Handle cookie rejection notification
-    if (message.type === 'COOKIE_REJECTED') {
-        // Update cookie rejection stats
-        updateCookieStats(message.domain);
-        sendResponse({ success: true });
-        return true;
-    }
-
-    // Handle sensitive form fields detection
-    if (message.type === 'SENSITIVE_FIELDS_DETECTED') {
-        // Store for popup display
-        chrome.storage.session.set({
-            sensitiveFields: {
-                domain: message.domain,
-                isSecure: message.isSecure,
-                fields: message.fields,
-                timestamp: Date.now()
-            }
-        }).catch(() => { });
-        sendResponse({ success: true });
-        return true;
-    }
-
-    // Handle third-party script analysis
-    if (message.type === 'SCRIPTS_ANALYZED') {
-        // Categorize and score scripts
-        const analyzedScripts = analyzeThirdPartyScripts(message.scripts);
-        chrome.storage.session.set({
-            pageScripts: {
-                domain: message.domain,
-                scripts: analyzedScripts,
-                timestamp: Date.now()
-            }
-        }).catch(() => { });
-        sendResponse({ success: true });
-        return true;
-    }
-
-    // Get page security info for popup
-    if (message.type === 'GET_PAGE_SECURITY') {
-        Promise.all([
-            chrome.storage.session.get('sensitiveFields'),
-            chrome.storage.session.get('pageScripts'),
-            chrome.storage.local.get('cookieStats')
-        ]).then(([fields, scripts, cookies]) => {
-            sendResponse({
-                sensitiveFields: fields.sensitiveFields || null,
-                pageScripts: scripts.pageScripts || null,
-                cookieStats: cookies.cookieStats || { rejected: 0, domains: [] }
-            });
-        });
-        return true;
-    }
-
-    // Get/Set privacy settings
-    if (message.type === 'GET_PRIVACY_SETTINGS') {
-        chrome.storage.local.get('privacySettings').then(result => {
-            sendResponse({
-                settings: result.privacySettings || {
-                    autoRejectCookies: true,
-                    scanForms: true,
-                    blockAds: true
-                }
-            });
-        });
-        return true;
-    }
-
-    if (message.type === 'SET_PRIVACY_SETTINGS') {
-        chrome.storage.local.set({ privacySettings: message.settings }).then(() => {
-            sendResponse({ success: true });
-        });
-        return true;
-    }
-
-    return false;
-});
-
-// Cookie stats tracking
-async function updateCookieStats(domain) {
-    try {
-        const { cookieStats = { rejected: 0, domains: [] } } = await chrome.storage.local.get('cookieStats');
-        cookieStats.rejected++;
-        if (!cookieStats.domains.includes(domain)) {
-            cookieStats.domains.push(domain);
-            // Keep only last 100 domains
-            if (cookieStats.domains.length > 100) {
-                cookieStats.domains = cookieStats.domains.slice(-100);
-            }
-        }
-        await chrome.storage.local.set({ cookieStats });
     } catch (e) {
-        console.error('Error updating cookie stats:', e);
+        console.error('Privacy Browser: Failed to disable blocking:', e);
     }
 }
 
-// Analyze third-party scripts and assign risk scores
-function analyzeThirdPartyScripts(scripts) {
-    const riskCategories = {
-        analytics: { risk: 'medium', color: '#f59e0b', domains: ['google-analytics', 'googletagmanager', 'analytics', 'segment', 'mixpanel', 'amplitude', 'heap'] },
-        advertising: { risk: 'high', color: '#ef4444', domains: ['doubleclick', 'googlesyndication', 'adsrvr', 'criteo', 'taboola', 'outbrain', 'facebook.*ads', 'amazon-adsystem'] },
-        social: { risk: 'medium', color: '#8b5cf6', domains: ['facebook', 'twitter', 'linkedin', 'pinterest', 'tiktok'] },
-        fingerprinting: { risk: 'critical', color: '#dc2626', domains: ['fingerprintjs', 'fpjs', 'botd'] },
-        tracking: { risk: 'high', color: '#f97316', domains: ['scorecardresearch', 'quantserve', 'hotjar', 'fullstory', 'mouseflow', 'clarity'] },
-        cdn: { risk: 'low', color: '#22c55e', domains: ['cloudflare', 'jsdelivr', 'unpkg', 'cdnjs', 'googleapis.com/ajax', 'gstatic'] }
-    };
+// ============================================
+// Production-safe blocked-request counting via getMatchedRules.
+// onRuleMatchedDebug only fires for unpacked extensions; getMatchedRules works
+// in published extensions without declarativeNetRequestFeedback permission for
+// our own rulesets.
+// ============================================
+async function pollMatchedRules() {
+    let tabs;
+    try {
+        tabs = await chrome.tabs.query({ active: true });
+    } catch (_) { tabs = []; }
 
-    return scripts.map(script => {
+    let changed = false;
+
+    for (const tab of tabs) {
+        if (!tab || !tab.id || tab.id < 0) continue;
+        try {
+            const result = await chrome.declarativeNetRequest.getMatchedRules({ tabId: tab.id });
+            const rules = result?.rulesMatchedInfo || [];
+            if (!rules.length) continue;
+
+            let seen = lastSeenRuleIdsPerTab.get(tab.id);
+            if (!seen) {
+                seen = new Set();
+                lastSeenRuleIdsPerTab.set(tab.id, seen);
+            }
+
+            for (const rm of rules) {
+                if (!rm || !rm.rule) continue;
+                if (rm.rule.rulesetId !== 'tracker_rules' && rm.rule.rulesetId !== 'youtube_ad_rules') continue;
+                // dedupe key: ruleId + timeStamp (timeStamp is unique per match)
+                const key = rm.rule.ruleId + ':' + rm.timeStamp;
+                if (seen.has(key)) continue;
+                seen.add(key);
+
+                blockingStats.totalBlocked++;
+                changed = true;
+
+                // Without onRuleMatchedDebug we don't get the original URL,
+                // but we can map ruleId -> domain via our tracker_domains.json.
+                // For now, attribute by ruleset category.
+                if (rm.rule.rulesetId === 'youtube_ad_rules') {
+                    blockingStats.blockedByCategory.advertising++;
+                }
+            }
+
+            // Cap memory: trim seen set if it grows beyond 5000 entries.
+            if (seen.size > 5000) {
+                const arr = Array.from(seen).slice(-2500);
+                lastSeenRuleIdsPerTab.set(tab.id, new Set(arr));
+            }
+        } catch (_) {
+            // tab might be closed or restricted; ignore
+        }
+    }
+
+    if (changed) {
+        saveStatsDeferred();
+        try {
+            await chrome.runtime.sendMessage({ type: 'TRACKER_BLOCKED', stats: blockingStats });
+        } catch (_) {}
+    }
+}
+
+function startPolling() {
+    if (pollTimer) return;
+    pollTimer = setInterval(pollMatchedRules, POLL_INTERVAL_MS);
+}
+
+// Clean dedupe maps when tabs close.
+chrome.tabs.onRemoved.addListener((tabId) => {
+    lastSeenRuleIdsPerTab.delete(tabId);
+});
+
+// ============================================
+// Third-party script analyzer
+// ============================================
+const riskCategories = {
+    analytics:      { risk: 'medium',   color: '#f59e0b', domains: ['google-analytics', 'googletagmanager', 'analytics', 'segment', 'mixpanel', 'amplitude', 'heap'] },
+    advertising:    { risk: 'high',     color: '#ef4444', domains: ['doubleclick', 'googlesyndication', 'adsrvr', 'criteo', 'taboola', 'outbrain', 'amazon-adsystem'] },
+    social:         { risk: 'medium',   color: '#8b5cf6', domains: ['facebook', 'twitter', 'linkedin', 'pinterest', 'tiktok'] },
+    fingerprinting: { risk: 'critical', color: '#dc2626', domains: ['fingerprintjs', 'fpjs', 'botd'] },
+    tracking:       { risk: 'high',     color: '#f97316', domains: ['scorecardresearch', 'quantserve', 'hotjar', 'fullstory', 'mouseflow', 'clarity'] },
+    cdn:            { risk: 'low',      color: '#22c55e', domains: ['cloudflare', 'jsdelivr', 'unpkg', 'cdnjs', 'gstatic'] }
+};
+
+function analyzeThirdPartyScripts(scripts) {
+    const out = [];
+    for (const script of (scripts || [])) {
+        const domain = (script?.domain || '').toLowerCase();
         let category = 'unknown';
         let risk = 'unknown';
         let color = '#6b7280';
-
         for (const [cat, info] of Object.entries(riskCategories)) {
-            if (info.domains.some(d => script.domain.includes(d))) {
+            if (info.domains.some(d => domain.includes(d))) {
                 category = cat;
                 risk = info.risk;
                 color = info.color;
                 break;
             }
         }
-
-        return { ...script, category, risk, color };
-    });
+        out.push({ domain: script?.domain || '', url: script?.url || '', category, risk, color });
+    }
+    return out;
 }
 
 // ============================================
-// Side Panel Management
+// Cookie stats
 // ============================================
-// Note: Side panel is opened from popup via chrome.sidePanel.open()
-// when user clicks "Analyze Privacy Policy" button
+async function updateCookieStats(domain) {
+    try {
+        const { cookieStats = { rejected: 0, domains: [] } } = await chrome.storage.local.get('cookieStats');
+        cookieStats.rejected = (cookieStats.rejected || 0) + 1;
+        if (domain && !cookieStats.domains.includes(domain)) {
+            cookieStats.domains.push(domain);
+            if (cookieStats.domains.length > 100) {
+                cookieStats.domains = cookieStats.domains.slice(-100);
+            }
+        }
+        await chrome.storage.local.set({ cookieStats });
+    } catch (e) {
+        console.error('Privacy Browser: Error updating cookie stats:', e);
+    }
+}
 
-// Listen for tab updates
+// ============================================
+// Message handlers
+// ============================================
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message || typeof message !== 'object') return false;
+
+    switch (message.type) {
+        case 'GET_BLOCKING_STATS':
+            sendResponse({ stats: blockingStats });
+            return false;
+
+        case 'GET_BLOCKING_STATUS':
+            chrome.storage.local.get('blockingEnabled').then(result => {
+                sendResponse({ enabled: result.blockingEnabled !== false });
+            });
+            return true;
+
+        case 'TOGGLE_BLOCKING': {
+            const enable = !!message.enabled;
+            (enable ? enableBlocking() : disableBlocking()).then(() => {
+                sendResponse({ success: true, enabled: enable });
+            });
+            return true;
+        }
+
+        case 'RESET_STATS':
+            blockingStats = {
+                totalBlocked: 0,
+                blockedByCategory: { analytics: 0, advertising: 0, social: 0, marketing: 0, fingerprinting: 0 },
+                blockedDomains: {},
+                sessionStart: Date.now()
+            };
+            lastSeenRuleIdsPerTab.clear();
+            saveStatsDeferred();
+            sendResponse({ success: true, stats: blockingStats });
+            return false;
+
+        case 'COOKIE_REJECTED':
+            updateCookieStats(message.domain).then(() => sendResponse({ success: true }));
+            return true;
+
+        case 'SENSITIVE_FIELDS_DETECTED':
+            chrome.storage.session.set({
+                sensitiveFields: {
+                    domain: message.domain,
+                    isSecure: !!message.isSecure,
+                    fields: Array.isArray(message.fields) ? message.fields : [],
+                    timestamp: Date.now()
+                }
+            }).then(() => sendResponse({ success: true })).catch(() => sendResponse({ success: false }));
+            return true;
+
+        case 'SCRIPTS_ANALYZED': {
+            const analyzedScripts = analyzeThirdPartyScripts(message.scripts);
+            chrome.storage.session.set({
+                pageScripts: {
+                    domain: message.domain,
+                    scripts: analyzedScripts,
+                    timestamp: Date.now()
+                }
+            }).then(() => sendResponse({ success: true })).catch(() => sendResponse({ success: false }));
+            return true;
+        }
+
+        case 'GET_PAGE_SECURITY':
+            Promise.all([
+                chrome.storage.session.get('sensitiveFields'),
+                chrome.storage.session.get('pageScripts'),
+                chrome.storage.local.get('cookieStats')
+            ]).then(([fields, scripts, cookies]) => {
+                sendResponse({
+                    sensitiveFields: fields.sensitiveFields || null,
+                    pageScripts: scripts.pageScripts || null,
+                    cookieStats: cookies.cookieStats || { rejected: 0, domains: [] }
+                });
+            });
+            return true;
+
+        case 'GET_PRIVACY_SETTINGS':
+            chrome.storage.local.get('privacySettings').then(result => {
+                sendResponse({
+                    settings: result.privacySettings || {
+                        autoRejectCookies: true,
+                        scanForms: true,
+                        blockAds: true
+                    }
+                });
+            });
+            return true;
+
+        case 'SET_PRIVACY_SETTINGS':
+            chrome.storage.local.set({ privacySettings: message.settings || {} })
+                .then(() => sendResponse({ success: true }))
+                .catch(() => sendResponse({ success: false }));
+            return true;
+
+        default:
+            return false;
+    }
+});
+
+// ============================================
+// Tab activity / URL changes — broadcast lightweight events; consumers are optional.
+// ============================================
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
     try {
         const tab = await chrome.tabs.get(activeInfo.tabId);
-        chrome.runtime.sendMessage({
-            type: 'TAB_CHANGED',
-            url: tab.url,
-            title: tab.title
-        }).catch(() => { });
-    } catch (error) {
-        // Tab may not exist
-    }
+        chrome.runtime.sendMessage({ type: 'TAB_CHANGED', url: tab.url, title: tab.title }).catch(() => {});
+    } catch (_) {}
 });
 
-// Listen for URL changes
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (changeInfo.url) {
+    if (!changeInfo.url) return;
+    try {
         const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (activeTab && activeTab.id === tabId) {
-            chrome.runtime.sendMessage({
-                type: 'URL_CHANGED',
-                url: changeInfo.url,
-                title: tab.title
-            }).catch(() => { });
+            chrome.runtime.sendMessage({ type: 'URL_CHANGED', url: changeInfo.url, title: tab.title }).catch(() => {});
         }
+    } catch (_) {}
+});
+
+// ============================================
+// Initialization (single-flight, idempotent)
+// ============================================
+async function initialize() {
+    if (initialized) return;
+    initialized = true;
+    try {
+        await loadTrackerCategories();
+        await loadStats();
+        await setupPrivacyHeaders();
+        const { blockingEnabled = true } = await chrome.storage.local.get('blockingEnabled');
+        if (!blockingEnabled) {
+            await disableBlocking();
+        }
+        startPolling();
+    } catch (e) {
+        // Allow re-init on next event.
+        initialized = false;
+        console.error('Privacy Browser: initialize() failed:', e);
     }
-});
+}
 
-// ============================================
-// Extension Lifecycle
-// ============================================
-// Initialize on install/update
-chrome.runtime.onInstalled.addListener((details) => {
-    console.log('Privacy Browser: Extension installed/updated', details.reason);
-    initialize();
-});
-
-// Initialize on startup
-chrome.runtime.onStartup.addListener(() => {
-    console.log('Privacy Browser: Browser started');
-    initialize();
-});
-
-// Initialize immediately
+chrome.runtime.onInstalled.addListener(() => { initialize(); });
+chrome.runtime.onStartup.addListener(() => { initialize(); });
 initialize();

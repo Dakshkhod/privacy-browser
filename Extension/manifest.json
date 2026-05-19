@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Privacy Browser",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "description": "AI-powered privacy policy analysis with tracker & ad blocking - Know what data websites collect and block trackers",
     "icons": {
         "16": "icons/16.png",
@@ -14,14 +14,10 @@
         "sidePanel",
         "tabs",
         "storage",
-        "declarativeNetRequest",
-        "declarativeNetRequestFeedback"
+        "declarativeNetRequest"
     ],
     "host_permissions": [
-        "<all_urls>",
-        "https://privacybrowser-backend.onrender.com/*",
-        "http://98.130.128.254/*",
-        "http://localhost:5001/*"
+        "https://privacybrowser-backend.onrender.com/*"
     ],
     "declarative_net_request": {
         "rule_resources": [
@@ -76,5 +72,18 @@
             "48": "icons/48.png"
         },
         "default_title": "Privacy Browser - Tracker Blocking"
+    },
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "page-inject.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://privacybrowser-backend.onrender.com"
     }
 }

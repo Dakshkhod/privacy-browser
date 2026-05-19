@@ -1,26 +1,30 @@
 // Configuration for Privacy Browser Frontend
-const config = {
-  // Backend API URL - For Vercel + EC2 setup: use '/api' in production to leverage Vercel rewrites proxy
-  // In production, always use '/api' proxy (ignores VITE_BACKEND_URL to prevent mixed content)
-  // In development, use VITE_BACKEND_URL if set, otherwise default to localhost
-  BACKEND_URL: import.meta.env.PROD
-    ? '/api'  // Production: Always use Vercel rewrites proxy (see vercel.json)
-    : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001'),  // Development: Use env var or localhost
+//
+// In production, requests go to "/api/*" which Vercel rewrites to the
+// HTTPS Render backend (see vercel.json). The HTTPS backend URL is also
+// available as VITE_BACKEND_URL for environments without rewrites.
+//
+// In development, fall back to VITE_BACKEND_URL or local backend.
+const PROD_BACKEND_URL = 'https://privacybrowser-backend.onrender.com';
 
-  // API endpoints
+const config = {
+  BACKEND_URL: import.meta.env.PROD
+    ? (import.meta.env.VITE_BACKEND_URL || '/api')
+    : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5001'),
+
+  // Direct HTTPS URL — used by warmers, can be hit cross-origin (CORS).
+  DIRECT_BACKEND_URL: PROD_BACKEND_URL,
+
   ENDPOINTS: {
     FETCH_POLICY: '/fetch-privacy-policy',
     ANALYZE_DIRECT: '/analyze-direct-policy',
     ANALYZE_POLICY: '/analyze-policy',
-    HEALTH: '/',
+    HEALTH: '/health',
     TEST_SIMPLE: '/test-simple',
   },
 
-  // Request timeout (in milliseconds) - Increased to match backend
-  TIMEOUT: 60000,  // 60 seconds to match backend timeout
-
-  // Retry attempts
-  MAX_RETRIES: 3,
+  TIMEOUT: 90000,  // matches backend cold-start budget
+  MAX_RETRIES: 2,
 };
 
 export default config;

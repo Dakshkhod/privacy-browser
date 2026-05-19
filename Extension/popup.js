@@ -1,31 +1,35 @@
 // Privacy Browser - Popup Script
 
+// HTML-escape utility for safe interpolation into innerHTML.
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+}[c]));
+
 // DOM Elements
 const elements = {
-    // Quick stats
     qsTrackers: document.getElementById('qsTrackers'),
     qsCookies: document.getElementById('qsCookies'),
     qsScripts: document.getElementById('qsScripts'),
     qsForms: document.getElementById('qsForms'),
     formSecurityStat: document.getElementById('formSecurityStat'),
 
-    // Feature toggles
     blockingToggle: document.getElementById('blockingToggle'),
     cookieToggle: document.getElementById('cookieToggle'),
     formToggle: document.getElementById('formToggle'),
     adBlockToggle: document.getElementById('adBlockToggle'),
 
-    // Page security
     pageSecuritySection: document.getElementById('pageSecuritySection'),
     securityAlerts: document.getElementById('securityAlerts'),
 
-    // Scripts section
     scriptsToggleBtn: document.getElementById('scriptsToggleBtn'),
     scriptsExpandIcon: document.getElementById('scriptsExpandIcon'),
     scriptsList: document.getElementById('scriptsList'),
     scriptsCount: document.getElementById('scriptsCount'),
 
-    // Trackers section
     trackersToggleBtn: document.getElementById('trackersToggleBtn'),
     trackersExpandIcon: document.getElementById('trackersExpandIcon'),
     trackersList: document.getElementById('trackersList'),
@@ -34,117 +38,100 @@ const elements = {
     trackersEmpty: document.getElementById('trackersEmpty'),
     resetStatsBtn: document.getElementById('resetStatsBtn'),
 
-    // Other
     analyzePolicyBtn: document.getElementById('analyzePolicyBtn'),
     currentDomain: document.getElementById('currentDomain')
 };
 
-// Update blocking stats display
 function updateBlockingStats(stats) {
     if (!stats) return;
-
     const total = stats.totalBlocked || 0;
-    elements.qsTrackers.textContent = total;
-    elements.trackersCount.textContent = total;
-
+    if (elements.qsTrackers) elements.qsTrackers.textContent = total;
+    if (elements.trackersCount) elements.trackersCount.textContent = total;
     renderBlockedTrackers(stats.blockedDomains);
 }
 
-// Render blocked trackers list
 function renderBlockedTrackers(blockedDomains) {
+    if (!elements.trackersContainer || !elements.trackersEmpty) return;
     if (!blockedDomains || Object.keys(blockedDomains).length === 0) {
         elements.trackersEmpty.classList.remove('hidden');
-        elements.trackersContainer.innerHTML = '';
+        elements.trackersContainer.replaceChildren();
         return;
     }
-
     elements.trackersEmpty.classList.add('hidden');
-
-    const sortedDomains = Object.entries(blockedDomains)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 15);
-
-    elements.trackersContainer.innerHTML = sortedDomains.map(([domain, count]) => `
+    const sorted = Object.entries(blockedDomains).sort((a, b) => b[1] - a[1]).slice(0, 15);
+    elements.trackersContainer.innerHTML = sorted.map(([domain, count]) => `
         <div class="tracker-item">
-            <span class="tracker-domain" title="${domain}">🚫 ${domain}</span>
-            <span class="tracker-count risk-high">${count}×</span>
+            <span class="tracker-domain" title="${esc(domain)}">🚫 ${esc(domain)}</span>
+            <span class="tracker-count risk-high">${esc(count)}×</span>
         </div>
     `).join('');
 }
 
-// Update scripts display
 function updateScripts(pageScripts) {
+    if (!elements.scriptsList) return;
     if (!pageScripts || !pageScripts.scripts) {
-        elements.scriptsCount.textContent = '0';
-        elements.qsScripts.textContent = '0';
+        if (elements.scriptsCount) elements.scriptsCount.textContent = '0';
+        if (elements.qsScripts) elements.qsScripts.textContent = '0';
         return;
     }
-
     const scripts = pageScripts.scripts;
-    elements.scriptsCount.textContent = scripts.length;
-    elements.qsScripts.textContent = scripts.length;
+    if (elements.scriptsCount) elements.scriptsCount.textContent = scripts.length;
+    if (elements.qsScripts) elements.qsScripts.textContent = scripts.length;
 
     if (scripts.length === 0) {
         elements.scriptsList.innerHTML = '<div class="scripts-empty">No third-party scripts detected</div>';
         return;
     }
-
     elements.scriptsList.innerHTML = scripts.map(script => `
         <div class="script-item">
-            <span class="script-domain" title="${script.url}">${script.domain}</span>
-            <span class="script-risk risk-${script.risk}">${script.category}</span>
+            <span class="script-domain" title="${esc(script.url)}">${esc(script.domain)}</span>
+            <span class="script-risk risk-${esc(script.risk)}">${esc(script.category)}</span>
         </div>
     `).join('');
 }
 
-// Update form security display
 function updateFormSecurity(sensitiveFields) {
+    if (!elements.qsForms || !elements.formSecurityStat || !elements.pageSecuritySection) return;
     if (!sensitiveFields || !sensitiveFields.fields || sensitiveFields.fields.length === 0) {
         elements.qsForms.textContent = '✓';
         elements.formSecurityStat.classList.remove('warning', 'danger');
         elements.pageSecuritySection.classList.add('hidden');
         return;
     }
-
     const fields = sensitiveFields.fields;
     const criticalFields = fields.filter(f => f.risk === 'critical');
-    const isSecure = sensitiveFields.isSecure;
+    const isSecure = !!sensitiveFields.isSecure;
 
-    // Update quick stat
     if (criticalFields.length > 0 && !isSecure) {
         elements.qsForms.textContent = '⚠️';
         elements.formSecurityStat.classList.add('danger');
     } else if (fields.length > 0) {
-        elements.qsForms.textContent = fields.length;
+        elements.qsForms.textContent = String(fields.length);
         elements.formSecurityStat.classList.add('warning');
     }
 
-    // Show security alerts
     if (criticalFields.length > 0 || !isSecure) {
         elements.pageSecuritySection.classList.remove('hidden');
-
-        let alerts = [];
-
+        const alerts = [];
         if (!isSecure && criticalFields.length > 0) {
-            alerts.push(`<div class="security-alert">🔴 Sensitive data (${criticalFields.map(f => f.label).join(', ')}) on insecure HTTP page!</div>`);
+            alerts.push(
+                `<div class="security-alert">🔴 Sensitive data (${esc(criticalFields.map(f => f.label).join(', '))}) on insecure HTTP page!</div>`
+            );
         }
-
         criticalFields.forEach(field => {
-            alerts.push(`<div class="security-alert">⚠️ This page collects ${field.label}</div>`);
+            alerts.push(`<div class="security-alert">⚠️ This page collects ${esc(field.label)}</div>`);
         });
-
         elements.securityAlerts.innerHTML = alerts.join('');
     }
 }
 
-// Update cookie stats
 function updateCookieStats(cookieStats) {
-    if (!cookieStats) return;
+    if (!cookieStats || !elements.qsCookies) return;
     elements.qsCookies.textContent = cookieStats.rejected || 0;
 }
 
-// Toggle section visibility
 function toggleSection(listEl, iconEl) {
+    if (!listEl || !iconEl) return;
     const isHidden = listEl.classList.contains('hidden');
     if (isHidden) {
         listEl.classList.remove('hidden');
@@ -155,10 +142,10 @@ function toggleSection(listEl, iconEl) {
     }
 }
 
-// Handle feature toggle changes
 async function handleToggleChange(feature, enabled) {
     try {
-        const { settings } = await chrome.runtime.sendMessage({ type: 'GET_PRIVACY_SETTINGS' });
+        const resp = await chrome.runtime.sendMessage({ type: 'GET_PRIVACY_SETTINGS' });
+        const settings = (resp && resp.settings) || {};
         settings[feature] = enabled;
         await chrome.runtime.sendMessage({ type: 'SET_PRIVACY_SETTINGS', settings });
     } catch (error) {
@@ -166,7 +153,6 @@ async function handleToggleChange(feature, enabled) {
     }
 }
 
-// Handle blocking toggle
 async function handleBlockingToggle() {
     const enabled = elements.blockingToggle.checked;
     try {
@@ -177,82 +163,85 @@ async function handleBlockingToggle() {
     }
 }
 
-// Reset stats
 async function resetStats() {
     try {
         await chrome.runtime.sendMessage({ type: 'RESET_STATS' });
-        elements.qsTrackers.textContent = '0';
-        elements.trackersCount.textContent = '0';
-        elements.trackersContainer.innerHTML = '';
-        elements.trackersEmpty.classList.remove('hidden');
+        if (elements.qsTrackers) elements.qsTrackers.textContent = '0';
+        if (elements.trackersCount) elements.trackersCount.textContent = '0';
+        if (elements.trackersContainer) elements.trackersContainer.replaceChildren();
+        if (elements.trackersEmpty) elements.trackersEmpty.classList.remove('hidden');
 
-        elements.resetStatsBtn.textContent = '✓ Reset';
-        setTimeout(() => {
-            elements.resetStatsBtn.textContent = '🗑️ Reset Stats';
-        }, 1000);
+        if (elements.resetStatsBtn) {
+            elements.resetStatsBtn.textContent = '✓ Reset';
+            setTimeout(() => {
+                if (elements.resetStatsBtn) elements.resetStatsBtn.textContent = '🗑️ Reset Stats';
+            }, 1000);
+        }
     } catch (error) {
         console.error('Error resetting stats:', error);
     }
 }
 
-// Open sidepanel for policy analysis
-async function openPolicyAnalysis() {
+// Open sidepanel for policy analysis.
+// IMPORTANT: chrome.sidePanel.open() requires a synchronous user-gesture frame.
+// We must NOT `await` before calling it. Use windowId rather than tabId so we
+// don't need to query tabs first.
+function openPolicyAnalysis() {
     try {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        await chrome.sidePanel.open({ tabId: tab.id });
-        window.close();
-    } catch (error) {
-        console.error('Error opening sidepanel:', error);
+        chrome.sidePanel.open({ windowId: chrome.windows.WINDOW_ID_CURRENT });
+    } catch (e) {
+        // Fallback to tab-based open if windowId fails on older Chrome.
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs && tabs[0]) {
+                try { chrome.sidePanel.open({ tabId: tabs[0].id }); } catch (_) {}
+            }
+        });
     }
+    setTimeout(() => window.close(), 50);
 }
 
-// Get current domain
 async function getCurrentDomain() {
     try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab && tab.url) {
-            const url = new URL(tab.url);
-            elements.currentDomain.textContent = url.hostname || 'Unknown';
+            try {
+                const url = new URL(tab.url);
+                if (elements.currentDomain) elements.currentDomain.textContent = url.hostname || 'Unknown';
+            } catch (_) {
+                if (elements.currentDomain) elements.currentDomain.textContent = 'Unknown';
+            }
         }
-    } catch (error) {
-        elements.currentDomain.textContent = 'Unknown';
+    } catch (_) {
+        if (elements.currentDomain) elements.currentDomain.textContent = 'Unknown';
     }
 }
 
-// Load settings and update toggles
 async function loadSettings() {
     try {
-        const { settings } = await chrome.runtime.sendMessage({ type: 'GET_PRIVACY_SETTINGS' });
-        elements.cookieToggle.checked = settings.autoRejectCookies !== false;
-        elements.formToggle.checked = settings.scanForms !== false;
-        elements.adBlockToggle.checked = settings.blockAds !== false;
+        const resp = await chrome.runtime.sendMessage({ type: 'GET_PRIVACY_SETTINGS' });
+        const settings = (resp && resp.settings) || {};
+        if (elements.cookieToggle) elements.cookieToggle.checked = settings.autoRejectCookies !== false;
+        if (elements.formToggle) elements.formToggle.checked = settings.scanForms !== false;
+        if (elements.adBlockToggle) elements.adBlockToggle.checked = settings.blockAds !== false;
 
         const statusResponse = await chrome.runtime.sendMessage({ type: 'GET_BLOCKING_STATUS' });
-        elements.blockingToggle.checked = statusResponse.enabled !== false;
+        if (elements.blockingToggle) {
+            elements.blockingToggle.checked = !!(statusResponse && statusResponse.enabled !== false);
+        }
     } catch (error) {
         console.error('Error loading settings:', error);
     }
 }
 
-// Initialize popup
 async function init() {
-    // Get current domain
     getCurrentDomain();
-
-    // Load settings
     loadSettings();
-
-    // Get blocking stats
     try {
         const statsResponse = await chrome.runtime.sendMessage({ type: 'GET_BLOCKING_STATS' });
-        if (statsResponse && statsResponse.stats) {
-            updateBlockingStats(statsResponse.stats);
-        }
+        if (statsResponse && statsResponse.stats) updateBlockingStats(statsResponse.stats);
     } catch (error) {
         console.error('Error getting blocking stats:', error);
     }
-
-    // Get page security info
     try {
         const securityInfo = await chrome.runtime.sendMessage({ type: 'GET_PAGE_SECURITY' });
         if (securityInfo) {
@@ -266,23 +255,21 @@ async function init() {
 }
 
 // Event Listeners
-elements.blockingToggle.addEventListener('change', handleBlockingToggle);
-elements.cookieToggle.addEventListener('change', () => handleToggleChange('autoRejectCookies', elements.cookieToggle.checked));
-elements.formToggle.addEventListener('change', () => handleToggleChange('scanForms', elements.formToggle.checked));
-elements.adBlockToggle.addEventListener('change', () => handleToggleChange('blockAds', elements.adBlockToggle.checked));
+if (elements.blockingToggle) elements.blockingToggle.addEventListener('change', handleBlockingToggle);
+if (elements.cookieToggle) elements.cookieToggle.addEventListener('change', () => handleToggleChange('autoRejectCookies', elements.cookieToggle.checked));
+if (elements.formToggle) elements.formToggle.addEventListener('change', () => handleToggleChange('scanForms', elements.formToggle.checked));
+if (elements.adBlockToggle) elements.adBlockToggle.addEventListener('change', () => handleToggleChange('blockAds', elements.adBlockToggle.checked));
 
-elements.scriptsToggleBtn.addEventListener('click', () => toggleSection(elements.scriptsList, elements.scriptsExpandIcon));
-elements.trackersToggleBtn.addEventListener('click', () => toggleSection(elements.trackersList, elements.trackersExpandIcon));
+if (elements.scriptsToggleBtn) elements.scriptsToggleBtn.addEventListener('click', () => toggleSection(elements.scriptsList, elements.scriptsExpandIcon));
+if (elements.trackersToggleBtn) elements.trackersToggleBtn.addEventListener('click', () => toggleSection(elements.trackersList, elements.trackersExpandIcon));
 
-elements.resetStatsBtn.addEventListener('click', resetStats);
-elements.analyzePolicyBtn.addEventListener('click', openPolicyAnalysis);
+if (elements.resetStatsBtn) elements.resetStatsBtn.addEventListener('click', resetStats);
+if (elements.analyzePolicyBtn) elements.analyzePolicyBtn.addEventListener('click', openPolicyAnalysis);
 
-// Listen for real-time updates
 chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'TRACKER_BLOCKED') {
+    if (message && message.type === 'TRACKER_BLOCKED') {
         updateBlockingStats(message.stats);
     }
 });
 
-// Initialize on load
 document.addEventListener('DOMContentLoaded', init);

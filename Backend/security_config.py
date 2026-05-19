@@ -1,125 +1,109 @@
 """
-Security Configuration Module
-Handles all security-related configurations and utilities for the Privacy Browser Backend.
+Security Configuration Module.
 
-This module implements military-grade security practices:
-- AES-256 encryption for sensitive data
-- Secure key derivation and management
-- Environment variable validation
-- Security headers and middleware configuration
+- AES-256 encryption helpers
+- Per-instance secret material (does not pollute os.environ in production)
+- Strict prod-vs-dev enforcement: refuses to start in production without secrets
+- SSRF-safe URL validation (`is_valid_url` resolves DNS and rejects private,
+  loopback, link-local, reserved, multicast addresses)
 """
 
 import os
-import secrets
-import hashlib
+import re
+import socket
 import base64
+import secrets
+import ipaddress
+import hashlib
+import logging
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+from urllib.parse import urlparse
+
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from typing import Optional, Dict, Any
-import logging
-from datetime import datetime, timedelta
 import jwt
 
-# Configure secure logging
-# For cloud deployments (Render, etc.), use stdout/stderr only
-# For local development, try to use file logging if directory exists
-handlers = [logging.StreamHandler()]  # Always use stdout/stderr
-
-# Try to add file handler if logs directory exists or can be created
-try:
-    log_dir = 'logs'
-    log_file = os.path.join(log_dir, 'security.log')
-    # Try to create directory if it doesn't exist
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir, exist_ok=True)
-    # Only add file handler if we can write to the directory
-    if os.path.exists(log_dir) and os.access(log_dir, os.W_OK):
-        handlers.append(logging.FileHandler(log_file))
-except (OSError, PermissionError):
-    # If we can't create/write to logs directory, just use stdout/stderr
-    # This is fine for cloud deployments like Render
-    pass
-
+# Stdout/stderr logging only (Render captures these automatically).
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=handlers
+    handlers=[logging.StreamHandler()]
 )
-
 security_logger = logging.getLogger('security')
 
+
+REQUIRED_PROD_SECRETS = ('SECRET_KEY', 'ENCRYPTION_KEY', 'JWT_SECRET', 'API_KEY_HASH_SALT')
+
+
+def _is_production() -> bool:
+    env = (os.getenv('ENV') or os.getenv('ENVIRONMENT') or '').lower()
+    if env in ('production', 'prod'):
+        return True
+    # Render sets RENDER=true on deploys.
+    if os.getenv('RENDER', '').lower() in ('true', '1'):
+        return True
+    return False
+
+
+class SecurityError(Exception):
+    """Custom exception for security-related errors."""
+
+
 class SecurityConfig:
-    """
-    Centralized security configuration and utilities.
-    Implements best practices for API key protection and data encryption.
-    """
-    
+    """Centralized security configuration with strict production posture."""
+
     def __init__(self):
-        self._encryption_key = None
-        self._fernet = None
-        self._api_key_hash = None
-        self._secret_key = None
-        self._jwt_secret = None
-        self._salt = None
-        
-        # Initialize security components
+        self._encryption_key: Optional[bytes] = None
+        self._fernet: Optional[Fernet] = None
+        self._secret_key: Optional[str] = None
+        self._jwt_secret: Optional[str] = None
+        self._salt: Optional[bytes] = None
+        self._api_key_hash: Optional[str] = None
+        self._production = _is_production()
+
         self._initialize_security()
-        
+
+    # ------------------------------------------------------------------
+    # Bootstrap
+    # ------------------------------------------------------------------
     def _initialize_security(self):
-        """Initialize all security components with validation."""
         try:
-            # Validate and load environment variables
             self._validate_environment()
-            
-            # Initialize encryption
             self._setup_encryption()
-            
-            # Initialize API key protection
             self._setup_api_key_protection()
-            
-            # Initialize JWT
             self._setup_jwt()
-            
-            security_logger.info("Security configuration initialized successfully")
-            
+            security_logger.info("Security configuration initialized (production=%s)", self._production)
         except Exception as e:
-            security_logger.critical(f"Failed to initialize security: {e}")
-            raise RuntimeError("Security initialization failed - cannot start application")
-    
+            security_logger.critical("Failed to initialize security: %s", e)
+            raise
+
     def _validate_environment(self):
-        """Validate all required environment variables are present and secure."""
-        # For now, only require OpenAI API key if it's being used
+        """Refuse to start in production without explicit secrets."""
+        missing = [k for k in REQUIRED_PROD_SECRETS if not os.getenv(k)]
+        if self._production and missing:
+            raise RuntimeError(
+                f"Refusing to start in production: missing required env vars: {missing}"
+            )
+
+        # In dev, generate ephemeral per-boot defaults but DO NOT mutate os.environ.
+        # We keep them on the instance instead.
+        self._secret_key = os.getenv('SECRET_KEY') or secrets.token_urlsafe(48)
+        self._jwt_secret = os.getenv('JWT_SECRET') or secrets.token_urlsafe(48)
+        salt_value = os.getenv('API_KEY_HASH_SALT') or secrets.token_urlsafe(32)
+        self._salt = salt_value.encode() if isinstance(salt_value, str) else salt_value
+
+        # Validate OpenAI API key format if user-provided.
         openai_key = os.getenv('OPENAI_API_KEY')
-        
-        # Set default values for other required variables if not present
-        if not os.getenv('SECRET_KEY'):
-            os.environ['SECRET_KEY'] = 'default-secret-key-for-development-only-change-in-production'
-        
-        if not os.getenv('ENCRYPTION_KEY'):
-            os.environ['ENCRYPTION_KEY'] = 'default-encryption-key-for-development-only-change-in-production'
-        
-        if not os.getenv('JWT_SECRET'):
-            os.environ['JWT_SECRET'] = 'default-jwt-secret-for-development-only-change-in-production'
-        
-        if not os.getenv('API_KEY_HASH_SALT'):
-            os.environ['API_KEY_HASH_SALT'] = 'default-salt-for-development-only-change-in-production'
-        
-        # Only validate OpenAI API key if it's provided
         if openai_key and not openai_key.startswith('sk-'):
             raise ValueError("Invalid OpenAI API key format")
-        
-        security_logger.info("Environment variables validated successfully")
-    
+
     def _setup_encryption(self):
-        """Setup AES-256 encryption for sensitive data."""
         try:
-            # Get encryption key from environment
-            encryption_key_value = os.getenv('ENCRYPTION_KEY', '')
+            encryption_key_value = os.getenv('ENCRYPTION_KEY', '') or secrets.token_urlsafe(48)
 
-            derived_key: bytes
-
-            # Attempt to treat value as base64-encoded 32-byte key
+            # Allow base64-encoded 32-byte raw key.
             try:
                 decoded = base64.b64decode(encryption_key_value, validate=True)
             except Exception:
@@ -128,265 +112,239 @@ class SecurityConfig:
             if len(decoded) == 32:
                 derived_key = decoded
             else:
-                # Derive a 32-byte key from the provided value using PBKDF2
-                password = encryption_key_value.encode() if encryption_key_value else b'default-dev-password'
-                salt = os.getenv('API_KEY_HASH_SALT', 'default-salt-for-development-only-change-in-production').encode()
+                password = encryption_key_value.encode() if isinstance(encryption_key_value, str) else encryption_key_value
                 kdf = PBKDF2HMAC(
                     algorithm=hashes.SHA256(),
                     length=32,
-                    salt=salt,
+                    salt=self._salt or b'pbkdf2-default-salt',
                     iterations=100_000,
                 )
                 derived_key = kdf.derive(password)
 
-            # Initialize Fernet encryption with a proper urlsafe base64 key
-            fernet_key = base64.urlsafe_b64encode(derived_key)
             self._encryption_key = derived_key
-            self._fernet = Fernet(fernet_key)
-
-            security_logger.info("Encryption system initialized with AES-256")
-
+            self._fernet = Fernet(base64.urlsafe_b64encode(derived_key))
         except Exception as e:
-            security_logger.warning(f"Encryption setup failed, using deterministic fallback: {e}")
-            # Deterministic fallback for development with correct 32-byte length
-            fallback_password = b'default-fallback-password'
-            fallback_salt = b'default-fallback-salt'
-            kdf = PBKDF2HMAC(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=fallback_salt,
-                iterations=100_000,
-            )
-            self._encryption_key = kdf.derive(fallback_password)
-            fernet_key = base64.urlsafe_b64encode(self._encryption_key)
-            self._fernet = Fernet(fernet_key)
-            security_logger.info("Using fallback encryption for development")
-    
+            security_logger.error("Encryption setup failed: %s", e)
+            raise
+
     def _setup_api_key_protection(self):
-        """Setup API key hashing and protection mechanisms."""
-        try:
-            self._salt = os.getenv('API_KEY_HASH_SALT').encode()
-            self._secret_key = os.getenv('SECRET_KEY')
-            
-            # Create secure hash of the OpenAI API key for validation
-            openai_key = os.getenv('OPENAI_API_KEY')
-            if openai_key:
-                self._api_key_hash = self._hash_api_key(openai_key)
-            else:
-                self._api_key_hash = None
-            
-            security_logger.info("API key protection initialized")
-            
-        except Exception as e:
-            security_logger.warning(f"API key protection setup failed, using fallback: {e}")
-            # Use fallback values for development
-            self._salt = b'default-salt-for-dev'
-            self._secret_key = 'default-secret-key'
-            self._api_key_hash = None
-            security_logger.info("Using fallback API key protection for development")
-    
+        openai_key = os.getenv('OPENAI_API_KEY')
+        if openai_key:
+            self._api_key_hash = self._hash_api_key(openai_key)
+
     def _setup_jwt(self):
-        """Setup JWT for secure session management."""
-        self._jwt_secret = os.getenv('JWT_SECRET')
-        if not self._jwt_secret:
-            self._jwt_secret = 'default-jwt-secret-for-development'
-        security_logger.info("JWT system initialized")
-    
+        # _jwt_secret already set in _validate_environment
+        pass
+
+    # ------------------------------------------------------------------
+    # Public utilities
+    # ------------------------------------------------------------------
     def _hash_api_key(self, api_key: str) -> str:
-        """Create a secure hash of the API key for validation."""
-        return hashlib.pbkdf2_hmac(
-            'sha256',
-            api_key.encode(),
-            self._salt,
-            100000
-        ).hex()
-    
+        return hashlib.pbkdf2_hmac('sha256', api_key.encode(), self._salt, 100_000).hex()
+
     def encrypt_sensitive_data(self, data: str) -> str:
-        """Encrypt sensitive data using AES-256."""
-        try:
-            encrypted_data = self._fernet.encrypt(data.encode())
-            return base64.b64encode(encrypted_data).decode()
-        except Exception as e:
-            security_logger.error(f"Encryption failed: {e}")
-            raise
-    
+        return base64.b64encode(self._fernet.encrypt(data.encode())).decode()
+
     def decrypt_sensitive_data(self, encrypted_data: str) -> str:
-        """Decrypt sensitive data."""
-        try:
-            decoded_data = base64.b64decode(encrypted_data.encode())
-            decrypted_data = self._fernet.decrypt(decoded_data)
-            return decrypted_data.decode()
-        except Exception as e:
-            security_logger.error(f"Decryption failed: {e}")
-            raise
-    
-    def get_openai_api_key(self) -> str:
-        """Securely retrieve the OpenAI API key."""
-        # Try user-provided key first
-        current_key = os.getenv('OPENAI_API_KEY')
-        
-        # If no user key, try centralized key
-        if not current_key:
-            centralized_key = os.getenv('CENTRALIZED_OPENAI_API_KEY')
-            if centralized_key and len(centralized_key) > 20:
-                security_logger.info("Using centralized OpenAI API key for all users")
-                return centralized_key
-            else:
-                security_logger.info("No OpenAI API key available - using enhanced built-in alternatives")
-                return None
-        
-        # Validate user-provided key
-        if self._api_key_hash and self._hash_api_key(current_key) != self._api_key_hash:
-            security_logger.critical("API key integrity check failed!")
-            raise SecurityError("API key has been tampered with")
-        
-        return current_key
-    
+        decoded = base64.b64decode(encrypted_data.encode())
+        return self._fernet.decrypt(decoded).decode()
+
+    def get_openai_api_key(self) -> Optional[str]:
+        return os.getenv('OPENAI_API_KEY') or None
+
     def generate_session_token(self, user_data: Dict[str, Any]) -> str:
-        """Generate a secure JWT token for session management."""
         payload = {
             'user_data': user_data,
-            'exp': datetime.utcnow() + timedelta(seconds=int(os.getenv('SESSION_TIMEOUT', 3600))),
+            'exp': datetime.utcnow() + timedelta(seconds=int(os.getenv('SESSION_TIMEOUT', '3600'))),
             'iat': datetime.utcnow(),
-            'jti': secrets.token_hex(16)  # Unique token ID
+            'jti': secrets.token_hex(16),
         }
-        
         return jwt.encode(payload, self._jwt_secret, algorithm='HS256')
-    
+
     def validate_session_token(self, token: str) -> Dict[str, Any]:
-        """Validate and decode a JWT session token."""
         try:
-            payload = jwt.decode(token, self._jwt_secret, algorithms=['HS256'])
-            return payload
+            return jwt.decode(token, self._jwt_secret, algorithms=['HS256'])
         except jwt.ExpiredSignatureError:
             raise SecurityError("Session token has expired")
         except jwt.InvalidTokenError:
             raise SecurityError("Invalid session token")
-    
+
     def get_security_headers(self) -> Dict[str, str]:
-        """Get security headers for HTTP responses."""
         return {
             'X-Content-Type-Options': 'nosniff',
             'X-Frame-Options': 'DENY',
             'X-XSS-Protection': '1; mode=block',
             'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-            'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'",
+            'Content-Security-Policy': (
+                "default-src 'self'; script-src 'self'; style-src 'self'; "
+                "img-src 'self' data:; connect-src 'self'"
+            ),
             'Referrer-Policy': 'strict-origin-when-cross-origin',
-            'Permissions-Policy': 'geolocation=(), microphone=(), camera=()'
+            'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
         }
-    
+
     def sanitize_log_data(self, data: str) -> str:
-        """Sanitize data before logging to prevent information leakage."""
         try:
-            # Remove potential API keys, tokens, and sensitive patterns
-            sensitive_patterns = [
-                r'sk-[a-zA-Z0-9]{48}',  # OpenAI API keys
-                r'Bearer [a-zA-Z0-9\-_=]+',  # Bearer tokens
-                r'password["\']?\s*[:=]\s*["\']?[^"\'}\s]+',  # Passwords
-                r'secret["\']?\s*[:=]\s*["\']?[^"\'}\s]+',  # Secrets
-                r'token["\']?\s*[:=]\s*["\']?[^"\'}\s]+',  # Tokens
+            patterns = [
+                r'sk-[a-zA-Z0-9_-]{20,}',     # OpenAI / various sk- tokens
+                r'gsk_[a-zA-Z0-9_-]{20,}',    # Groq tokens
+                r'fc-[a-zA-Z0-9_-]{20,}',     # Firecrawl tokens
+                r'Bearer\s+[a-zA-Z0-9._\-=]+',
+                r'password["\']?\s*[:=]\s*["\']?[^"\'}\s]+',
+                r'secret["\']?\s*[:=]\s*["\']?[^"\'}\s]+',
+                r'token["\']?\s*[:=]\s*["\']?[^"\'}\s]+',
+                r'api[_-]?key["\']?\s*[:=]\s*["\']?[^"\'}\s]+',
             ]
-            
-            sanitized = data
-            for pattern in sensitive_patterns:
-                sanitized = re.sub(pattern, '[REDACTED]', sanitized, flags=re.IGNORECASE)
-            
+            sanitized = data or ''
+            for p in patterns:
+                sanitized = re.sub(p, '[REDACTED]', sanitized, flags=re.IGNORECASE)
             return sanitized
-        except Exception as e:
-            # Fallback sanitization
-            return data[:100] + "..." if len(data) > 100 else data
-    
+        except Exception:
+            return (data or '')[:200]
+
     @property
     def rate_limit_config(self) -> Dict[str, int]:
-        """Get rate limiting configuration."""
         return {
-            'requests': int(os.getenv('RATE_LIMIT_REQUESTS', 100)),
-            'window': int(os.getenv('RATE_LIMIT_WINDOW', 3600))
+            'requests': int(os.getenv('RATE_LIMIT_REQUESTS', '60')),
+            'window': int(os.getenv('RATE_LIMIT_WINDOW', '3600')),
         }
-    
+
     @property
     def cors_config(self) -> Dict[str, Any]:
-        """Get CORS configuration."""
-        origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,https://privacy-browser.vercel.app').split(',')
+        raw = os.getenv('ALLOWED_ORIGINS', '')
+        origins = [o.strip() for o in raw.split(',') if o.strip()]
+        # Sensible dev defaults — only used when ALLOWED_ORIGINS is unset.
+        if not origins and not self._production:
+            origins = ['http://localhost:5173', 'http://localhost:3000']
+
+        credentials = os.getenv('CORS_CREDENTIALS', 'false').lower() == 'true'
+        if credentials and '*' in origins:
+            raise RuntimeError("Cannot combine ALLOWED_ORIGINS=* with CORS_CREDENTIALS=true")
+
+        # Accept regex for chrome-extension origins via ALLOWED_ORIGIN_REGEX
         return {
-            'allow_origins': [origin.strip() for origin in origins],
-            'allow_credentials': os.getenv('CORS_CREDENTIALS', 'true').lower() == 'true',
+            'allow_origins': origins,
+            'allow_origin_regex': os.getenv('ALLOWED_ORIGIN_REGEX') or None,
+            'allow_credentials': credentials,
             'allow_methods': ['GET', 'POST', 'OPTIONS'],
-            'allow_headers': ['Content-Type', 'Authorization', 'X-Requested-With']
+            'allow_headers': ['Content-Type'],
         }
 
 
-class SecurityError(Exception):
-    """Custom exception for security-related errors."""
-    pass
+# ----------------------------------------------------------------------
+# SSRF-safe URL validation
+# ----------------------------------------------------------------------
+_BLOCKED_NETS = [
+    ipaddress.ip_network(n) for n in (
+        '0.0.0.0/8',
+        '10.0.0.0/8',
+        '100.64.0.0/10',          # CGNAT
+        '127.0.0.0/8',
+        '169.254.0.0/16',         # Link-local / cloud metadata
+        '172.16.0.0/12',
+        '192.0.0.0/24',
+        '192.168.0.0/16',
+        '198.18.0.0/15',
+        '224.0.0.0/3',            # Multicast + reserved
+        '::1/128',
+        'fc00::/7',
+        'fe80::/10',
+        '::/128',
+        '64:ff9b::/96',
+    )
+]
 
 
-# Global security configuration instance
+def _is_blocked_ip(ip: ipaddress._BaseAddress) -> bool:
+    if ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_private:
+        return True
+    return any(ip in net for net in _BLOCKED_NETS)
+
+
+def is_valid_url(url: str) -> bool:
+    """Strict URL validation with SSRF protection.
+
+    Rejects: javascript:/data:/file: schemes; hostnames that resolve to private,
+    loopback, link-local, multicast, reserved, or cloud-metadata addresses.
+    """
+    if not url or not isinstance(url, str):
+        return False
+
+    url = url.strip()
+    if len(url) > 2000:
+        return False
+
+    try:
+        p = urlparse(url)
+    except Exception:
+        return False
+
+    if p.scheme not in ('http', 'https'):
+        return False
+
+    host = (p.hostname or '').strip().lower()
+    if not host:
+        return False
+
+    # Block well-known cloud-metadata hostnames + localhost aliases.
+    blocked_hosts = {
+        'localhost', 'localhost.localdomain', 'ip6-localhost',
+        'metadata.google.internal', 'metadata.aws',
+        'instance-data', 'metadata.azure.com',
+    }
+    if host in blocked_hosts:
+        return False
+
+    # Block raw IP literal that resolves to a private/reserved range.
+    try:
+        ip_obj = ipaddress.ip_address(host)
+        return not _is_blocked_ip(ip_obj)
+    except ValueError:
+        pass  # not an IP literal — DNS check below.
+
+    # Resolve all A/AAAA records and reject if any is private.
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        return False
+    for family, *_, sockaddr in infos:
+        try:
+            ip_obj = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            continue
+        if _is_blocked_ip(ip_obj):
+            return False
+
+    return True
+
+
+# ----------------------------------------------------------------------
+# Global accessors
+# ----------------------------------------------------------------------
 security_config = SecurityConfig()
 
 
 def get_security_config() -> SecurityConfig:
-    """Get the global security configuration instance."""
     return security_config
 
 
-# Security middleware functions
-def log_security_event(event_type: str, details: str, ip_address: str = None):
-    """Log security events for monitoring."""
+def log_security_event(event_type: str, details: str, ip_address: Optional[str] = None) -> None:
     try:
-        sanitized_details = security_config.sanitize_log_data(details)
-        security_logger.warning(f"SECURITY_EVENT: {event_type} | IP: {ip_address} | Details: {sanitized_details}")
-    except Exception as e:
-        # Fallback logging if security config is not available
-        security_logger.warning(f"SECURITY_EVENT: {event_type} | IP: {ip_address} | Details: {details[:100]}...")
+        sanitized = security_config.sanitize_log_data(details or '')
+        security_logger.warning(
+            "SECURITY_EVENT type=%s ip=%s details=%s", event_type, ip_address, sanitized
+        )
+    except Exception:
+        security_logger.warning("SECURITY_EVENT type=%s ip=%s", event_type, ip_address)
 
 
-def validate_request_size(content_length: int, max_size: int = None):
-    """Validate request size to prevent DoS attacks."""
+def validate_request_size(content_length: int, max_size: int = None) -> None:
     if max_size is None:
-        max_size = int(os.getenv('MAX_REQUEST_SIZE', '10485760'))  # 10MB default
-    
-    if content_length > max_size:
+        max_size = int(os.getenv('MAX_REQUEST_SIZE', '262144'))  # 256 KB default
+    if content_length and content_length > max_size:
         raise SecurityError(f"Request too large: {content_length} bytes (max: {max_size})")
 
 
-# Additional security utilities
-import re
-
-def is_valid_url(url: str) -> bool:
-    """Validate URL format and security."""
-    if not url:
-        return False
-    
-    try:
-        # Basic URL validation
-        url_pattern = re.compile(
-            r'https?://'  # http:// or https://
-            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
-            r'localhost|'  # localhost...
-            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-            r'(?::\d+)?'  # optional port
-            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-        
-        if not url_pattern.match(url):
-            return False
-        
-        # Security checks
-        if any(dangerous in url.lower() for dangerous in ['javascript:', 'data:', 'vbscript:', 'file:']):
-            return False
-        
-        return True
-    except Exception as e:
-        # Fallback validation
-        return url.startswith('http://') or url.startswith('https://')
-
-
 def generate_secure_filename(original_filename: str) -> str:
-    """Generate a secure filename for file operations."""
-    try:
-        # Remove dangerous characters and limit length
-        safe_chars = re.sub(r'[^a-zA-Z0-9._-]', '_', original_filename)
-        return safe_chars[:100]  # Limit length
-    except Exception as e:
-        # Fallback filename generation
-        return 'secure_file_' + str(hash(original_filename))[:10] 
+    safe_chars = re.sub(r'[^a-zA-Z0-9._-]', '_', original_filename or 'file')
+    return safe_chars[:100]

@@ -76,6 +76,12 @@ Backend/temp/
 Backend/data/cache/
 *.pyc
 
+# Extension specific — keep vendored libraries and fonts (override `lib/` pattern above)
+!Extension/lib/
+!Extension/lib/**
+!Extension/fonts/
+!Extension/fonts/**
+
 # Frontend specific
 Frontend/node_modules/
 Frontend/dist/
