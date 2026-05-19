@@ -71,8 +71,6 @@ services:
   - type: cron
     name: privacybrowser-keepalive
     env: docker
-    region: oregon
-    plan: free
     schedule: "*/10 * * * *"
     dockerCommand: "wget -qO- https://privacybrowser-backend.onrender.com/health || true"
     image:
@@ -85,7 +83,6 @@ services:
   - type: web
     name: privacy-browser-frontend
     env: static
-    region: oregon
     plan: free
     buildCommand: |
       cd Frontend
