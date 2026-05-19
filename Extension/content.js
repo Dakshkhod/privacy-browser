@@ -673,38 +673,55 @@
     function removeAntiAdblockOverlays() {
         if (!settings.blockAds) return;
 
-        document.querySelectorAll('div, section, aside, dialog, [role="dialog"]').forEach(el => {
+        document.querySelectorAll('dialog, [role="dialog"], [role="alertdialog"], aside, div, section').forEach(el => {
             if (el.dataset.pbAdblockHidden) return;
             const rect = el.getBoundingClientRect();
-            if (rect.width < 200 || rect.height < 100) return;
-            const text = (el.textContent || '').toLowerCase().slice(0, 800);
+            // Must be sizeable AND look modal-ish (not a tiny notice)
+            if (rect.width < 250 || rect.height < 100) return;
+
+            const text = (el.textContent || '').toLowerCase().slice(0, 500);
             if (!antiAdblockPhrases.some(p => text.includes(p))) return;
 
-            // Walk up to find the overlay backdrop (fixed-position parent)
+            // Safety: never hide a container that holds the main content
+            if (el.querySelector('article, main, [role="main"]')) return;
+            // Safety: never hide a container with many links (nav, sitemap, etc.)
+            if (el.querySelectorAll('a').length > 15) return;
+            // Safety: never hide if larger than 90% of viewport (we'd nuke the page)
+            if (rect.width > window.innerWidth * 0.95 && rect.height > window.innerHeight * 0.95) return;
+
+            // Try to find a fixed-position parent (the modal backdrop). Only
+            // climb if we find one — never walk past it blindly.
             let target = el;
-            for (let i = 0; i < 6; i++) {
-                const parent = target.parentElement;
-                if (!parent || parent === document.body || parent === document.documentElement) break;
-                const ps = window.getComputedStyle(parent);
-                if (ps.position === 'fixed') {
-                    target = parent;
+            let walker = el.parentElement;
+            let levels = 0;
+            while (walker && walker !== document.body && walker !== document.documentElement && levels < 4) {
+                const ps = window.getComputedStyle(walker);
+                if (ps.position === 'fixed' && walker.querySelectorAll('a').length <= 15) {
+                    // Same safety: only target fixed wrapper if it doesn't contain main content
+                    if (!walker.querySelector('article, main, [role="main"]')) {
+                        target = walker;
+                    }
                     break;
                 }
-                target = parent;
+                walker = walker.parentElement;
+                levels++;
             }
             target.dataset.pbAdblockHidden = '1';
             target.style.setProperty('display', 'none', 'important');
         });
 
-        // Restore page scrolling — anti-adblock often locks <body> scroll
+        // Restore scrolling only — don't touch position/height which breaks
+        // CSS-in-JS layouts (TOI uses these for nested positioning).
         try {
-            document.documentElement.style.setProperty('overflow', 'auto', 'important');
-            document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
+            const htmlStyle = document.documentElement.style;
+            if (htmlStyle.overflow === 'hidden' || getComputedStyle(document.documentElement).overflow === 'hidden') {
+                htmlStyle.setProperty('overflow', 'auto', 'important');
+            }
             if (document.body) {
-                document.body.style.setProperty('overflow', 'auto', 'important');
-                document.body.style.setProperty('overflow-y', 'auto', 'important');
-                document.body.style.setProperty('position', 'static', 'important');
-                document.body.style.setProperty('height', 'auto', 'important');
+                const bodyStyle = document.body.style;
+                if (bodyStyle.overflow === 'hidden' || getComputedStyle(document.body).overflow === 'hidden') {
+                    bodyStyle.setProperty('overflow', 'auto', 'important');
+                }
             }
         } catch (_) {}
     }
