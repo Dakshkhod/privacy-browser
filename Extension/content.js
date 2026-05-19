@@ -426,6 +426,36 @@
         [data-widget-type*="ad"], [data-type="advertisement"],
         [data-module*="ad"], [data-block*="ad"],
 
+        /* ---- Amazon Native Shopping Ads (product boxes in articles) ---- */
+        [class*="amzn_assoc"], [id*="amzn_assoc"],
+        .amzn_assoc_unit, .amzn_assoc_placement, .amzn_assoc_ad_unit,
+        .amzn_assoc_widget_placement, .amzn_assoc_product_ad,
+        iframe[src*="rcm-na.amazon-adsystem"],
+        iframe[src*="rcm-eu.amazon-adsystem"],
+        iframe[src*="rcm-fe.amazon-adsystem"],
+        iframe[src*="rcm-in.amazon-adsystem"],
+        iframe[src*="c.amazon-adsystem"],
+        iframe[src*="ir-na.amazon-adsystem"],
+
+        /* ---- Times of India (specific) ---- */
+        [id^="div-gpt-ad"], [class^="div-gpt-ad"],
+        .toi-ads-widget, .toi_ads_wrap, .toiArticleShowWidget,
+        [class*="widget_ad"], [id*="widget_ad"],
+        [class*="TOI_WIDGET"], [id*="TOI_WIDGET"],
+        .toi-plus-widget, [class*="toiPlusWidget"],
+        [id*="AdSlot"], [class*="AdSlot"],
+        [id*="ad_slot"], [class*="ad_slot"],
+        .listing-ad, .card-ad, [class*="listingAd"],
+
+        /* ---- NDTV (specific) ---- */
+        [id^="NDTV_Ads"], [id^="NDTV_Ad"], [class^="NDTV_Ad"],
+        .ndtv_ads, .ndtv_adunit, .NDTV_adunit,
+        [id*="Div_AdUnit"], [class*="Div_AdUnit"],
+        [class*="Advert"]:not(article):not(section):not(p),
+        [id*="Advert"]:not(article):not(section),
+        .adblock-ad, .adBanner-wrap, [class*="adBanner"],
+        [id*="RightRail"], [class*="rightRail"],
+
         /* ---- Sticky/overlay ads ---- */
         [class*="sticky-bottom"], [class*="bottom-sticky"],
         [class*="interstitial"], [id*="interstitial"],
@@ -492,24 +522,57 @@
         if (!settings.blockAds) return;
         const selectorsToHide = [
             '.adsbygoogle', '[class*="taboola"]', '[class*="outbrain"]', '[class*="mgid"]',
-            '[data-google-query-id]', '.prime-widget', '.toi-video-widget',
-            '[class*="daily-puzzles"]', '[class*="DailyPuzzles"]'
+            '[data-google-query-id]', '[class*="amzn_assoc"]', '[id*="amzn_assoc"]',
+            '.prime-widget', '.toi-video-widget',
+            '[class*="daily-puzzles"]', '[class*="DailyPuzzles"]',
+            '[id^="div-gpt-ad"]', '[id^="NDTV_Ads"]', '[id*="widget_ad"]'
         ];
-        const innerWidth = window.innerWidth;
         for (const selector of selectorsToHide) {
             try {
                 document.querySelectorAll(selector).forEach(el => {
                     if (el.dataset.pbHidden) return;
-                    const rect = el.getBoundingClientRect();
-                    if (rect.width > innerWidth * 0.6 && rect.height > 300) return;
-                    if (el.closest('article, main, [role="main"], .article-body, .story-body, .post-content, .content-body')) return;
+                    // Never hide nav/header
                     if (el.closest('nav, header')) return;
-                    if (el.querySelector('article, [role="main"], .article-body')) return;
+                    // Never hide if it's a real content container
+                    if (el.querySelector('article, [role="main"]')) return;
                     el.dataset.pbHidden = '1';
                     el.style.setProperty('display', 'none', 'important');
                 });
             } catch (_) {}
         }
+    }
+
+    // Find iframes loaded from known ad domains and hide their wrapping container
+    const adIframeDomains = [
+        'googlesyndication', 'doubleclick', 'amazon-adsystem', 'aps.amazon',
+        'aax.amazon', 'taboola', 'outbrain', 'mgid', 'criteo', 'pubmatic',
+        'rubiconproject', 'openx', 'adnxs', 'media.net', 'casalemedia',
+        'contextweb', 'sharethrough', 'sovrn', 'triplelift', '33across'
+    ];
+
+    function hideAdIframes() {
+        if (!settings.blockAds) return;
+        document.querySelectorAll('iframe').forEach(iframe => {
+            const src = iframe.src || iframe.getAttribute('src') || '';
+            if (!src || iframe.dataset.pbHidden) return;
+            if (!adIframeDomains.some(d => src.includes(d))) return;
+
+            // Walk up max 6 levels to find the ad wrapper div
+            let target = iframe;
+            for (let i = 0; i < 6; i++) {
+                const parent = target.parentElement;
+                if (!parent || parent.tagName === 'BODY' || parent.tagName === 'HTML') break;
+                if (parent.matches('nav, header')) break;
+                if (parent.matches('article, main, [role="main"]')) {
+                    // Ad is directly inside content — just hide the iframe itself
+                    break;
+                }
+                target = parent;
+            }
+            if (target.dataset.pbHidden) return;
+            target.dataset.pbHidden = '1';
+            target.style.setProperty('display', 'none', 'important');
+        });
     }
 
     // ============================================
@@ -522,6 +585,7 @@
         const run = () => {
             scheduled = false;
             try { cleanPageBraveStyle(); } catch (_) {}
+            try { hideAdIframes(); } catch (_) {}
             try { handleCookieConsent(); } catch (_) {}
         };
         if (window.requestIdleCallback) {
@@ -551,7 +615,8 @@
                         cls.indexOf('cookie') !== -1 || cls.indexOf('consent') !== -1 ||
                         cls.indexOf('gdpr') !== -1 || cls.indexOf('ad') !== -1 ||
                         cls.indexOf('sponsor') !== -1 || cls.indexOf('taboola') !== -1 ||
-                        cls.indexOf('outbrain') !== -1
+                        cls.indexOf('outbrain') !== -1 || cls.indexOf('amzn') !== -1 ||
+                        cls.indexOf('amazon') !== -1
                     )) {
                         interestingChange = true;
                         break;
@@ -600,6 +665,9 @@
 
         // Single delayed cleanup; MutationObserver handles the rest.
         setTimeout(cleanPageBraveStyle, 1500);
+        setTimeout(hideAdIframes, 2000);
+        // Re-run after full page load (lazy-loaded ads appear late)
+        setTimeout(hideAdIframes, 4000);
 
         observeDOM();
     }
