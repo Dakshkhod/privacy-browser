@@ -1,4 +1,4 @@
-# Privacy Browser — Version 3.1
+# Poliscope — Version 3.1
 
 **AI-Powered Privacy Policy Analysis + Tracker Blocking Chrome Extension**
 

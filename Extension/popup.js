@@ -1,4 +1,4 @@
-// Privacy Browser - Popup Script
+// Poliscope - Popup Script
 
 // HTML-escape utility for safe interpolation into innerHTML.
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({

@@ -1,5 +1,5 @@
 /**
- * Privacy Browser - Data Type Blocker (isolated-world surface only).
+ * Poliscope - Data Type Blocker (isolated-world surface only).
  *
  * Page-context overrides (navigator/canvas/WebGL/AudioContext fingerprint
  * spoofing) now live in page-inject.js (runs in MAIN world). This module
@@ -90,7 +90,7 @@
                         if (input.dataset.privacyWarned) return;
                         input.dataset.privacyWarned = 'true';
                         input.style.outline = '2px solid #ff9800';
-                        input.title = 'Privacy Browser: Financial data field';
+                        input.title = 'Poliscope: Financial data field';
                     });
                 } catch (_) {}
             });
@@ -116,7 +116,7 @@
                         if (el.dataset.privacyWarned) return;
                         el.dataset.privacyWarned = 'true';
                         el.style.outline = '2px solid #f44336';
-                        el.title = 'Privacy Browser: Health data field - be cautious';
+                        el.title = 'Poliscope: Health data field - be cautious';
                     });
                 } catch (_) {}
             });

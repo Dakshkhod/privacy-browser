@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Secure Environment Setup Script for Privacy Browser Backend
+Secure Environment Setup Script for Poliscope Backend
 
 This script helps you set up a secure environment by generating strong keys
 and creating the necessary configuration files.
@@ -76,7 +76,7 @@ def create_env_file():
         api_key_salt = generate_secure_key(32)
         
         # Create .env content
-        env_content = f"""# ===== PRIVACY BROWSER BACKEND CONFIGURATION =====
+        env_content = f"""# ===== POLISCOPE BACKEND CONFIGURATION =====
 # Generated on: {os.popen('date').read().strip()}
 # NEVER commit this file to version control!
 # Add .env to your .gitignore file
@@ -277,7 +277,7 @@ def verify_setup():
 
 def main():
     """Main setup function."""
-    print("🛡️  Privacy Browser Backend - Secure Setup")
+    print("🛡️  Poliscope Backend - Secure Setup")
     print("=" * 60)
     print("This script will set up your backend with military-grade security.")
     print()

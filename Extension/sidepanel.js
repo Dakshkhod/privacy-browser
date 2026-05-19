@@ -1,4 +1,4 @@
-// Privacy Browser - Side Panel JavaScript
+// Poliscope - Side Panel JavaScript
 // Main application logic for Chrome extension
 
 // ============================================

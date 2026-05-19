@@ -1,4 +1,4 @@
-# Privacy Browser Backend - Secure Edition 🛡️
+# Poliscope Backend - Secure Edition 🛡️
 
 A military-grade secure backend for privacy policy analysis with comprehensive protection against attacks and data breaches.
 

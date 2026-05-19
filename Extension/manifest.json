@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Privacy Browser",
+    "name": "Poliscope",
     "version": "1.3.1",
     "description": "AI-powered privacy policy analysis with tracker & ad blocking - Know what data websites collect and block trackers",
     "icons": {
@@ -71,7 +71,7 @@
             "32": "icons/32.png",
             "48": "icons/48.png"
         },
-        "default_title": "Privacy Browser - Tracker Blocking"
+        "default_title": "Poliscope - Tracker Blocking"
     },
     "web_accessible_resources": [
         {

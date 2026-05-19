@@ -1,4 +1,4 @@
-// Privacy Browser - Background Service Worker (MV3)
+// Poliscope - Background Service Worker (MV3)
 // Handles tracker blocking, stats, GPC/DNT signals, and tab security info.
 
 const BACKEND_ORIGIN = 'privacybrowser-backend.onrender.com';
@@ -60,7 +60,7 @@ async function loadTrackerCategories() {
         trackerCategoriesMap = map;
         trackerCategoriesSuffix = suffix;
     } catch (error) {
-        console.error('Privacy Browser: Failed to load tracker categories:', error);
+        console.error('Poliscope: Failed to load tracker categories:', error);
     }
 }
 
@@ -75,7 +75,7 @@ async function loadStats() {
         }
         blockingStats.sessionStart = Date.now();
     } catch (error) {
-        console.error('Privacy Browser: Failed to load stats:', error);
+        console.error('Poliscope: Failed to load stats:', error);
     }
 }
 
@@ -87,7 +87,7 @@ function saveStatsDeferred() {
         try {
             await chrome.storage.local.set({ [STATS_STORAGE_KEY]: blockingStats });
         } catch (e) {
-            console.error('Privacy Browser: Failed to save stats:', e);
+            console.error('Poliscope: Failed to save stats:', e);
         }
     }, 250);
 }
@@ -116,7 +116,7 @@ async function setupPrivacyHeaders() {
             }]
         });
     } catch (error) {
-        console.error('Privacy Browser: Failed to set up privacy headers:', error);
+        console.error('Poliscope: Failed to set up privacy headers:', error);
     }
 }
 
@@ -130,7 +130,7 @@ async function enableBlocking() {
         });
         await chrome.storage.local.set({ blockingEnabled: true });
     } catch (e) {
-        console.error('Privacy Browser: Failed to enable blocking:', e);
+        console.error('Poliscope: Failed to enable blocking:', e);
     }
 }
 
@@ -141,7 +141,7 @@ async function disableBlocking() {
         });
         await chrome.storage.local.set({ blockingEnabled: false });
     } catch (e) {
-        console.error('Privacy Browser: Failed to disable blocking:', e);
+        console.error('Poliscope: Failed to disable blocking:', e);
     }
 }
 
@@ -266,7 +266,7 @@ async function updateCookieStats(domain) {
         }
         await chrome.storage.local.set({ cookieStats });
     } catch (e) {
-        console.error('Privacy Browser: Error updating cookie stats:', e);
+        console.error('Poliscope: Error updating cookie stats:', e);
     }
 }
 
@@ -409,7 +409,7 @@ async function initialize() {
     } catch (e) {
         // Allow re-init on next event.
         initialized = false;
-        console.error('Privacy Browser: initialize() failed:', e);
+        console.error('Poliscope: initialize() failed:', e);
     }
 }
 

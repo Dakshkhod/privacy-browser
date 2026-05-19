@@ -1,4 +1,4 @@
-// Privacy Browser - Content Script
+// Poliscope - Content Script
 // Features: Ad hiding (CSS-first), Cookie consent auto-reject (scoped),
 //           Form field scanner, Script analyzer, opt-in restriction remover.
 // All page-context overrides (canvas/webgl/anti-adblock) are delegated to

@@ -1,4 +1,4 @@
-// Configuration for Privacy Browser Frontend
+// Configuration for Poliscope Frontend
 //
 // In production, requests go to "/api/*" which Vercel rewrites to the
 // HTTPS Render backend (see vercel.json). The HTTPS backend URL is also

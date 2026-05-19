@@ -1,4 +1,4 @@
-# Privacy Browser - Chrome Extension 🛡️
+# Poliscope - Chrome Extension 🛡️
 
 A Chrome Side Panel extension for AI-powered privacy policy analysis.
 
@@ -37,12 +37,12 @@ Before loading the extension, you need to add PNG icons to the `icons/` folder:
 2. Enable **Developer mode** (toggle in top-right corner)
 3. Click **Load unpacked**
 4. Select the `Extension` folder from this project
-5. The Privacy Browser icon should appear in your toolbar
+5. The Poliscope icon should appear in your toolbar
 
 ### Step 3: Using the Extension
 
 1. Navigate to any website
-2. Click the Privacy Browser icon in your toolbar
+2. Click the Poliscope icon in your toolbar
 3. The side panel will open with the current website URL pre-filled
 4. Click **"Analyze Privacy Policy"** to start the analysis
 5. View the comprehensive privacy analysis results
@@ -66,7 +66,7 @@ Extension/
 
 ## 🔧 Configuration
 
-The extension connects to the Privacy Browser backend. By default, it uses:
+The extension connects to the Poliscope backend. By default, it uses:
 
 ```javascript
 BACKEND_URL: 'https://privacybrowser-backend.onrender.com'

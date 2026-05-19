@@ -1,5 +1,5 @@
 """
-Starlette middleware for the Privacy Browser backend:
+Starlette middleware for the Poliscope backend:
 - Rate limiting (sliding window, IP-based, with temporary block-list)
 - Request-body size limit
 - URL/JSON validation (no XSS / SQLi patterns through the request body)

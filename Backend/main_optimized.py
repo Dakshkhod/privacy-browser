@@ -1,5 +1,5 @@
 """
-Optimized Privacy Browser Backend - Ultra-Fast and Comprehensive.
+Optimized Poliscope Backend - Ultra-Fast and Comprehensive.
 
 Version 3.1 — security-hardened, middleware-wired, SSRF-safe.
 """
@@ -94,7 +94,7 @@ llm_analyzer_instance: Optional[LLMPrivacyAnalyzer] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global ultra_fetcher_instance, llm_analyzer_instance
-    logger.info("Privacy Browser Backend starting up...")
+    logger.info("Poliscope Backend starting up...")
 
     if ULTRA_FETCHER_AVAILABLE:
         try:
@@ -124,7 +124,7 @@ async def lifespan(app: FastAPI):
 # FastAPI app
 # ----------------------------------------------------------------------
 app = FastAPI(
-    title="Privacy Browser Backend API",
+    title="Poliscope Backend API",
     description="Ultra-fast privacy policy analysis with advanced detection",
     version="3.1.0",
     lifespan=lifespan,
@@ -172,7 +172,7 @@ async def root():
     fetcher_status = "ultra" if ULTRA_FETCHER_AVAILABLE and ultra_fetcher_instance else "none"
     return {
         "status": "ok",
-        "message": "Privacy Browser Backend API",
+        "message": "Poliscope Backend API",
         "version": "3.1.0",
         "fetcher": fetcher_status,
         "timestamp": _utcnow_iso(),

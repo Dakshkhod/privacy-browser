@@ -1,5 +1,5 @@
 /**
- * Privacy Browser - YouTube Ad Blocking (Safe Mode).
+ * Poliscope - YouTube Ad Blocking (Safe Mode).
  *
  * Strategy:
  *   1. CSS hides feed/overlay ads (deterministic, no JS side-effects).

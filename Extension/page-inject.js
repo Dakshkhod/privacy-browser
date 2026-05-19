@@ -1,5 +1,5 @@
 /**
- * Privacy Browser - Page-context fingerprinting blocker.
+ * Poliscope - Page-context fingerprinting blocker.
  *
  * Runs in the page's MAIN world (NOT the isolated content-script world) so that
  * navigator/canvas/webgl overrides actually affect the page's scripts.
@@ -24,7 +24,7 @@
             // intentionally do NOT spoof platform/vendor/language: breaks localized sites.
             if (navigator.getBattery) {
                 try {
-                    navigator.getBattery = () => Promise.reject(new Error('Blocked by Privacy Browser'));
+                    navigator.getBattery = () => Promise.reject(new Error('Blocked by Poliscope'));
                 } catch (_) {}
             }
         }

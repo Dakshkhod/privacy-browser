@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -sSL \"https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js\" -o \"D:/Privacy browser/.claude/worktrees/peaceful-lumiere-ca85f6/Extension/lib/chart.min.js\")",
+      "Bash(curl -sSL \"https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-400-normal.woff2\" -o \"D:/Privacy browser/.claude/worktrees/peaceful-lumiere-ca85f6/Extension/fonts/inter-400.woff2\")",
+      "Bash(curl -sSL \"https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-500-normal.woff2\" -o \"D:/Privacy browser/.claude/worktrees/peaceful-lumiere-ca85f6/Extension/fonts/inter-500.woff2\")",
+      "Bash(curl -sSL \"https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-600-normal.woff2\" -o \"D:/Privacy browser/.claude/worktrees/peaceful-lumiere-ca85f6/Extension/fonts/inter-600.woff2\")",
+      "Bash(curl -sSL \"https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-700-normal.woff2\" -o \"D:/Privacy browser/.claude/worktrees/peaceful-lumiere-ca85f6/Extension/fonts/inter-700.woff2\")",
+      "Bash(curl -sSL \"https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/files/inter-latin-800-normal.woff2\" -o \"D:/Privacy browser/.claude/worktrees/peaceful-lumiere-ca85f6/Extension/fonts/inter-800.woff2\")",
+      "Bash(python -m py_compile main_optimized.py)",
+      "Bash(python -m py_compile security_config.py)",
+      "Bash(python -m py_compile middleware.py)",
+      "Bash(python -m py_compile llm_analyzer.py)",
+      "Bash(python -m py_compile gunicorn.conf.py)",
+      "Bash(python -c \"import json; json.load\\(open\\('D:/Privacy browser/.claude/worktrees/peaceful-lumiere-ca85f6/Extension/manifest.json'\\)\\)\")",
+      "Bash(curl -sS -o /tmp/health.json -w \"HTTP %{http_code} | total=%{time_total}s\\\\n\" \"https://privacybrowser-backend.onrender.com/health\" --max-time 90)",
+      "Read(//tmp/**)",
+      "Bash(nslookup privacybrowser-backend.onrender.com 8.8.8.8)",
+      "Bash(curl -sS -I \"https://privacybrowser-backend.onrender.com/\" --max-time 30)",
+      "Bash(curl -sS -o /tmp/health.json -w \"HTTP=%{http_code} time=%{time_total}s\\\\n\" \"https://privacybrowser-backend.onrender.com/health\" --max-time 60)",
+      "Bash(curl -sS -X POST \"https://privacybrowser-backend.onrender.com/fetch-privacy-policy\" -H \"Content-Type: application/json\" -d '{\"url\":\"https://www.example.com\"}' --max-time 60 -w \"\\\\nHTTP=%{http_code} time=%{time_total}s\\\\n\")"
+    ]
+  }
+}

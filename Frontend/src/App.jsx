@@ -1118,7 +1118,7 @@ function App() {
             <div className="welcome-header">
               <div className="welcome-logo">
                 <ShieldIcon />
-                <h1>PrivacyLens</h1>
+                <h1>Poliscope</h1>
               </div>
               <button className="welcome-close" onClick={handleWelcomeClose}>
                 ✕
@@ -1126,7 +1126,7 @@ function App() {
             </div>
 
             <div className="welcome-content">
-              <h2>Welcome to PrivacyLens! 🔍</h2>
+              <h2>Welcome to Poliscope! 🔍</h2>
               <p className="welcome-subtitle">
                 Understand privacy policies in seconds with AI-powered analysis
               </p>
@@ -1204,7 +1204,7 @@ function App() {
           <div className="header-content">
             <div className="logo-section">
               <ShieldIcon />
-              <h1 className="app-title">PrivacyLens</h1>
+              <h1 className="app-title">Poliscope</h1>
             </div>
             <p className="app-subtitle">AI-Powered Privacy Policy Analysis</p>
           </div>
