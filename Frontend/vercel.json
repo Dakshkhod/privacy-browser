@@ -5,6 +5,10 @@
       "destination": "https://privacybrowser-backend.onrender.com/:path*"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

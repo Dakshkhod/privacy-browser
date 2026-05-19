@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Poliscope</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0f;
+      color: #e2e8f0;
+      line-height: 1.7;
+    }
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 48px;
+      text-decoration: none;
+    }
+    .logo svg { color: #06b6d4; }
+    .logo span {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .updated {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 40px;
+    }
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #06b6d4;
+      margin: 36px 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    p { color: #94a3b8; margin-bottom: 14px; }
+    ul { color: #94a3b8; padding-left: 20px; margin-bottom: 14px; }
+    ul li { margin-bottom: 6px; }
+    .highlight {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-left: 3px solid #06b6d4;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      color: #cbd5e1;
+    }
+    a { color: #06b6d4; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    footer {
+      margin-top: 60px;
+      padding-top: 24px;
+      border-top: 1px solid #1e293b;
+      color: #475569;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <a href="/" class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      <span>Poliscope</span>
+    </a>
+
+    <h1>Privacy Policy</h1>
+    <p class="updated">Last updated: May 19, 2026</p>
+
+    <div class="highlight">
+      <strong>Short version:</strong> Poliscope does not collect, store, or sell your personal data.
+      Your browsing activity stays on your device. Only the text of a privacy policy you choose to
+      analyze is sent to our server — and it is never stored.
+    </div>
+
+    <h2>1. What Poliscope Does</h2>
+    <p>
+      Poliscope is a Chrome browser extension and web application that helps you understand
+      website privacy policies using AI, and protects you from trackers, cookie banners, and
+      browser fingerprinting while you browse.
+    </p>
+
+    <h2>2. Data We Do NOT Collect</h2>
+    <ul>
+      <li>Your browsing history or visited URLs</li>
+      <li>Your name, email address, or any account information</li>
+      <li>Your IP address (not logged or stored)</li>
+      <li>Form inputs or passwords</li>
+      <li>Device identifiers or location data</li>
+      <li>Any analytics, crash reports, or usage telemetry</li>
+    </ul>
+
+    <h2>3. What Happens When You Analyze a Policy</h2>
+    <p>
+      When you click "Analyze Privacy Policy," the extension fetches the text of that website's
+      privacy policy and sends it to our backend server for AI analysis. Specifically:
+    </p>
+    <ul>
+      <li>Only the <strong>privacy policy text</strong> is transmitted — not your identity or any personal information</li>
+      <li>The text is processed in real-time and <strong>never stored</strong> on our servers</li>
+      <li>Analysis results are returned directly to your browser and not retained anywhere</li>
+    </ul>
+
+    <h2>4. Third-Party AI Processing</h2>
+    <p>
+      Privacy policy text is analyzed using <a href="https://groq.com" target="_blank">Groq</a>'s
+      LLaMA AI API. Groq processes the text to generate the analysis. Please refer to
+      <a href="https://groq.com/privacy-policy/" target="_blank">Groq's Privacy Policy</a> for
+      details on how they handle data sent to their API.
+    </p>
+
+    <h2>5. Local-Only Features</h2>
+    <p>The following features operate entirely on your device and send no data anywhere:</p>
+    <ul>
+      <li><strong>Tracker blocking</strong> — uses Chrome's built-in engine with local rule files</li>
+      <li><strong>Cookie banner rejection</strong> — DOM manipulation only, no data transmitted</li>
+      <li><strong>Form field scanning</strong> — runs locally in the page, no data collected</li>
+      <li><strong>Fingerprint protection</strong> — local script injection, no data sent</li>
+      <li><strong>GPC / DNT signals</strong> — browser-level headers, no server involved</li>
+      <li><strong>YouTube ad blocking</strong> — local observer, no data transmitted</li>
+    </ul>
+
+    <h2>6. Extension Storage</h2>
+    <p>
+      Poliscope stores your extension preferences (e.g. whether tracker blocking is on or off)
+      locally in Chrome's storage API (<code>chrome.storage.local</code>). This data never
+      leaves your device.
+    </p>
+
+    <h2>7. No Accounts Required</h2>
+    <p>
+      Poliscope requires no sign-up, login, or account of any kind. There is no user database.
+    </p>
+
+    <h2>8. Children's Privacy</h2>
+    <p>
+      Poliscope does not knowingly collect any information from children under 13. The extension
+      contains no features directed at children.
+    </p>
+
+    <h2>9. Changes to This Policy</h2>
+    <p>
+      If we make material changes to this policy, we will update the "Last updated" date above.
+      Continued use of Poliscope after changes constitutes acceptance of the updated policy.
+    </p>
+
+    <h2>10. Contact</h2>
+    <p>
+      Questions about this privacy policy? Open an issue on our
+      <a href="https://github.com/Dakshkhod/privacy-browser" target="_blank">GitHub repository</a>
+      or email us at <a href="mailto:khoddaksh@gmail.com">khoddaksh@gmail.com</a>.
+    </p>
+
+    <footer>
+      <p>© 2026 Poliscope. Built to protect your privacy.</p>
+    </footer>
+
+  </div>
+</body>
+</html>
