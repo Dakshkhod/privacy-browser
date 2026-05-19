@@ -650,6 +650,65 @@
         });
     }
 
+    // Detect and remove anti-adblock overlay modals ("Please allow ads on our site")
+    const antiAdblockPhrases = [
+        'please allow ads',
+        'allow ads on our site',
+        'failed to load website properly',
+        'support us by disabling',
+        'please disable your ad',
+        'disable your adblocker',
+        'disable your ad blocker',
+        'turn off your ad blocker',
+        'whitelist our site',
+        'we noticed you have an ad blocker',
+        'we have detected an ad blocker',
+        'please consider allowing ads',
+        'please allow ads to support',
+        'ads enabled to continue',
+        'ads are blocked',
+        'ad blocker detected'
+    ];
+
+    function removeAntiAdblockOverlays() {
+        if (!settings.blockAds) return;
+
+        document.querySelectorAll('div, section, aside, dialog, [role="dialog"]').forEach(el => {
+            if (el.dataset.pbAdblockHidden) return;
+            const rect = el.getBoundingClientRect();
+            if (rect.width < 200 || rect.height < 100) return;
+            const text = (el.textContent || '').toLowerCase().slice(0, 800);
+            if (!antiAdblockPhrases.some(p => text.includes(p))) return;
+
+            // Walk up to find the overlay backdrop (fixed-position parent)
+            let target = el;
+            for (let i = 0; i < 6; i++) {
+                const parent = target.parentElement;
+                if (!parent || parent === document.body || parent === document.documentElement) break;
+                const ps = window.getComputedStyle(parent);
+                if (ps.position === 'fixed') {
+                    target = parent;
+                    break;
+                }
+                target = parent;
+            }
+            target.dataset.pbAdblockHidden = '1';
+            target.style.setProperty('display', 'none', 'important');
+        });
+
+        // Restore page scrolling — anti-adblock often locks <body> scroll
+        try {
+            document.documentElement.style.setProperty('overflow', 'auto', 'important');
+            document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
+            if (document.body) {
+                document.body.style.setProperty('overflow', 'auto', 'important');
+                document.body.style.setProperty('overflow-y', 'auto', 'important');
+                document.body.style.setProperty('position', 'static', 'important');
+                document.body.style.setProperty('height', 'auto', 'important');
+            }
+        } catch (_) {}
+    }
+
     // Hide sticky/floating video players in viewport corners (common ad pattern)
     function hideStickyFloatingPlayers() {
         if (!settings.blockAds) return;
@@ -715,6 +774,7 @@
         scheduled = true;
         const run = () => {
             scheduled = false;
+            try { removeAntiAdblockOverlays(); } catch (_) {}
             try { cleanPageBraveStyle(); } catch (_) {}
             try { hideAdIframes(); } catch (_) {}
             try { hideAffiliateProductCards(); } catch (_) {}
@@ -811,6 +871,15 @@
             try { hideAffiliateProductCards(); } catch (_) {}
             try { hideStickyFloatingPlayers(); } catch (_) {}
         }, 7000);
+
+        // Anti-adblock overlay: TOI may inject this on a delay, so check
+        // aggressively for the first 15s, then leave it to the MutationObserver.
+        removeAntiAdblockOverlays();
+        let antiAdblockChecks = 0;
+        const antiAdblockTimer = setInterval(() => {
+            try { removeAntiAdblockOverlays(); } catch (_) {}
+            if (++antiAdblockChecks >= 30) clearInterval(antiAdblockTimer);
+        }, 500);
 
         observeDOM();
     }
