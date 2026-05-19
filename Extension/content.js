@@ -889,14 +889,11 @@
             try { hideStickyFloatingPlayers(); } catch (_) {}
         }, 7000);
 
-        // Anti-adblock overlay: TOI may inject this on a delay, so check
-        // aggressively for the first 15s, then leave it to the MutationObserver.
-        removeAntiAdblockOverlays();
-        let antiAdblockChecks = 0;
-        const antiAdblockTimer = setInterval(() => {
-            try { removeAntiAdblockOverlays(); } catch (_) {}
-            if (++antiAdblockChecks >= 30) clearInterval(antiAdblockTimer);
-        }, 500);
+        // Defense in depth: if any anti-adblock modal slips through, the
+        // MutationObserver will catch it via removeAntiAdblockOverlays().
+        // No tight polling here — we're relying on iframe nukes, not network
+        // blocking, so the page should render cleanly without triggering
+        // anti-adblock detection.
 
         observeDOM();
     }
