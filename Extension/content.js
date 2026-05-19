@@ -600,6 +600,40 @@
         });
     }
 
+    // Hide containers wrapping images served from ad-proxy domains
+    // (covers the case where the side ads aren't iframes — TOI renders the
+    // image directly via JS using a src like 4.html-load.com/media/...)
+    const adImageDomains = [
+        'html-load.com', 'content-loader.com',
+        'rcm-na.amazon-adsystem', 'rcm-eu.amazon-adsystem',
+        'rcm-fe.amazon-adsystem', 'rcm-in.amazon-adsystem',
+        'media-amazon.com', 'images-amazon.com'
+    ];
+
+    function hideAdProxyImages() {
+        if (!settings.blockAds) return;
+        document.querySelectorAll('img').forEach(img => {
+            if (img.dataset.pbImgChecked) return;
+            img.dataset.pbImgChecked = '1';
+            const src = img.src || img.getAttribute('src') || img.currentSrc || '';
+            if (!src) return;
+            if (!adImageDomains.some(d => src.includes(d))) return;
+
+            // Walk up to find the card wrapper. Stop at main content / nav.
+            let target = img;
+            for (let i = 0; i < 6; i++) {
+                const parent = target.parentElement;
+                if (!parent || parent === document.body || parent === document.documentElement) break;
+                if (parent.matches('nav, header, footer')) break;
+                if (parent.matches('article, main, [role="main"]')) break;
+                target = parent;
+            }
+            if (target.dataset.pbHidden) return;
+            target.dataset.pbHidden = '1';
+            target.style.setProperty('display', 'none', 'important');
+        });
+    }
+
     // Hide sidebar product cards that link to affiliate/shopping domains
     // (TOI Colombia ads, Amazon/AliExpress affiliate widgets)
     const affiliateDomains = [
@@ -794,6 +828,7 @@
             try { removeAntiAdblockOverlays(); } catch (_) {}
             try { cleanPageBraveStyle(); } catch (_) {}
             try { hideAdIframes(); } catch (_) {}
+            try { hideAdProxyImages(); } catch (_) {}
             try { hideAffiliateProductCards(); } catch (_) {}
             try { hideStickyFloatingPlayers(); } catch (_) {}
             try { handleCookieConsent(); } catch (_) {}
@@ -821,6 +856,14 @@
                     const cls = (n.className && typeof n.className === 'string')
                         ? n.className.toLowerCase()
                         : '';
+                    // Any new iframe is a strong signal — TOI lazy-loads ad
+                    // iframes after initial render and our class-name heuristics
+                    // won't match their random-hash wrappers.
+                    if (n.tagName === 'IFRAME' ||
+                        (n.querySelector && n.querySelector('iframe'))) {
+                        interestingChange = true;
+                        break;
+                    }
                     if (cls && (
                         cls.indexOf('cookie') !== -1 || cls.indexOf('consent') !== -1 ||
                         cls.indexOf('gdpr') !== -1 || cls.indexOf('ad') !== -1 ||
@@ -876,18 +919,26 @@
         // Single delayed cleanup; MutationObserver handles the rest.
         setTimeout(cleanPageBraveStyle, 1500);
         setTimeout(hideAdIframes, 2000);
+        setTimeout(hideAdProxyImages, 2000);
         setTimeout(hideAffiliateProductCards, 2000);
         setTimeout(hideStickyFloatingPlayers, 2500);
         // Re-run after full page load (lazy-loaded ads/players appear late)
         setTimeout(() => {
             try { hideAdIframes(); } catch (_) {}
+            try { hideAdProxyImages(); } catch (_) {}
             try { hideAffiliateProductCards(); } catch (_) {}
             try { hideStickyFloatingPlayers(); } catch (_) {}
         }, 4000);
         setTimeout(() => {
+            try { hideAdIframes(); } catch (_) {}
+            try { hideAdProxyImages(); } catch (_) {}
             try { hideAffiliateProductCards(); } catch (_) {}
             try { hideStickyFloatingPlayers(); } catch (_) {}
         }, 7000);
+        setTimeout(() => {
+            try { hideAdIframes(); } catch (_) {}
+            try { hideAdProxyImages(); } catch (_) {}
+        }, 12000);
 
         // Defense in depth: if any anti-adblock modal slips through, the
         // MutationObserver will catch it via removeAntiAdblockOverlays().
