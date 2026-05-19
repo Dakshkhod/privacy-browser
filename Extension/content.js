@@ -547,7 +547,8 @@
         'googlesyndication', 'doubleclick', 'amazon-adsystem', 'aps.amazon',
         'aax.amazon', 'taboola', 'outbrain', 'mgid', 'criteo', 'pubmatic',
         'rubiconproject', 'openx', 'adnxs', 'media.net', 'casalemedia',
-        'contextweb', 'sharethrough', 'sovrn', 'triplelift', '33across'
+        'contextweb', 'sharethrough', 'sovrn', 'triplelift', '33across',
+        'colombiaonline', 'colombia.adgebra'
     ];
 
     function hideAdIframes() {
@@ -575,6 +576,86 @@
         });
     }
 
+    // Hide sidebar product cards that link to affiliate/shopping domains
+    // (TOI Colombia ads, Amazon/AliExpress affiliate widgets)
+    const affiliateDomains = [
+        'amazon.com/', 'amazon.in/', 'amzn.to/', 'amzn.in/',
+        'aliexpress.com/', 'aliexpress.us/', 's.click.aliexpress',
+        '/affiliate/', '/aff/', 'colombia.adgebra', 'colombiaonline',
+        'tatacliq.com', 'flipkart.com/affiliate'
+    ];
+
+    function hideAffiliateProductCards() {
+        if (!settings.blockAds) return;
+        const host = window.location.hostname;
+        // Don't touch the merchant's own site (e.g. on amazon.in itself)
+        if (/amazon\.|aliexpress\.|flipkart\./.test(host)) return;
+
+        document.querySelectorAll('a[href]').forEach(link => {
+            if (link.dataset.pbChecked) return;
+            link.dataset.pbChecked = '1';
+            const href = link.href || '';
+            if (!affiliateDomains.some(d => href.includes(d))) return;
+            // Skip links inside main article body — they may be legitimate references
+            if (link.closest('article p, .article-body p, .story-content p, [role="main"] p')) return;
+
+            // Walk up to find the product card container (has image + small text)
+            let target = link;
+            for (let i = 0; i < 5; i++) {
+                const parent = target.parentElement;
+                if (!parent || parent.tagName === 'BODY' || parent.tagName === 'HTML') break;
+                if (parent.matches('nav, header, footer')) break;
+                if (parent.matches('article, main, [role="main"]')) break;
+                target = parent;
+                // If this container has an image and not too much else, it's the card
+                if (parent.querySelector('img') && parent.children.length <= 6) break;
+            }
+            if (target.dataset.pbHidden) return;
+            target.dataset.pbHidden = '1';
+            target.style.setProperty('display', 'none', 'important');
+        });
+    }
+
+    // Hide sticky/floating video players in viewport corners (common ad pattern)
+    function hideStickyFloatingPlayers() {
+        if (!settings.blockAds) return;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        document.querySelectorAll('div, aside, section').forEach(el => {
+            if (el.dataset.pbHidden) return;
+            const style = window.getComputedStyle(el);
+            if (style.position !== 'fixed' && style.position !== 'sticky') return;
+
+            const rect = el.getBoundingClientRect();
+            // Must be small-to-medium (not full overlays/modals)
+            if (rect.width === 0 || rect.height === 0) return;
+            if (rect.width > vw * 0.6) return;
+            if (rect.height > vh * 0.6) return;
+            if (rect.width < 150 || rect.height < 80) return;
+
+            // Must be near a corner
+            const nearLeft = rect.left < 30;
+            const nearRight = rect.right > vw - 30;
+            const nearBottom = rect.bottom > vh - 30;
+            const nearTop = rect.top < 30;
+            const inCorner = (nearLeft || nearRight) && (nearBottom || nearTop);
+            if (!inCorner) return;
+
+            // Must look like a player/ad (has video/iframe or "video"/"player" in class)
+            const hasMedia = el.querySelector('video, iframe');
+            const cls = (typeof el.className === 'string' ? el.className : '').toLowerCase();
+            const looksLikePlayer = /video|player|sticky|float|player/.test(cls);
+            if (!hasMedia && !looksLikePlayer) return;
+
+            // Skip nav/header/footer
+            if (el.closest('nav, header, footer')) return;
+
+            el.dataset.pbHidden = '1';
+            el.style.setProperty('display', 'none', 'important');
+        });
+    }
+
     // ============================================
     // Mutation observer (idle-batched)
     // ============================================
@@ -586,6 +667,8 @@
             scheduled = false;
             try { cleanPageBraveStyle(); } catch (_) {}
             try { hideAdIframes(); } catch (_) {}
+            try { hideAffiliateProductCards(); } catch (_) {}
+            try { hideStickyFloatingPlayers(); } catch (_) {}
             try { handleCookieConsent(); } catch (_) {}
         };
         if (window.requestIdleCallback) {
@@ -666,8 +749,18 @@
         // Single delayed cleanup; MutationObserver handles the rest.
         setTimeout(cleanPageBraveStyle, 1500);
         setTimeout(hideAdIframes, 2000);
-        // Re-run after full page load (lazy-loaded ads appear late)
-        setTimeout(hideAdIframes, 4000);
+        setTimeout(hideAffiliateProductCards, 2000);
+        setTimeout(hideStickyFloatingPlayers, 2500);
+        // Re-run after full page load (lazy-loaded ads/players appear late)
+        setTimeout(() => {
+            try { hideAdIframes(); } catch (_) {}
+            try { hideAffiliateProductCards(); } catch (_) {}
+            try { hideStickyFloatingPlayers(); } catch (_) {}
+        }, 4000);
+        setTimeout(() => {
+            try { hideAffiliateProductCards(); } catch (_) {}
+            try { hideStickyFloatingPlayers(); } catch (_) {}
+        }, 7000);
 
         observeDOM();
     }
