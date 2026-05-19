@@ -52,6 +52,27 @@
                       window.location.hostname.includes('youtu.be');
     if (isYouTube) return; // handled by youtube-adblock.js
 
+    // If this content script is running INSIDE an ad-proxy iframe (TOI Colombia
+    // network: html-load.com, content-loader.com), nuke the whole frame body.
+    // Network blocking should have prevented load, but this is a safety net.
+    const adProxyHostPattern = /(^|\.)(html-load|content-loader)\.com$/i;
+    if (adProxyHostPattern.test(window.location.hostname || '')) {
+        const killFrame = () => {
+            try {
+                if (document.documentElement) {
+                    document.documentElement.style.setProperty('display', 'none', 'important');
+                }
+                if (document.body) {
+                    document.body.innerHTML = '';
+                    document.body.style.setProperty('display', 'none', 'important');
+                }
+            } catch (_) {}
+        };
+        killFrame();
+        document.addEventListener('DOMContentLoaded', killFrame);
+        return;
+    }
+
     // ============================================
     // Settings & page-context injection
     // ============================================
@@ -549,8 +570,9 @@
         'rubiconproject', 'openx', 'adnxs', 'media.net', 'casalemedia',
         'contextweb', 'sharethrough', 'sovrn', 'triplelift', '33across',
         'colombiaonline', 'colombia.adgebra',
-        // TOI ad-serving network (Colombia/RHN proxy)
-        'html-load.com', 'rhn.html-load', 'srv.html-load'
+        // TOI ad-serving network (Colombia/RHN proxy — multiple rotating domains)
+        'html-load.com', 'rhn.html-load', 'srv.html-load',
+        'content-loader.com', 'tpc.googlesyndication'
     ];
 
     function hideAdIframes() {
@@ -585,8 +607,9 @@
         'aliexpress.com/', 'aliexpress.us/', 's.click.aliexpress',
         '/affiliate/', '/aff/', 'colombia.adgebra', 'colombiaonline',
         'tatacliq.com', 'flipkart.com/affiliate',
-        // TOI ad proxy (links go through html-load.com before redirecting)
-        'html-load.com', '.html-load.com'
+        // TOI ad proxy (links go through these before redirecting to merchant)
+        'html-load.com', '.html-load.com',
+        'content-loader.com', '.content-loader.com'
     ];
 
     function hideAffiliateProductCards() {
@@ -653,14 +676,30 @@
             const inCorner = (nearLeft || nearRight) && (nearBottom || nearTop);
             if (!inCorner) return;
 
-            // Must look like a player/ad (has video/iframe or "video"/"player" in class)
-            const hasMedia = el.querySelector('video, iframe');
-            const cls = (typeof el.className === 'string' ? el.className : '').toLowerCase();
-            const looksLikePlayer = /video|player|sticky|float|player/.test(cls);
-            if (!hasMedia && !looksLikePlayer) return;
-
-            // Skip nav/header/footer
+            // Skip nav/header/footer and cookie banners (we don't double-hide)
             if (el.closest('nav, header, footer')) return;
+
+            // Detect player/ad characteristics:
+            const hasMedia = el.querySelector('video, iframe, audio');
+            const cls = (typeof el.className === 'string' ? el.className : '').toLowerCase();
+            const id = (el.id || '').toLowerCase();
+            const looksLikePlayer = /video|player|sticky|float|popup|widget|ad/.test(cls + ' ' + id);
+            // Video-aspect ratio (16:9, 4:3) suggests an embedded video popup
+            const aspectRatio = rect.width / rect.height;
+            const isVideoAspect = aspectRatio > 1.2 && aspectRatio < 2.5;
+            // Video popups often have a close (X) button + media controls
+            const txt = (el.textContent || '').toLowerCase();
+            const hasPlayerText = /now playing|tap to unmute|unmute|skip ad|advertisement/.test(txt);
+            // Has a close button structure
+            const hasCloseAndButtons = el.querySelectorAll('button, [role="button"], svg').length >= 2;
+
+            const isLikelyAdPopup =
+                hasMedia ||
+                looksLikePlayer ||
+                hasPlayerText ||
+                (isVideoAspect && hasCloseAndButtons);
+
+            if (!isLikelyAdPopup) return;
 
             el.dataset.pbHidden = '1';
             el.style.setProperty('display', 'none', 'important');
