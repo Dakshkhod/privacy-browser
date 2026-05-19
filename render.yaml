@@ -64,19 +64,6 @@ services:
     autoDeploy: true
 
   # ============================================================
-  # Uptime keep-alive: ping /health every 10 minutes to defeat the
-  # Render free-tier 15-minute idle sleep. Runs inside Render itself —
-  # no external service required.
-  # ============================================================
-  - type: cron
-    name: privacybrowser-keepalive
-    env: docker
-    schedule: "*/10 * * * *"
-    dockerCommand: "wget -qO- https://privacybrowser-backend.onrender.com/health || true"
-    image:
-      url: docker.io/library/alpine:3.20
-
-  # ============================================================
   # Frontend (static — recommended deploy target is Vercel; this is a
   # secondary mirror with rewrites to the backend).
   # ============================================================
