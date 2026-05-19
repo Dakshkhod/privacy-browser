@@ -1322,7 +1322,11 @@ async function analyzePrivacyPolicy() {
         clearInterval(progressInterval);
         clearInterval(stepInterval);
 
-        console.error('Analysis error:', err);
+        // err may be a plain {message, code} object thrown from the fetch
+        // helpers below, or a real Error. Log readable fields, not [object Object].
+        console.error('Analysis error:',
+            err && (err.message || err.code) ? `${err.code || ''} ${err.message || ''}`.trim() : err,
+            err);
         if (err.name === 'AbortError') {
             renderError({ message: 'Request timed out. The backend may be cold-starting.', code: 'TIMEOUT' });
         } else if (err.message && err.code) {
