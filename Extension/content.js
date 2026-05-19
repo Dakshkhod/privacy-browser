@@ -392,9 +392,45 @@
         [class*="colombia"],
         iframe[src*="ads"], iframe[src*="doubleclick"], iframe[src*="googlesyndication"],
         iframe[src*="taboola"], iframe[src*="outbrain"], iframe[src*="mgid"],
-        iframe[src*="amazon-adsystem"], iframe[id*="google_ads_iframe"],
+        iframe[src*="amazon-adsystem"], iframe[src*="aps.amazon"],
+        iframe[id*="google_ads_iframe"],
         ins.adsbygoogle, amp-ad, amp-embed, amp-sticky-ad,
-        [aria-label*="advertisement" i], [aria-label*="Sponsored" i] {
+        [aria-label*="advertisement" i], [aria-label*="Sponsored" i],
+
+        /* ---- Times of India ---- */
+        .ad300x250, .ad728x90, .ad160x600, .ad970x90, .ad320x50,
+        [id*="widget_dfp"], [id*="toi-ads"], [class*="toi-ad"],
+        .sponsored-widget, .sponsored-article, [class*="toiSponsor"],
+        [id*="div-gpt"], .dfp-ads, .dfp-ad-unit,
+        [class*="InArticleAd"], [class*="in-article-ad"],
+        .article-ad, .article_ad, [class*="articleAd"],
+
+        /* ---- NDTV ---- */
+        .advertisement, .Advertisement, [class*="advertisement"],
+        .adv_top_div, .adv_btm_div, .adv_mid_div,
+        [class*="ndtv-ad"], [class*="ndtvAd"],
+        [class*="sponsor-"], [class*="sponsored"],
+        .right-ad-div, .left-ad-div, .top-ad-div, .btm-ad-div,
+
+        /* ---- Indian news sites (common patterns) ---- */
+        [id*="AdDiv"], [id*="adDiv"], [class*="AdDiv"],
+        [id*="RightAd"], [id*="LeftAd"], [id*="TopAd"], [id*="BotAd"],
+        [class*="rightAd"], [class*="leftAd"], [class*="topAd"],
+        .sticky-ad, .sticky_ad, [class*="stickyAd"],
+        .float-ad, .float_ad, [class*="floatAd"],
+        .sidebar-ad, .sidebar_ad, [class*="sidebarAd"],
+        [class*="between-content-ad"], [class*="in-feed-ad"],
+        [class*="native-ad"], [class*="nativeAd"], [class*="native_ad"],
+        [id*="native-ad"], [id*="nativeAd"],
+        [class*="promo-box"], [class*="promoBox"], [class*="promo_box"],
+        [data-widget-type*="ad"], [data-type="advertisement"],
+        [data-module*="ad"], [data-block*="ad"],
+
+        /* ---- Sticky/overlay ads ---- */
+        [class*="sticky-bottom"], [class*="bottom-sticky"],
+        [class*="interstitial"], [id*="interstitial"],
+        [class*="lightbox-ad"], [class*="overlay-ad"],
+        [class*="popup-ad"], [class*="popupAd"] {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
