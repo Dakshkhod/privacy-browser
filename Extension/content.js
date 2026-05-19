@@ -548,7 +548,9 @@
         'aax.amazon', 'taboola', 'outbrain', 'mgid', 'criteo', 'pubmatic',
         'rubiconproject', 'openx', 'adnxs', 'media.net', 'casalemedia',
         'contextweb', 'sharethrough', 'sovrn', 'triplelift', '33across',
-        'colombiaonline', 'colombia.adgebra'
+        'colombiaonline', 'colombia.adgebra',
+        // TOI ad-serving network (Colombia/RHN proxy)
+        'html-load.com', 'rhn.html-load', 'srv.html-load'
     ];
 
     function hideAdIframes() {
@@ -582,7 +584,9 @@
         'amazon.com/', 'amazon.in/', 'amzn.to/', 'amzn.in/',
         'aliexpress.com/', 'aliexpress.us/', 's.click.aliexpress',
         '/affiliate/', '/aff/', 'colombia.adgebra', 'colombiaonline',
-        'tatacliq.com', 'flipkart.com/affiliate'
+        'tatacliq.com', 'flipkart.com/affiliate',
+        // TOI ad proxy (links go through html-load.com before redirecting)
+        'html-load.com', '.html-load.com'
     ];
 
     function hideAffiliateProductCards() {
@@ -592,12 +596,19 @@
         if (/amazon\.|aliexpress\.|flipkart\./.test(host)) return;
 
         document.querySelectorAll('a[href]').forEach(link => {
-            if (link.dataset.pbChecked) return;
+            if (link.dataset.pbChecked && link.dataset.pbHidden) return;
             link.dataset.pbChecked = '1';
             const href = link.href || '';
             if (!affiliateDomains.some(d => href.includes(d))) return;
             // Skip links inside main article body — they may be legitimate references
             if (link.closest('article p, .article-body p, .story-content p, [role="main"] p')) return;
+
+            // If the <a> itself wraps the card (image + content), hide it directly
+            if (link.querySelector('img')) {
+                link.dataset.pbHidden = '1';
+                link.style.setProperty('display', 'none', 'important');
+                return;
+            }
 
             // Walk up to find the product card container (has image + small text)
             let target = link;
