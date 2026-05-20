@@ -144,16 +144,21 @@ Markdown.
 {safe_text}
 </policy>
 
-CRITICAL RULES for "data_types_collected":
-- Mark "collected": true ONLY when the policy explicitly states that THIS specific
-  category is collected. Generic boilerplate ("we collect information to provide
-  our services") is NOT enough — find concrete language naming the data type.
-- The "details" array MUST contain 1-5 specific items the policy actually names
-  (e.g. for personal_info: ["full name", "date of birth"]; for location:
-  ["GPS coordinates"]). NOT category names — the actual items.
-- If you cannot quote/cite specific items from the policy, set "collected": false
-  and leave "details" empty. Do NOT pad results to look thorough.
-- Severity 1 = single low-sensitivity item; 5 = many sensitive items.
+RULES for "data_types_collected":
+- Mark "collected": true when the policy describes (or clearly implies via
+  context like "we collect the following: ...") that this category is gathered.
+  Do NOT mark every category true just because a generic phrase appears once —
+  require some basis in the actual policy text.
+- The "details" array should list 1-5 SPECIFIC items the policy names where
+  possible (e.g. for personal_info: ["full name", "date of birth"]; for
+  location: ["GPS coordinates", "IP-based location"]). NOT the category name.
+- If the policy clearly collects something but doesn't enumerate items, you can
+  still mark "collected": true with one short descriptive entry in details
+  (e.g. ["device identifiers"]). Don't leave details completely empty unless
+  severity is high.
+- Severity 1 = single low-sensitivity item, 3 = typical, 5 = many sensitive items.
+- Be accurate, not padded. Categories the policy doesn't actually mention should
+  be "collected": false with empty details.
 
 Provide analysis in this exact JSON format:
 {{
@@ -247,6 +252,21 @@ Be thorough and specific. Focus on actual data collection practices."""
             # Normalize data_types format for UI compatibility
             analysis = self._normalize_groq_response(analysis)
 
+            # Sanity reconciliation: if normalize dropped everything AND the
+            # LLM also returned no rights, no warnings, no dark patterns —
+            # we have no real findings. Don't let a "Low" risk verdict mislead
+            # the user. Mark as "Unknown" and surface a flag the UI can read.
+            data_types_count = len(analysis.get('data_types', {}) or {})
+            rights_obj = analysis.get('user_rights', {}) or {}
+            rights_count = sum(1 for k, v in rights_obj.items() if isinstance(v, bool) and v)
+            risk_factors = analysis.get('risk_factors', []) or []
+            dark_patterns_detected = bool((analysis.get('dark_patterns', {}) or {}).get('detected'))
+            if (data_types_count == 0 and rights_count == 0 and
+                not risk_factors and not dark_patterns_detected):
+                logger.info("Analysis has no concrete findings — flagging as incomplete")
+                analysis['risk_level'] = 'Unknown'
+                analysis['analysis_incomplete'] = True
+
             # Add metadata
             analysis['analysis_method'] = 'groq_llm'
             analysis['model'] = 'llama-3.3-70b-versatile'
@@ -287,25 +307,33 @@ Be thorough and specific. Focus on actual data collection practices."""
                 'advertising': 'Advertising Data'
             }
             
+            placeholder_details = {
+                'yes', 'true', 'false', 'n/a', 'none', 'unknown', 'unspecified',
+                'data', 'information', 'collected', 'various', 'other'
+            }
             for key, value in analysis['data_types_collected'].items():
                 if isinstance(value, dict) and value.get('collected', False):
                     details = value.get('details', []) or []
-                    # Drop the "1 = me too" generic placeholders that LLMs
-                    # use to fill empty evidence arrays. Real evidence is
-                    # specific items named in the policy.
                     cleaned_details = [
                         d for d in details
                         if isinstance(d, str)
                         and d.strip()
-                        and d.strip().lower() not in {'yes', 'true', 'collected', 'data', 'information', 'n/a'}
+                        and d.strip().lower() not in placeholder_details
                     ]
-                    # Require concrete evidence — at least one specific item.
-                    # Without it, the LLM was confidently classifying generic
-                    # boilerplate as "yes" for every category. Skip those.
-                    if not cleaned_details:
+                    severity = value.get('severity', 3)
+                    try:
+                        severity = int(severity)
+                    except (TypeError, ValueError):
+                        severity = 3
+                    # Balanced gating: drop ONLY when both evidence is empty
+                    # AND severity signals weak confidence. This stops the
+                    # "every site collects 11 things" pattern (LLM saying
+                    # yes-with-no-reason) while still trusting confident
+                    # category-level decisions like "device_info: yes, sev 4"
+                    # even if quotable specifics weren't extracted.
+                    if not cleaned_details and severity < 2:
                         continue
                     friendly_name = friendly_names.get(key, key.replace('_', ' ').title())
-                    severity = value.get('severity', 3)
                     data_types[friendly_name] = {
                         'severity': severity,
                         'details': cleaned_details,

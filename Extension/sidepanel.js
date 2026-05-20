@@ -703,10 +703,23 @@ function renderKeyInsights(analysis, dataTypesCount, warningsCount, rightsCount)
             text: `You have ${rightsCount} clearly stated privacy rights, including data access and deletion options.`
         });
     }
-    if (riskLevel === 'Low' && insights.length < 3) {
+    // If every signal is empty, the analysis is incomplete — don't pretend
+    // the site is privacy-friendly. Flag it so the user can re-fetch.
+    const hasNoSignal = dataTypesCount === 0 && warningsCount === 0 && rightsCount === 0
+        && !(analysis.dark_patterns && analysis.dark_patterns.detected);
+    if (hasNoSignal) {
+        insights.push({
+            type: 'warning', icon: 'ℹ️', title: 'Limited Analysis',
+            text: 'Our analyzer extracted little usable content from this policy. The result may be incomplete — try again or open the policy directly.'
+        });
+    } else if (riskLevel === 'Low' && rightsCount >= 2 && dataTypesCount <= 4 && insights.length < 3) {
+        // Only call a site "Privacy-Friendly" when there's genuine positive
+        // evidence: low risk AND clearly listed user rights AND modest data
+        // collection. A flat "Low + 0 data types + 0 rights" means we don't
+        // know enough to vouch for the site.
         insights.push({
             type: 'positive', icon: '🛡️', title: 'Privacy-Friendly',
-            text: 'This service appears to have reasonable data collection practices relative to similar services.'
+            text: 'Low risk profile, clearly listed user rights, and modest data collection relative to similar services.'
         });
     }
 
