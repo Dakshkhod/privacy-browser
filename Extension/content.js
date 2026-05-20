@@ -80,37 +80,36 @@
         return;
     }
 
-    // Fallback ad-frame detection: even if the iframe URL doesn't match our
-    // proxy pattern (could be a Google AMP cache or another host), the inner
-    // content often gives it away: AMP click-handler markup like
-    // on="tap:asoch-exit-api-..." or a link href pointing to html-load.com /
-    // content-loader.com. If we're in a subframe and see any of these,
-    // notify parent to hide the iframe element.
+    // Fallback ad-frame detection (subframes only). Strict gating to avoid
+    // hiding TOI's own article iframe:
+    //   1. The iframe must be SMALL (body scrollHeight < 500px). Ad widgets
+    //      are short; article iframes are tall.
+    //   2. The iframe must contain BOTH an AMP ad exit-api handler AND a
+    //      direct href to html-load.com / content-loader.com.
     if (inSubFrame) {
         const checkForAdSignals = () => {
             try {
-                if (document.querySelector('[on*="asoch-exit-api"], [on*="ad0"]')) {
-                    notifyParentAdFrame();
-                    return true;
-                }
+                if (!document.body) return false;
+                if (document.body.scrollHeight > 500) return false;
+                const hasAmpExitApi = !!document.querySelector('[on*="asoch-exit-api"]');
+                if (!hasAmpExitApi) return false;
+                let hasProxyLink = false;
                 const links = document.querySelectorAll('a[href]');
                 for (const link of links) {
-                    const href = link.href || '';
-                    if (/(\/\/|\.)(html-load|content-loader)\.com\//i.test(href)) {
-                        notifyParentAdFrame();
-                        return true;
+                    if (/(\/\/|\.)(html-load|content-loader)\.com\//i.test(link.href || '')) {
+                        hasProxyLink = true;
+                        break;
                     }
                 }
+                if (!hasProxyLink) return false;
+                notifyParentAdFrame();
+                return true;
             } catch (_) {}
             return false;
         };
-        // Check at multiple stages — content may load lazily.
-        if (!checkForAdSignals()) {
-            document.addEventListener('DOMContentLoaded', checkForAdSignals);
-            setTimeout(checkForAdSignals, 500);
-            setTimeout(checkForAdSignals, 1500);
-            setTimeout(checkForAdSignals, 3000);
-        }
+        document.addEventListener('DOMContentLoaded', checkForAdSignals);
+        setTimeout(checkForAdSignals, 1500);
+        setTimeout(checkForAdSignals, 3000);
     }
 
     // Top-frame only: listen for postMessage from ad iframes ("__poliscope_ad").
