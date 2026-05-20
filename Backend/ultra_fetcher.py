@@ -1788,16 +1788,37 @@ class UltraPrivacyFetcher:
             # If user provided a direct URL to a specific page, try fetching it first
             if is_direct_privacy_url or is_specific_page:
                 logger.info(f"Detected direct/specific URL: {url} - fetching directly first")
-                
+
                 # Check if this domain is known to require JavaScript
                 domain_pattern = self.domain_patterns.get(normalized_domain, {})
                 if domain_pattern.get('requires_js', False):
-                    logger.warning(f"Domain {normalized_domain} is known to require JavaScript")
+                    logger.warning(f"Domain {normalized_domain} requires JS — trying Firecrawl on user URL first")
                     base_url = f"{parsed_url.scheme}://{domain}"
+                    # Before giving up with JAVASCRIPT_REQUIRED, try Firecrawl
+                    # on the user's specific URL — Firecrawl renders JS.
+                    if FIRECRAWL_AVAILABLE:
+                        fc_result = await self._strategy_firecrawl_fallback(base_url, domain, user_provided_url=url)
+                        if fc_result:
+                            policy_url, content, score = fc_result
+                            clean_text = self._extract_clean_text(content)
+                            if len(clean_text) >= 50:
+                                response = {
+                                    'success': True,
+                                    'policy_url': policy_url,
+                                    'policy_text': clean_text[:15000],
+                                    'score': score,
+                                    'strategy': 'firecrawl_direct',
+                                    'fetch_time': time.time() - start_time,
+                                    'cached': False,
+                                    'domain': normalized_domain,
+                                }
+                                await self._save_to_memory_cache(normalized_domain, response)
+                                await self._save_to_disk_cache(normalized_domain, response)
+                                return response
                     return await self._generate_detailed_error(
-                        url, base_url, domain, normalized_domain, 0,
+                        url, base_url, domain, normalized_domain, 1,
                         override_code='JAVASCRIPT_REQUIRED',
-                        override_message=f"📜 JavaScript Required: {normalized_domain} is a JavaScript-heavy site that requires a browser to render content. Our fetcher cannot execute JavaScript. Please visit {url} directly in your browser."
+                        override_message=f"📜 JavaScript Required: {normalized_domain} is a JavaScript-heavy site that requires a browser to render content. We attempted to fetch it with Firecrawl too, but it did not return usable content. Please visit {url} directly in your browser."
                     )
                 
                 # Try to fetch the URL directly first
@@ -1878,12 +1899,33 @@ class UltraPrivacyFetcher:
                     )
                     
                     if is_spa_shell:
-                        logger.warning(f"Direct URL appears to be a JS-rendered SPA: {url} (content_length={content_length}, spa_indicators={spa_count}, score={score})")
+                        logger.warning(f"Direct URL appears to be a JS-rendered SPA: {url} (content_length={content_length}, spa_indicators={spa_count}, score={score}) — trying Firecrawl on user URL")
                         base_url = f"{parsed_url.scheme}://{domain}"
+                        # Try Firecrawl on the user's exact URL before giving up.
+                        # This is the most common failure mode for modern sites.
+                        if FIRECRAWL_AVAILABLE:
+                            fc_result = await self._strategy_firecrawl_fallback(base_url, domain, user_provided_url=url)
+                            if fc_result:
+                                policy_url, content, score = fc_result
+                                clean_text = self._extract_clean_text(content)
+                                if len(clean_text) >= 50:
+                                    response = {
+                                        'success': True,
+                                        'policy_url': policy_url,
+                                        'policy_text': clean_text[:15000],
+                                        'score': score,
+                                        'strategy': 'firecrawl_direct',
+                                        'fetch_time': time.time() - start_time,
+                                        'cached': False,
+                                        'domain': normalized_domain,
+                                    }
+                                    await self._save_to_memory_cache(normalized_domain, response)
+                                    await self._save_to_disk_cache(normalized_domain, response)
+                                    return response
                         return await self._generate_detailed_error(
-                            url, base_url, domain, normalized_domain, 0,
+                            url, base_url, domain, normalized_domain, 1,
                             override_code='JAVASCRIPT_REQUIRED',
-                            override_message=f"📜 JavaScript Required: The page at {url} uses a JavaScript framework (like React/Next.js) to render content. Our fetcher cannot execute JavaScript. Please visit the link directly in your browser to view the content."
+                            override_message=f"📜 JavaScript Required: The page at {url} uses a JavaScript framework (like React/Next.js) to render content. We tried Firecrawl too but it did not return usable content. Please visit the link directly in your browser."
                         )
                     
                     # For user-provided direct URLs, be lenient if we have good content
@@ -1964,10 +2006,14 @@ class UltraPrivacyFetcher:
                 strategies.append(('javascript', self._strategy_javascript_fallback))
             
             # Add Firecrawl as FINAL fallback (uses API credits, so only when all else fails)
-            # Firecrawl works for any domain, but we only use it as a last resort
+            # Firecrawl works for any domain, but we only use it as a last resort.
+            # We pass the user-provided URL so Firecrawl tries it first.
             if FIRECRAWL_AVAILABLE:
-                strategies.append(('firecrawl', self._strategy_firecrawl_fallback))
-            
+                strategies.append((
+                    'firecrawl',
+                    lambda b, d: self._strategy_firecrawl_fallback(b, d, user_provided_url=url),
+                ))
+
             for strategy_name, strategy_func in strategies:
                 try:
                     result = await strategy_func(base_url, domain)
@@ -2710,35 +2756,43 @@ Last reviewed: 2024''',
             logger.error(f"JavaScript strategy error for {domain}: {e}")
             return None
 
-    async def _strategy_firecrawl_fallback(self, base_url: str, domain: str) -> Optional[Tuple[str, str, int]]:
+    async def _strategy_firecrawl_fallback(self, base_url: str, domain: str,
+                                            user_provided_url: Optional[str] = None) -> Optional[Tuple[str, str, int]]:
         """
         Strategy 6: Firecrawl API fallback for JavaScript-heavy sites
-        
+
         This is the FINAL fallback strategy that uses Firecrawl's managed browser
         infrastructure. It handles:
         - JavaScript rendering
         - Anti-bot bypass
         - CAPTCHA solving
         - Proxy rotation
-        
-        NOTE: This uses API credits, so it's only called when all other strategies fail.
+
+        If user_provided_url is given (e.g. user pasted a direct policy URL),
+        Firecrawl tries that URL FIRST before falling back to discovered URLs.
+
+        NOTE: Uses API credits, so URL count is capped (3 per call).
         """
         logger.info(f"Strategy 6: Firecrawl API fallback for {domain}")
-        
+
         if not FIRECRAWL_AVAILABLE:
             logger.debug("Firecrawl fetcher not available")
             return None
-        
+
         try:
             firecrawl_fetcher = await get_firecrawl_fetcher()
             if not firecrawl_fetcher or not firecrawl_fetcher.is_available():
-                logger.debug("Firecrawl fetcher not initialized or API key not configured")
+                logger.warning("Firecrawl fetcher not initialized or API key not configured")
                 return None
-            
-            # Build list of URLs to try - use domain-specific patterns if available
+
+            # Build list of URLs to try. The user-provided URL (if any) goes first
+            # because it represents the user's best guess after our automated
+            # strategies failed.
             privacy_urls = []
-            
-            # Get domain-specific URLs first (use normalized domain for lookup)
+            if user_provided_url:
+                privacy_urls.append(user_provided_url)
+
+            # Get domain-specific URLs (use normalized domain for lookup)
             normalized_domain = self._normalize_domain_for_lookup(domain)
             if normalized_domain in self.domain_patterns:
                 pattern = self.domain_patterns[normalized_domain]
@@ -2747,19 +2801,19 @@ Last reviewed: 2024''',
                         privacy_urls.append(path)
                     else:
                         privacy_urls.append(urljoin(base_url, path))
-            
+
             # Add common fallback URLs
             common_urls = [
                 f"{base_url}/privacy",
                 f"{base_url}/privacy-policy",
                 f"{base_url}/privacy/policy",
-                f"{base_url}/legal/privacy"
+                f"{base_url}/legal/privacy",
+                f"{base_url}/policies/privacy",
             ]
-            
             for url in common_urls:
                 if url not in privacy_urls:
                     privacy_urls.append(url)
-            
+
             # Remove duplicates while preserving order
             seen = set()
             unique_urls = []
@@ -2767,33 +2821,39 @@ Last reviewed: 2024''',
                 if url not in seen:
                     seen.add(url)
                     unique_urls.append(url)
-            
-            logger.info(f"Trying {len(unique_urls)} URLs with Firecrawl API")
-            
-            # Only try first URL to conserve API credits
-            for privacy_url in unique_urls[:1]:
+
+            logger.info(f"Trying up to 3 URLs with Firecrawl API (of {len(unique_urls)} candidates)")
+
+            # Try up to 3 URLs. Free tier is 500/month so we have room to be
+            # a little more thorough than the previous [:1] cap.
+            for privacy_url in unique_urls[:3]:
                 try:
-                    logger.debug(f"Firecrawl fetch attempt: {privacy_url}")
+                    logger.info(f"🔥 Firecrawl fetch attempt: {privacy_url}")
                     content, status, final_url = await firecrawl_fetcher.fetch_with_firecrawl(privacy_url)
-                    
-                    if content and len(content) > 500:  # Require substantial content
-                        # Calculate score
+
+                    if content and len(content) > 500:
                         title = self._get_title(content) if '<title>' in content.lower() else ''
                         score = self._calculate_privacy_score_advanced(content, final_url, title)
-                        
                         logger.info(f"Firecrawl result for {privacy_url}: {len(content)} chars, score: {score}")
-                        
-                        if score >= 30:  # Lower threshold since Firecrawl returns cleaner content
+
+                        # Lower threshold for user-provided URL — the user already
+                        # told us where the policy lives, trust them slightly more.
+                        min_score = 15 if privacy_url == user_provided_url else 30
+                        if score >= min_score:
                             self.stats['strategy_success']['firecrawl'] += 1
-                            logger.info(f"✓ Firecrawl fetch successful: {final_url} (score: {score})")
+                            logger.info(f"✓ Firecrawl fetch successful: {final_url} (score: {score}, threshold: {min_score})")
                             return (final_url, content, score)
-                            
+                        else:
+                            logger.info(f"Firecrawl content below threshold ({score} < {min_score}) for {privacy_url}")
+                    else:
+                        logger.info(f"Firecrawl returned insufficient content for {privacy_url}: {len(content) if content else 0} chars, status={status}")
+
                 except Exception as e:
-                    logger.debug(f"Firecrawl fetch failed for {privacy_url}: {e}")
+                    logger.warning(f"Firecrawl fetch failed for {privacy_url}: {e}")
                     continue
-            
+
             return None
-            
+
         except Exception as e:
             logger.error(f"Firecrawl strategy error for {domain}: {e}")
             return None

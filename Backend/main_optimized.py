@@ -191,6 +191,27 @@ async def health_check():
     return {"status": "ok", "timestamp": _utcnow_iso()}
 
 
+@app.get("/health/firecrawl")
+async def firecrawl_health():
+    """Surface Firecrawl configuration and usage so the operator can confirm
+    the API key is set and the SDK is reachable from this deployment."""
+    try:
+        from firecrawl_fetcher import get_firecrawl_fetcher, get_firecrawl_stats, FIRECRAWL_SDK_AVAILABLE
+    except ImportError as e:
+        return {"status": "error", "sdk_installed": False, "error": str(e)}
+    fetcher = await get_firecrawl_fetcher()
+    stats = get_firecrawl_stats()
+    return {
+        "status": "ok" if fetcher and fetcher.is_available() else "unavailable",
+        "sdk_installed": FIRECRAWL_SDK_AVAILABLE,
+        "api_key_configured": bool(os.environ.get("FIRECRAWL_API_KEY")),
+        "client_initialized": bool(fetcher and fetcher.client),
+        "available_for_use": bool(fetcher and fetcher.is_available()),
+        "stats": stats,
+        "timestamp": _utcnow_iso(),
+    }
+
+
 @app.get("/test-simple")
 async def test_simple():
     return {"status": "ok", "message": "Simple test successful", "test": True, "timestamp": _utcnow_iso()}
