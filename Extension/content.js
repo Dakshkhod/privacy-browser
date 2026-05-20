@@ -53,10 +53,17 @@
     if (isYouTube) return; // handled by youtube-adblock.js
 
     // If this content script is running INSIDE an ad-proxy iframe (TOI Colombia
-    // network: html-load.com, content-loader.com), nuke the whole frame body.
-    // Network blocking should have prevented load, but this is a safety net.
+    // network: html-load.com, content-loader.com), nuke the whole frame body
+    // AND notify the parent so it can hide the <iframe> element in the layout.
     const adProxyHostPattern = /(^|\.)(html-load|content-loader)\.com$/i;
+    const inSubFrame = window.top !== window;
+    function notifyParentAdFrame() {
+        if (!inSubFrame) return;
+        try { window.parent.postMessage({ __poliscope_ad: true }, '*'); } catch (_) {}
+        try { window.top.postMessage({ __poliscope_ad: true }, '*'); } catch (_) {}
+    }
     if (adProxyHostPattern.test(window.location.hostname || '')) {
+        notifyParentAdFrame();
         const killFrame = () => {
             try {
                 if (document.documentElement) {
@@ -71,6 +78,69 @@
         killFrame();
         document.addEventListener('DOMContentLoaded', killFrame);
         return;
+    }
+
+    // Fallback ad-frame detection: even if the iframe URL doesn't match our
+    // proxy pattern (could be a Google AMP cache or another host), the inner
+    // content often gives it away: AMP click-handler markup like
+    // on="tap:asoch-exit-api-..." or a link href pointing to html-load.com /
+    // content-loader.com. If we're in a subframe and see any of these,
+    // notify parent to hide the iframe element.
+    if (inSubFrame) {
+        const checkForAdSignals = () => {
+            try {
+                if (document.querySelector('[on*="asoch-exit-api"], [on*="ad0"]')) {
+                    notifyParentAdFrame();
+                    return true;
+                }
+                const links = document.querySelectorAll('a[href]');
+                for (const link of links) {
+                    const href = link.href || '';
+                    if (/(\/\/|\.)(html-load|content-loader)\.com\//i.test(href)) {
+                        notifyParentAdFrame();
+                        return true;
+                    }
+                }
+            } catch (_) {}
+            return false;
+        };
+        // Check at multiple stages — content may load lazily.
+        if (!checkForAdSignals()) {
+            document.addEventListener('DOMContentLoaded', checkForAdSignals);
+            setTimeout(checkForAdSignals, 500);
+            setTimeout(checkForAdSignals, 1500);
+            setTimeout(checkForAdSignals, 3000);
+        }
+    }
+
+    // Top-frame only: listen for postMessage from ad iframes ("__poliscope_ad").
+    // When received, find the <iframe> whose contentWindow matches the sender
+    // and hide its wrapper. Robust against random class names and unknown
+    // iframe src domains.
+    if (!inSubFrame) {
+        window.addEventListener('message', (event) => {
+            const d = event.data;
+            if (!d || typeof d !== 'object' || d.__poliscope_ad !== true) return;
+            try {
+                const iframes = document.querySelectorAll('iframe');
+                for (const iframe of iframes) {
+                    if (iframe.contentWindow !== event.source) continue;
+                    let target = iframe;
+                    for (let i = 0; i < 6; i++) {
+                        const parent = target.parentElement;
+                        if (!parent || parent === document.body || parent === document.documentElement) break;
+                        if (parent.matches('nav, header, footer')) break;
+                        if (parent.matches('article, main, [role="main"]')) break;
+                        target = parent;
+                    }
+                    if (!target.dataset.pbHidden) {
+                        target.dataset.pbHidden = '1';
+                        target.style.setProperty('display', 'none', 'important');
+                    }
+                    break;
+                }
+            } catch (_) {}
+        });
     }
 
     // ============================================
