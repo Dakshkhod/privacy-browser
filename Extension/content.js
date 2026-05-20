@@ -634,6 +634,69 @@
         });
     }
 
+    // Hide sponsor-labeled product cards (the most reliable signal for
+    // TOI's Colombia widgets: small text "Amazon"/"AliExpress" stamped under
+    // each product, regardless of where the image is hosted).
+    const sponsorLabelSet = new Set([
+        'amazon', 'aliexpress', 'flipkart', 'tatacliq',
+        'myntra', 'nykaa', 'shopsy', 'meesho', 'ajio'
+    ]);
+
+    function hideSponsorLabeledCards() {
+        if (!settings.blockAds) return;
+        const root = document.body || document.documentElement;
+        if (!root) return;
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode(node) {
+                const t = (node.textContent || '').trim();
+                if (t.length < 5 || t.length > 15) return NodeFilter.FILTER_REJECT;
+                return sponsorLabelSet.has(t.toLowerCase())
+                    ? NodeFilter.FILTER_ACCEPT
+                    : NodeFilter.FILTER_REJECT;
+            }
+        });
+
+        const toHide = [];
+        let node;
+        while ((node = walker.nextNode())) {
+            const labelEl = node.parentElement;
+            if (!labelEl || labelEl.dataset.pbSponsorChecked) continue;
+            labelEl.dataset.pbSponsorChecked = '1';
+
+            // Skip if the label sits inside the main article body
+            if (labelEl.closest('article, main, [role="main"], nav, header, footer')) continue;
+            // Skip if the label has child elements (would be in article text, not a label)
+            if (labelEl.children.length > 0) continue;
+
+            // Walk up to find a card container that also has an image
+            let card = labelEl;
+            for (let i = 0; i < 6; i++) {
+                const parent = card.parentElement;
+                if (!parent || parent === document.body || parent === document.documentElement) break;
+                if (parent.matches('article, main, [role="main"], nav, header, footer')) break;
+                card = parent;
+                if (parent.querySelector('img, picture')) break;
+            }
+
+            // Must contain an image (real product card)
+            if (!card.querySelector('img, picture')) continue;
+            // Card must be reasonably small (sidebar widget, not the whole page)
+            const r = card.getBoundingClientRect();
+            if (r.width === 0 || r.width > window.innerWidth * 0.5) continue;
+            // Must not contain main article markers
+            if (card.querySelector('article, main, [role="main"]')) continue;
+            if (card.dataset.pbHidden) continue;
+
+            toHide.push(card);
+        }
+
+        for (const el of toHide) {
+            el.dataset.pbHidden = '1';
+            el.style.setProperty('display', 'none', 'important');
+        }
+    }
+
     // Hide sidebar product cards that link to affiliate/shopping domains
     // (TOI Colombia ads, Amazon/AliExpress affiliate widgets)
     const affiliateDomains = [
@@ -829,6 +892,7 @@
             try { cleanPageBraveStyle(); } catch (_) {}
             try { hideAdIframes(); } catch (_) {}
             try { hideAdProxyImages(); } catch (_) {}
+            try { hideSponsorLabeledCards(); } catch (_) {}
             try { hideAffiliateProductCards(); } catch (_) {}
             try { hideStickyFloatingPlayers(); } catch (_) {}
             try { handleCookieConsent(); } catch (_) {}
@@ -856,11 +920,11 @@
                     const cls = (n.className && typeof n.className === 'string')
                         ? n.className.toLowerCase()
                         : '';
-                    // Any new iframe is a strong signal — TOI lazy-loads ad
-                    // iframes after initial render and our class-name heuristics
-                    // won't match their random-hash wrappers.
-                    if (n.tagName === 'IFRAME' ||
-                        (n.querySelector && n.querySelector('iframe'))) {
+                    // Any new iframe or img is a strong signal — TOI lazy-loads
+                    // ad widgets after initial render and our class-name
+                    // heuristics won't match their random-hash wrappers.
+                    if (n.tagName === 'IFRAME' || n.tagName === 'IMG' ||
+                        (n.querySelector && n.querySelector('iframe, img'))) {
                         interestingChange = true;
                         break;
                     }
@@ -918,27 +982,18 @@
 
         // Single delayed cleanup; MutationObserver handles the rest.
         setTimeout(cleanPageBraveStyle, 1500);
-        setTimeout(hideAdIframes, 2000);
-        setTimeout(hideAdProxyImages, 2000);
-        setTimeout(hideAffiliateProductCards, 2000);
-        setTimeout(hideStickyFloatingPlayers, 2500);
-        // Re-run after full page load (lazy-loaded ads/players appear late)
-        setTimeout(() => {
+        const sweep = () => {
             try { hideAdIframes(); } catch (_) {}
             try { hideAdProxyImages(); } catch (_) {}
+            try { hideSponsorLabeledCards(); } catch (_) {}
             try { hideAffiliateProductCards(); } catch (_) {}
             try { hideStickyFloatingPlayers(); } catch (_) {}
-        }, 4000);
-        setTimeout(() => {
-            try { hideAdIframes(); } catch (_) {}
-            try { hideAdProxyImages(); } catch (_) {}
-            try { hideAffiliateProductCards(); } catch (_) {}
-            try { hideStickyFloatingPlayers(); } catch (_) {}
-        }, 7000);
-        setTimeout(() => {
-            try { hideAdIframes(); } catch (_) {}
-            try { hideAdProxyImages(); } catch (_) {}
-        }, 12000);
+        };
+        setTimeout(sweep, 1500);
+        setTimeout(sweep, 3000);
+        setTimeout(sweep, 5000);
+        setTimeout(sweep, 8000);
+        setTimeout(sweep, 12000);
 
         // Defense in depth: if any anti-adblock modal slips through, the
         // MutationObserver will catch it via removeAntiAdblockOverlays().
