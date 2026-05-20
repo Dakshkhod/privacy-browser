@@ -1129,6 +1129,13 @@ body {
 }
 
 /* Data Types Section */
+.data-types-note {
+    color: #94a3b8;
+    font-size: 11px;
+    line-height: 1.4;
+    margin: -4px 0 10px 0;
+}
+
 .data-types-grid {
     display: flex;
     flex-direction: column;

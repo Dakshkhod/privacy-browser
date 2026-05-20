@@ -184,12 +184,13 @@
                                 <div class="risk-level-badge" id="riskBadge">Unknown</div>
                             </div>
                         </div>
-                        <div class="metric-card data-metric clickable-card" data-scroll-to="dataTypesCard">
+                        <div class="metric-card data-metric clickable-card" data-scroll-to="dataTypesCard"
+                             title="Number of distinct data categories the policy explicitly names with concrete examples. Categories without specific evidence in the policy text are excluded.">
                             <div class="metric-icon">📊</div>
                             <div class="metric-content">
                                 <h3>Data Types</h3>
                                 <div class="metric-value" id="dataTypesCount">0</div>
-                                <div class="metric-label">collected</div>
+                                <div class="metric-label">identified</div>
                             </div>
                         </div>
                         <div class="metric-card warnings-metric clickable-card" data-scroll-to="warningsCard">
@@ -245,6 +246,7 @@
                     <!-- Data Types List -->
                     <div class="result-card data-types-card" id="dataTypesCard">
                         <h3>📁 Data Collected</h3>
+                        <p class="data-types-note">Categories the policy explicitly names. Specific items appear underneath each label.</p>
                         <div class="data-types-grid" id="dataTypesList"></div>
                     </div>
                     

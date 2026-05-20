@@ -113,9 +113,12 @@ class LLMPrivacyAnalyzer:
                 return await self._analyze_with_groq(policy_text, website_url)
             except Exception as e:
                 logger.warning(f"Groq analysis failed, falling back to enhanced heuristics: {e}")
-        
-        # Fallback to enhanced heuristic analysis
-        return self._analyze_with_enhanced_heuristics(policy_text, website_url)
+
+        # Fallback to enhanced heuristic analysis. Normalize through the same
+        # evidence-required filter as Groq so the heuristic doesn't also
+        # produce the "every site collects 12 types" pattern.
+        result = self._analyze_with_enhanced_heuristics(policy_text, website_url)
+        return self._normalize_groq_response(result)
     
     async def _analyze_with_groq(self, policy_text: str, website_url: Optional[str] = None) -> Dict:
         """Analyze using Groq's LLM (llama-3.3-70b-versatile - FREE)."""
@@ -141,19 +144,30 @@ Markdown.
 {safe_text}
 </policy>
 
+CRITICAL RULES for "data_types_collected":
+- Mark "collected": true ONLY when the policy explicitly states that THIS specific
+  category is collected. Generic boilerplate ("we collect information to provide
+  our services") is NOT enough — find concrete language naming the data type.
+- The "details" array MUST contain 1-5 specific items the policy actually names
+  (e.g. for personal_info: ["full name", "date of birth"]; for location:
+  ["GPS coordinates"]). NOT category names — the actual items.
+- If you cannot quote/cite specific items from the policy, set "collected": false
+  and leave "details" empty. Do NOT pad results to look thorough.
+- Severity 1 = single low-sensitivity item; 5 = many sensitive items.
+
 Provide analysis in this exact JSON format:
 {{
     "data_types_collected": {{
-        "personal_info": {{"collected": true/false, "details": ["list", "of", "items"], "severity": 1-5}},
-        "contact": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "location": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "device_info": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "usage_data": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "financial": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "biometric": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "health": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "social": {{"collected": true/false, "details": ["list"], "severity": 1-5}},
-        "behavioral": {{"collected": true/false, "details": ["list"], "severity": 1-5}}
+        "personal_info": {{"collected": true/false, "details": ["specific items named in policy"], "severity": 1-5}},
+        "contact": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "location": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "device_info": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "usage_data": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "financial": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "biometric": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "health": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "social": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}},
+        "behavioral": {{"collected": true/false, "details": ["specific items"], "severity": 1-5}}
     }},
     "third_party_sharing": {{
         "shares_data": true/false,
@@ -275,12 +289,26 @@ Be thorough and specific. Focus on actual data collection practices."""
             
             for key, value in analysis['data_types_collected'].items():
                 if isinstance(value, dict) and value.get('collected', False):
+                    details = value.get('details', []) or []
+                    # Drop the "1 = me too" generic placeholders that LLMs
+                    # use to fill empty evidence arrays. Real evidence is
+                    # specific items named in the policy.
+                    cleaned_details = [
+                        d for d in details
+                        if isinstance(d, str)
+                        and d.strip()
+                        and d.strip().lower() not in {'yes', 'true', 'collected', 'data', 'information', 'n/a'}
+                    ]
+                    # Require concrete evidence — at least one specific item.
+                    # Without it, the LLM was confidently classifying generic
+                    # boilerplate as "yes" for every category. Skip those.
+                    if not cleaned_details:
+                        continue
                     friendly_name = friendly_names.get(key, key.replace('_', ' ').title())
                     severity = value.get('severity', 3)
-                    details = value.get('details', [])
                     data_types[friendly_name] = {
                         'severity': severity,
-                        'details': details
+                        'details': cleaned_details,
                     }
                 elif isinstance(value, (int, float)) and value > 0:
                     friendly_name = friendly_names.get(key, key.replace('_', ' ').title())
@@ -288,7 +316,7 @@ Be thorough and specific. Focus on actual data collection practices."""
                         'severity': value,
                         'details': []
                     }
-            
+
             analysis['data_types'] = data_types
         
         # Normalize user_rights to array format if needed
@@ -440,14 +468,26 @@ Be thorough and specific. Focus on actual data collection practices."""
         }
     
     def _detect_contact_info(self, text: str) -> Dict:
-        """Detect contact information collection"""
-        keywords = ['email', 'phone', 'contact', 'telephone', 'address', 'messaging']
-        count = sum(1 for kw in keywords if kw in text)
-        
+        """Detect contact information collection.
+
+        Requires concrete phrases like "email address" / "phone number" rather
+        than the bare word "contact" (every policy has a "Contact us" section).
+        """
+        signals = {
+            'email': ['email address', 'e-mail address', 'your email', 'email you provide'],
+            'phone': ['phone number', 'mobile number', 'telephone number', 'contact number'],
+            'address': ['postal address', 'mailing address', 'street address', 'shipping address',
+                        'billing address'],
+            'messaging': ['messaging identifier', 'messaging account', 'whatsapp', 'instant messaging'],
+        }
+        details = []
+        for category, phrases in signals.items():
+            if any(p in text for p in phrases):
+                details.append(category)
         return {
-            "collected": count > 0,
-            "details": ["email", "phone", "address"] if count > 2 else ["email"] if count > 0 else [],
-            "severity": min(count, 5)
+            "collected": len(details) > 0,
+            "details": details,
+            "severity": min(len(details), 5)
         }
     
     def _detect_location_data(self, text: str) -> Dict:

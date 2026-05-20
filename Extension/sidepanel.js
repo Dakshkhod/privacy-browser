@@ -673,10 +673,15 @@ function renderKeyInsights(analysis, dataTypesCount, warningsCount, rightsCount)
             text: 'This service has concerning data collection practices. Consider alternatives or limit your data sharing.'
         });
     }
-    if (dataTypesCount > 5) {
+    if (dataTypesCount >= 4) {
         insights.push({
             type: 'warning', icon: '📋', title: 'Extensive Data Collection',
-            text: `They collect ${dataTypesCount} different types of personal data. Review what you're comfortable sharing.`
+            text: `Policy explicitly names ${dataTypesCount} categories of personal data. Review the list below to see specifics.`
+        });
+    } else if (dataTypesCount >= 1) {
+        insights.push({
+            type: 'info', icon: '📋', title: 'Targeted Data Collection',
+            text: `Policy names ${dataTypesCount} ${dataTypesCount === 1 ? 'category' : 'categories'} of data with specific examples.`
         });
     }
     if (analysis.dark_patterns && analysis.dark_patterns.detected) {
