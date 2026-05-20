@@ -23,6 +23,7 @@ let blockingStats = {
 };
 let trackerCategoriesMap = {};       // domain -> category
 let trackerCategoriesSuffix = [];    // [{suffix, category}] for endsWith match
+let ruleIdToDomain = {};             // ruleId -> domain (from rules/*.json urlFilter)
 let initialized = false;
 let pollTimer = null;
 let lastSeenRuleIdsPerTab = new Map(); // tabId -> Set<ruleId-requestId> dedupe
@@ -43,6 +44,38 @@ function findCategoryForDomain(domain) {
         }
     }
     return 'analytics';
+}
+
+// Build ruleId -> domain map by parsing urlFilter values from our DNR rules.
+// Domain is what follows the `||` anchor up to the first `/`, `^`, or `?`.
+function parseDomainFromUrlFilter(urlFilter) {
+    if (!urlFilter || typeof urlFilter !== 'string') return null;
+    let f = urlFilter;
+    if (f.startsWith('||')) f = f.slice(2);
+    const stop = f.search(/[\/\^?]/);
+    if (stop >= 0) f = f.slice(0, stop);
+    return f.toLowerCase() || null;
+}
+
+async function loadRuleIdMap() {
+    const sources = ['rules/trackers.json', 'rules/youtube-ads.json'];
+    const map = {};
+    for (const src of sources) {
+        try {
+            const response = await fetch(chrome.runtime.getURL(src));
+            const rules = await response.json();
+            if (!Array.isArray(rules)) continue;
+            for (const rule of rules) {
+                const id = rule && rule.id;
+                const filter = rule && rule.condition && rule.condition.urlFilter;
+                const domain = parseDomainFromUrlFilter(filter);
+                if (id && domain) map[id] = domain;
+            }
+        } catch (e) {
+            console.error('Poliscope: Failed to load', src, e);
+        }
+    }
+    ruleIdToDomain = map;
 }
 
 async function loadTrackerCategories() {
@@ -183,10 +216,18 @@ async function pollMatchedRules() {
                 blockingStats.totalBlocked++;
                 changed = true;
 
-                // Without onRuleMatchedDebug we don't get the original URL,
-                // but we can map ruleId -> domain via our tracker_domains.json.
-                // For now, attribute by ruleset category.
-                if (rm.rule.rulesetId === 'youtube_ad_rules') {
+                // Map ruleId -> domain (built from rules/*.json urlFilter at init).
+                const domain = ruleIdToDomain[rm.rule.ruleId];
+                if (domain) {
+                    blockingStats.blockedDomains[domain] =
+                        (blockingStats.blockedDomains[domain] || 0) + 1;
+                    const category = findCategoryForDomain(domain);
+                    if (blockingStats.blockedByCategory[category] != null) {
+                        blockingStats.blockedByCategory[category]++;
+                    } else {
+                        blockingStats.blockedByCategory.advertising++;
+                    }
+                } else if (rm.rule.rulesetId === 'youtube_ad_rules') {
                     blockingStats.blockedByCategory.advertising++;
                 }
             }
@@ -399,6 +440,7 @@ async function initialize() {
     initialized = true;
     try {
         await loadTrackerCategories();
+        await loadRuleIdMap();
         await loadStats();
         await setupPrivacyHeaders();
         const { blockingEnabled = true } = await chrome.storage.local.get('blockingEnabled');
