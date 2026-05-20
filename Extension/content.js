@@ -154,13 +154,52 @@
     };
     let dataBlocking = {};
 
+    // Per-site blocking level — 'aggressive' | 'standard' | 'off'
+    // - aggressive: every heuristic (sponsor cards, AMP detect, anti-adblock fight)
+    // - standard:   network rules + iframe wrapper hide + basic CSS (default, safe)
+    // - off:        no content-script blocking on this site
+    let blockingLevel = 'standard';
+
+    // Sites where we're a "guest" — running aggressive ad heuristics here causes
+    // false positives (e.g. searching for "Amazon" on amazon.in hides real
+    // products). Force level=off on these unless user overrides.
+    const merchantSiteHosts = [
+        'amazon.', 'aliexpress.', 'flipkart.', 'tatacliq.',
+        'myntra.', 'nykaa.', 'shopsy.', 'meesho.', 'ajio.',
+        'ebay.', 'walmart.', 'snapdeal.', 'firstcry.'
+    ];
+
+    function isMerchantSite(hostname) {
+        const h = (hostname || '').toLowerCase();
+        return merchantSiteHosts.some(m => h.includes(m));
+    }
+
     function loadSettings(cb) {
         try {
-            chrome.storage.local.get(['privacySettings', 'dataBlocking', 'antiAdblockOrigins']).then(result => {
+            chrome.storage.local.get([
+                'privacySettings',
+                'dataBlocking',
+                'antiAdblockOrigins',
+                'siteBlockingLevels',
+                'defaultBlockingLevel'
+            ]).then(result => {
                 if (result.privacySettings) settings = { ...settings, ...result.privacySettings };
                 if (result.dataBlocking) dataBlocking = result.dataBlocking;
                 const origins = result.antiAdblockOrigins || {};
                 settings.antiAdblock = !!origins[window.location.hostname];
+
+                // Determine blocking level for current host.
+                const siteLevels = result.siteBlockingLevels || {};
+                const defaultLevel = result.defaultBlockingLevel || 'standard';
+                const host = (window.location.hostname || '').toLowerCase();
+                if (siteLevels[host]) {
+                    blockingLevel = siteLevels[host];
+                } else if (isMerchantSite(host)) {
+                    blockingLevel = 'off';
+                } else {
+                    blockingLevel = defaultLevel;
+                }
+
                 cb && cb();
             }).catch(() => cb && cb());
         } catch (_) {
@@ -681,6 +720,9 @@
 
     function hideAdProxyImages() {
         if (!settings.blockAds) return;
+        // Skip on merchant sites — images from media-amazon.com / images-amazon.com
+        // are the merchant's own product photos.
+        if (isMerchantSite(window.location.hostname)) return;
         document.querySelectorAll('img').forEach(img => {
             if (img.dataset.pbImgChecked) return;
             img.dataset.pbImgChecked = '1';
@@ -713,6 +755,11 @@
 
     function hideSponsorLabeledCards() {
         if (!settings.blockAds) return;
+        // Only in aggressive mode — this heuristic is prone to false positives
+        // when the merchant name appears in legitimate page text.
+        if (blockingLevel !== 'aggressive') return;
+        // And never on the merchants themselves (amazon.in, flipkart.com, etc.)
+        if (isMerchantSite(window.location.hostname)) return;
         const root = document.body || document.documentElement;
         if (!root) return;
 
@@ -1028,6 +1075,15 @@
     // ============================================
     function init() {
         loadSettings(() => {
+            // 'off': skip all content-script blocking. The user explicitly
+            // told us this site doesn't work well with our heuristics; the
+            // network-level DNR rules still apply (those are controlled by
+            // the global Tracker Blocking toggle).
+            if (blockingLevel === 'off') {
+                injectPageContext(); // still apply fingerprint protection
+                return;
+            }
+
             injectPageContext();
             injectHideCSS();
             removeContentRestrictions();

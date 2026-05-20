@@ -39,7 +39,16 @@ const elements = {
     resetStatsBtn: document.getElementById('resetStatsBtn'),
 
     analyzePolicyBtn: document.getElementById('analyzePolicyBtn'),
-    currentDomain: document.getElementById('currentDomain')
+    currentDomain: document.getElementById('currentDomain'),
+
+    siteLevelSelect: document.getElementById('siteLevelSelect'),
+    siteLevelHint: document.getElementById('siteLevelHint')
+};
+
+const SITE_LEVEL_HINTS = {
+    aggressive: 'Blocks every ad, sponsor card, and floating widget. May break some sites.',
+    standard: 'Network rules + iframe wrappers. Default, works on most sites.',
+    off: 'Content-script blocking disabled here. Network rules still apply.'
 };
 
 function updateBlockingStats(stats) {
@@ -206,7 +215,11 @@ async function getCurrentDomain() {
         if (tab && tab.url) {
             try {
                 const url = new URL(tab.url);
-                if (elements.currentDomain) elements.currentDomain.textContent = url.hostname || 'Unknown';
+                const hostname = url.hostname || 'Unknown';
+                if (elements.currentDomain) elements.currentDomain.textContent = hostname;
+                if (hostname && hostname !== 'Unknown') {
+                    await setupSiteLevelSelector(hostname);
+                }
             } catch (_) {
                 if (elements.currentDomain) elements.currentDomain.textContent = 'Unknown';
             }
@@ -214,6 +227,44 @@ async function getCurrentDomain() {
     } catch (_) {
         if (elements.currentDomain) elements.currentDomain.textContent = 'Unknown';
     }
+}
+
+async function setupSiteLevelSelector(hostname) {
+    if (!elements.siteLevelSelect) return;
+    try {
+        const resp = await chrome.runtime.sendMessage({
+            type: 'GET_SITE_BLOCKING_LEVEL',
+            hostname
+        });
+        const level = (resp && resp.level) || 'standard';
+        const source = (resp && resp.source) || 'global-default';
+        elements.siteLevelSelect.value = level;
+        updateSiteLevelHint(level, source);
+    } catch (_) {}
+
+    elements.siteLevelSelect.addEventListener('change', async (e) => {
+        const newLevel = e.target.value;
+        try {
+            await chrome.runtime.sendMessage({
+                type: 'SET_SITE_BLOCKING_LEVEL',
+                hostname,
+                level: newLevel
+            });
+            updateSiteLevelHint(newLevel, 'user');
+            // Reload the active tab so the new level takes effect.
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab && tab.id) chrome.tabs.reload(tab.id);
+        } catch (_) {}
+    });
+}
+
+function updateSiteLevelHint(level, source) {
+    if (!elements.siteLevelHint) return;
+    const base = SITE_LEVEL_HINTS[level] || '';
+    let suffix = '';
+    if (source === 'merchant-default') suffix = ' (auto: merchant site)';
+    else if (source === 'global-default') suffix = ' (default)';
+    elements.siteLevelHint.textContent = base + suffix;
 }
 
 async function loadSettings() {

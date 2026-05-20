@@ -328,6 +328,47 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             });
             return true;
 
+        case 'GET_SITE_BLOCKING_LEVEL': {
+            const host = (message.hostname || '').toLowerCase();
+            chrome.storage.local.get(['siteBlockingLevels', 'defaultBlockingLevel']).then(result => {
+                const siteLevels = result.siteBlockingLevels || {};
+                const defaultLevel = result.defaultBlockingLevel || 'standard';
+                const merchantHosts = ['amazon.', 'aliexpress.', 'flipkart.', 'tatacliq.',
+                    'myntra.', 'nykaa.', 'shopsy.', 'meesho.', 'ajio.', 'ebay.',
+                    'walmart.', 'snapdeal.', 'firstcry.'];
+                let level;
+                let source;
+                if (siteLevels[host]) {
+                    level = siteLevels[host];
+                    source = 'user';
+                } else if (merchantHosts.some(m => host.includes(m))) {
+                    level = 'off';
+                    source = 'merchant-default';
+                } else {
+                    level = defaultLevel;
+                    source = 'global-default';
+                }
+                sendResponse({ hostname: host, level, source });
+            });
+            return true;
+        }
+
+        case 'SET_SITE_BLOCKING_LEVEL': {
+            const host = (message.hostname || '').toLowerCase();
+            const level = message.level;
+            if (!host || !['aggressive', 'standard', 'off'].includes(level)) {
+                sendResponse({ success: false, error: 'Invalid hostname or level' });
+                return false;
+            }
+            chrome.storage.local.get('siteBlockingLevels').then(result => {
+                const siteLevels = result.siteBlockingLevels || {};
+                siteLevels[host] = level;
+                return chrome.storage.local.set({ siteBlockingLevels: siteLevels });
+            }).then(() => sendResponse({ success: true, hostname: host, level }))
+              .catch(err => sendResponse({ success: false, error: String(err) }));
+            return true;
+        }
+
         case 'TOGGLE_BLOCKING': {
             const enable = !!message.enabled;
             (enable ? enableBlocking() : disableBlocking()).then(() => {

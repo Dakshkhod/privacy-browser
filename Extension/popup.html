@@ -46,6 +46,20 @@
             </div>
         </div>
 
+        <!-- Per-Site Blocking Level -->
+        <section class="site-level-section" title="Choose how aggressively Poliscope blocks ads on this specific site. Reload the page after changing.">
+            <div class="site-level-header">
+                <span class="feature-icon">🎚️</span>
+                <span class="feature-name">Blocking on this site</span>
+            </div>
+            <select id="siteLevelSelect" class="site-level-select" aria-label="Site blocking level">
+                <option value="aggressive">Aggressive — block everything</option>
+                <option value="standard">Standard — recommended</option>
+                <option value="off">Off — site doesn't work well</option>
+            </select>
+            <div class="site-level-hint" id="siteLevelHint"></div>
+        </section>
+
         <!-- Feature Toggles -->
         <section class="feature-toggles">
             <div class="feature-row"
