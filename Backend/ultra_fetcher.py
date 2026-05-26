@@ -1917,7 +1917,7 @@ class UltraPrivacyFetcher:
                     
                     # FIRST: Check if this looks like a JS-rendered page (before accepting content)
                     # This prevents accepting garbage shell content from SPAs
-                    content_issues = self._detect_content_issues(content)
+                    content_issues = self._detect_content_issues(content, final_url or url)
                     content_lower = content.lower()
                     
                     # Comprehensive SPA framework detection patterns
