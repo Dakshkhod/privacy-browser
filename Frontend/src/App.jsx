@@ -589,12 +589,17 @@ function App() {
       }
 
       if (urlType === 'direct') {
-        // Direct analysis returns the full analysis
-        setAnalysis(result);
+        // Direct analysis returns the full analysis.
+        // If the backend didn't echo a policy_url, fall back to the URL the
+        // user typed — that IS the document we analysed.
+        setAnalysis({ ...result, policy_url: result.policy_url || processedUrl });
       } else {
-        // Website scanner returns policy text that needs to be analyzed
+        // Website scanner: fetcher returned policy_text + the actual policy_url
+        // it landed on. Pass that URL through to analyzePolicy so the "View
+        // original policy" link points to the document we actually read,
+        // not just the homepage the user typed.
         setRawResult(result);
-        await analyzePolicy(result.policy_text, processedUrl);
+        await analyzePolicy(result.policy_text, processedUrl, result.policy_url);
       }
 
       setShowResults(true);
@@ -614,8 +619,12 @@ function App() {
     }
   };
 
-  // Safe analysis function for website scanner results
-  const analyzePolicy = async (policyText, websiteUrl) => {
+  // Safe analysis function for website scanner results.
+  // policyUrl = the actual URL of the policy document the backend fetched
+  // (e.g. ndtv.com/convergence/ndtv/new/privacy_policy.aspx). websiteUrl is
+  // the homepage the user typed. We persist policyUrl in the analysis state
+  // so the "View original policy" link opens the real document.
+  const analyzePolicy = async (policyText, websiteUrl, policyUrl) => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), config.TIMEOUT || 60000);
@@ -639,7 +648,13 @@ function App() {
 
       const analysisResult = await response.json();
       clearTimeout(timeoutId);
-      setAnalysis(analysisResult);
+      // Merge the policy URL the fetcher actually landed on. /analyze-policy
+      // doesn't know that URL (it only gets policy_text), so we must inject it
+      // from the fetch step or the source link would be empty.
+      setAnalysis({
+        ...analysisResult,
+        policy_url: analysisResult.policy_url || policyUrl || websiteUrl,
+      });
     } catch (err) {
       console.error("Error analyzing policy:", err);
       setError(`Analysis failed: ${err.message}`);
