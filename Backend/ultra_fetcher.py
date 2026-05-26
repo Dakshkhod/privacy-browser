@@ -1855,7 +1855,20 @@ class UltraPrivacyFetcher:
                 '/user-agreement', '/eula', '/license', '/disclaimer'
             ]
             
-            is_direct_privacy_url = any(indicator in url_path for indicator in privacy_path_indicators)
+            # Substring matching would falsely flag URLs like
+            #   /dakshs-projects/privacy-browser/dashboard
+            # as a "direct privacy URL" because /privacy is inside privacy-browser.
+            # Require a word-boundary character (/ . ? # or end-of-string) right
+            # after the indicator so it only matches whole path segments and
+            # known file extensions like privacy.html or privacy_policy.aspx.
+            def _path_has_privacy_indicator(path: str) -> bool:
+                for ind in privacy_path_indicators:
+                    pattern = re.escape(ind) + r'(?:[/.?#]|$)'
+                    if re.search(pattern, path):
+                        return True
+                return False
+
+            is_direct_privacy_url = _path_has_privacy_indicator(url_path)
             
             # Also treat as direct URL if the path has multiple segments (not just homepage)
             # e.g., /some-page/terms or /legal/privacy - indicates a specific page
