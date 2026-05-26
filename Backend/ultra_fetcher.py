@@ -305,6 +305,65 @@ class UltraPrivacyFetcher:
                 'requires_js': False
             },
             'linkedin.com': {'paths': ['/legal/privacy-policy', '/privacy', '/privacy-policy'], 'priority': 10},
+
+            # Indian News Sites
+            'ndtv.com': {
+                'paths': [
+                    'https://www.ndtv.com/convergence/ndtv/new/privacy_policy.aspx',
+                    '/convergence/ndtv/new/privacy_policy.aspx',
+                    '/privacy-policy', '/privacy',
+                ],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'ndtvprofit.com': {
+                'paths': ['/privacy-policy', '/privacy', '/legal/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'timesofindia.com': {
+                'paths': [
+                    '/privacy-policy', '/privacy',
+                    '/privacypolicy.cms', '/privacystatement.cms',
+                ],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'indiatimes.com': {
+                'paths': ['/privacy-policy', '/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'hindustantimes.com': {
+                'paths': ['/privacy-policy', '/privacy', '/legal/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'thehindu.com': {
+                'paths': ['/privacy-policy', '/privacy', '/legal/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'indiatoday.in': {
+                'paths': ['/privacy', '/privacy-policy', '/legal/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'indianexpress.com': {
+                'paths': ['/privacy-policy/', '/privacy', '/legal/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'scroll.in': {
+                'paths': ['/article/privacy-policy', '/privacy-policy', '/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
+            'thewire.in': {
+                'paths': ['/privacy-policy', '/privacy'],
+                'priority': 10,
+                'requires_js': False,
+            },
             'tiktok.com': {
                 'paths': [
                     'https://www.tiktok.com/legal/page/row/privacy-policy/en',
@@ -757,6 +816,24 @@ class UltraPrivacyFetcher:
             'zapier.com': [
                 'https://zapier.com/privacy',
                 'https://zapier.com/legal/privacy',
+            ],
+
+            # Indian News
+            'ndtv.com': [
+                'https://www.ndtv.com/convergence/ndtv/new/privacy_policy.aspx',
+            ],
+            'timesofindia.com': [
+                'https://www.timesofindia.indiatimes.com/privacy-policy/articleshow/80045099.cms',
+                'https://timesofindia.indiatimes.com/privacy-policy',
+            ],
+            'hindustantimes.com': [
+                'https://www.hindustantimes.com/privacy-policy',
+            ],
+            'thehindu.com': [
+                'https://www.thehindu.com/privacy-policy/',
+            ],
+            'indianexpress.com': [
+                'https://indianexpress.com/privacy-policy/',
             ],
         }
 
@@ -1783,10 +1860,15 @@ class UltraPrivacyFetcher:
             # Also treat as direct URL if the path has multiple segments (not just homepage)
             # e.g., /some-page/terms or /legal/privacy - indicates a specific page
             path_segments = [seg for seg in url_path.split('/') if seg]
+            # is_specific_page intentionally NOT used to trigger direct fetch —
+            # generic article/product pages would otherwise be returned as the
+            # "privacy policy" because they score ≥ 5 (cookie banners mention
+            # "privacy").  Only enter the direct-fetch branch when the URL
+            # itself looks like a privacy/legal document.
             is_specific_page = len(path_segments) > 0 and not url_path.endswith('/')
-            
+
             # If user provided a direct URL to a specific page, try fetching it first
-            if is_direct_privacy_url or is_specific_page:
+            if is_direct_privacy_url:
                 logger.info(f"Detected direct/specific URL: {url} - fetching directly first")
 
                 # Check if this domain is known to require JavaScript
@@ -1984,6 +2066,43 @@ class UltraPrivacyFetcher:
             
             self.stats['cache_misses'] += 1
             
+            # If the user supplied a direct privacy URL that failed the first
+            # attempt, retry it with a Referer header before running the full
+            # discovery pipeline.  Many sites (e.g. NDTV .aspx) return bot-
+            # check pages without a proper Referer but serve real content when
+            # one is present.
+            if is_direct_privacy_url:
+                try:
+                    referer_headers = {**self._get_smart_headers(), 'Referer': base_url + '/'}
+                    async with self.session.get(
+                        url, allow_redirects=True, ssl=False, headers=referer_headers
+                    ) as resp:
+                        if resp.status == 200:
+                            ct = resp.headers.get('content-type', '').lower()
+                            if 'html' in ct or 'text' in ct:
+                                retry_html = await resp.text(errors='ignore')
+                                retry_text = self._extract_clean_text(retry_html)
+                                retry_score = self._calculate_privacy_score_advanced(
+                                    retry_html, str(resp.url), self._get_title(retry_html)
+                                )
+                                if len(retry_text) >= 200 and retry_score >= 10:
+                                    logger.info(f"✓ Referer-retry succeeded for {url} (score={retry_score})")
+                                    resp_data = {
+                                        'success': True,
+                                        'policy_url': str(resp.url),
+                                        'policy_text': retry_text[:15000],
+                                        'score': retry_score,
+                                        'strategy': 'direct_fetch_referer',
+                                        'fetch_time': time.time() - start_time,
+                                        'cached': False,
+                                        'domain': normalized_domain,
+                                    }
+                                    await self._save_to_memory_cache(normalized_domain, resp_data)
+                                    await self._save_to_disk_cache(normalized_domain, resp_data)
+                                    return resp_data
+                except Exception as _referer_err:
+                    logger.debug(f"Referer retry failed for {url}: {_referer_err}")
+
             # Try strategies in order of speed/success rate
             strategies = [
                 ('direct_urls', self._strategy_direct_urls),
