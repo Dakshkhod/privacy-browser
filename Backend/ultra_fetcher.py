@@ -1971,13 +1971,25 @@ class UltraPrivacyFetcher:
                     
                     logger.info(f"SPA detection: indicators={spa_count}, content_length={content_length}, raw_html={raw_content_length}, text_ratio={text_to_html_ratio:.2%}, score={score}")
                     
-                    # Detect SPA shell: multiple conditions with aggressive detection
+                    # Detect SPA shell: multiple conditions with aggressive detection.
+                    #
+                    # IMPORTANT: many sites use Next.js/React SSR — the page has
+                    # __NEXT_DATA__ + _next/static + id="__next" (3 indicators) but
+                    # the full text IS present in the HTML because it's server-rendered.
+                    # We must NOT flag those as "shells".
+                    #
+                    # Rule: if extracted content is rich (>= 2000 chars) AND has a
+                    # good privacy score (>= 25), the page is SSR'd and usable even
+                    # with SPA framework markers.
+                    is_rich_ssr = content_length >= 2000 and score >= 25
                     is_spa_shell = (
-                        (spa_count >= 1 and content_length < 8000) or  # SPA with low text content
-                        (spa_count >= 1 and score < 20) or  # SPA with low privacy score
-                        (spa_count >= 2) or  # Multiple SPA indicators = definitely SPA
-                        is_js_heavy or  # Very low text-to-HTML ratio
-                        content_issues.get('requires_javascript', False)
+                        not is_rich_ssr and (
+                            (spa_count >= 1 and content_length < 8000) or  # SPA with low text content
+                            (spa_count >= 1 and score < 20) or  # SPA with low privacy score
+                            (spa_count >= 2 and content_length < 3000) or  # Multiple SPA markers + thin content
+                            is_js_heavy or  # Very low text-to-HTML ratio
+                            content_issues.get('requires_javascript', False)
+                        )
                     )
                     
                     if is_spa_shell:
