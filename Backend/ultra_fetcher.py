@@ -305,6 +305,16 @@ class UltraPrivacyFetcher:
                 'requires_js': False
             },
             'linkedin.com': {'paths': ['/legal/privacy-policy', '/privacy', '/privacy-policy'], 'priority': 10},
+            'github.com': {
+                # github.com/privacy is a GitHub ORG page (named "privacy"), not
+                # the policy. The real policy lives on docs.github.com.
+                'paths': [
+                    'https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement',
+                    'https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement',
+                ],
+                'priority': 10,
+                'requires_js': False,
+            },
 
             # Indian News Sites
             'ndtv.com': {
@@ -1406,6 +1416,70 @@ class UltraPrivacyFetcher:
         
         return min(score, 100)  # Cap at 100
 
+    def _is_genuine_privacy_policy(self, text: str, title: str = "", url: str = "") -> bool:
+        """Strict gate: confirm the document is an ACTUAL privacy policy, not a
+        page that merely mentions the word 'privacy'.
+
+        The naive privacy-score lets through false positives like
+        github.com/privacy (a GitHub *organization* page named "privacy" that
+        lists repos), search-result pages, and navigation hubs. They earn URL +
+        title points without containing real policy prose.
+
+        A genuine policy is a long-form legal document that uses a recognizable
+        CLUSTER of phrases. We require sufficient length AND a minimum number of
+        distinct privacy-policy phrases, with a higher bar when the page title
+        doesn't clearly announce a privacy policy.
+        """
+        if not text:
+            return False
+
+        text_lower = text.lower()
+        title_lower = (title or '').lower()
+        word_count = len(text_lower.split())
+
+        # Real policies are substantial. Org/listing/landing pages are short.
+        if word_count < 200:
+            return False
+
+        # Distinct phrases that genuine privacy policies use.
+        policy_phrases = [
+            'we collect', 'information we collect', 'data we collect',
+            'collect information', 'personal information', 'personal data',
+            'we use your', 'how we use', 'how we collect', 'we share',
+            'we may collect', 'we may share', 'we may use', 'we process',
+            'we disclose', 'we retain', 'we store', 'we obtain',
+            'your information', 'your personal', 'use of your', 'sharing your',
+            'third part',  # matches "third party" and "third parties"
+            'service providers', 'your rights', 'right to access',
+            'right to delete', 'right to erasure', 'opt out', 'opt-out',
+            'data protection', 'data retention', 'retention period',
+            'tracking technolog', 'log data', 'ip address', 'this privacy',
+            'this policy', 'lawful basis', 'legal basis', 'data controller',
+            'processing of your', 'withdraw consent', 'california privacy',
+        ]
+        phrase_count = sum(1 for p in policy_phrases if p in text_lower)
+
+        title_is_policy = any(p in title_lower for p in [
+            'privacy policy', 'privacy notice', 'privacy statement',
+            'privacy & cookie', 'cookie & privacy', 'data protection',
+            'privacy center', 'data privacy', 'privacy & terms',
+            'privacy and cookie', 'privacy and terms',
+        ])
+
+        # A title that clearly announces a privacy policy earns a lower bar
+        # (we trust it). Ambiguous titles need much stronger phrase evidence.
+        if title_is_policy:
+            ok = phrase_count >= 4 and word_count >= 250
+        else:
+            ok = phrase_count >= 8 and word_count >= 500
+
+        if not ok:
+            logger.warning(
+                f"Rejected non-policy page: url={url} title='{title[:60]}' "
+                f"words={word_count} phrases={phrase_count} title_match={title_is_policy}"
+            )
+        return ok
+
     def _extract_clean_text(self, html: str) -> str:
         """Extract and clean policy text from HTML, including React/SPA apps"""
         try:
@@ -2038,8 +2112,12 @@ class UltraPrivacyFetcher:
                     # For user-provided direct URLs, be lenient if we have good content
                     min_content_length = 200  # Require minimum content to ensure it's not a shell
                     min_score = 10 if is_direct_privacy_url else 5
-                    
-                    if content_length >= min_content_length and score >= min_score:
+
+                    # STRICT GATE: even a user-provided "/privacy" URL can resolve
+                    # to a non-policy page (e.g. an org page). Verify real policy
+                    # content before accepting; otherwise fall through to discovery.
+                    if (content_length >= min_content_length and score >= min_score
+                            and self._is_genuine_privacy_policy(clean_text, title, final_url)):
                         response = {
                             'success': True,
                             'policy_url': final_url,
@@ -2055,11 +2133,11 @@ class UltraPrivacyFetcher:
                         await self._save_to_disk_cache(normalized_domain, response)
                         logger.info(f"✓ Direct fetch successful for {url} (score: {score}, chars: {content_length}) in {time.time() - start_time:.2f}s")
                         return response
-                    
+
                     if content_length < min_content_length:
                         logger.warning(f"Direct URL returned too little content ({content_length} chars): {url}")
                     else:
-                        logger.info(f"Direct URL fetch returned low score ({score}), trying other strategies...")
+                        logger.info(f"Direct URL fetch not accepted (score={score}, genuine-policy check), trying other strategies...")
                 
                 elif status and status != 200:
                     logger.warning(f"Direct URL fetch returned HTTP {status}: {url}")
@@ -2107,10 +2185,12 @@ class UltraPrivacyFetcher:
                             if 'html' in ct or 'text' in ct:
                                 retry_html = await resp.text(errors='ignore')
                                 retry_text = self._extract_clean_text(retry_html)
+                                retry_title = self._get_title(retry_html)
                                 retry_score = self._calculate_privacy_score_advanced(
-                                    retry_html, str(resp.url), self._get_title(retry_html)
+                                    retry_html, str(resp.url), retry_title
                                 )
-                                if len(retry_text) >= 200 and retry_score >= 10:
+                                if (len(retry_text) >= 200 and retry_score >= 10
+                                        and self._is_genuine_privacy_policy(retry_text, retry_title, str(resp.url))):
                                     logger.info(f"✓ Referer-retry succeeded for {url} (score={retry_score})")
                                     resp_data = {
                                         'success': True,
@@ -2164,10 +2244,19 @@ class UltraPrivacyFetcher:
                     if result:
                         policy_url, content, score = result
                         clean_text = self._extract_clean_text(content)
-                        
+                        title = self._get_title(content)
+
                         logger.info(f"Extracted {len(clean_text)} characters from {policy_url}")
-                        
-                        if len(clean_text) >= 50:  # Further reduced minimum for better success
+
+                        # STRICT GATE: confirm this is really a privacy policy and
+                        # not a page that merely scored well (e.g. an org page at
+                        # /privacy). If it fails, skip and try the next strategy —
+                        # this lets mobile/firecrawl fallbacks find the real doc.
+                        # Firecrawl is exempt because it already JS-renders the
+                        # exact target and is our last resort.
+                        if (len(clean_text) >= 50
+                                and (strategy_name == 'firecrawl'
+                                     or self._is_genuine_privacy_policy(clean_text, title, policy_url))):
                             response = {
                                 'success': True,
                                 'policy_url': policy_url,
@@ -2178,16 +2267,16 @@ class UltraPrivacyFetcher:
                                 'cached': False,
                                 'domain': normalized_domain
                             }
-                            
+
                             # Save to cache (use normalized_domain for consistency)
                             await self._save_to_memory_cache(normalized_domain, response)
                             await self._save_to_disk_cache(normalized_domain, response)
-                            
+
                             logger.info(f"Success for {domain} via {strategy_name} (score: {score}) in {time.time() - start_time:.2f}s")
                             return response
                         else:
-                            logger.warning(f"Content too short ({len(clean_text)} chars) from {policy_url}, trying next strategy")
-                
+                            logger.warning(f"Rejected result from {strategy_name} for {policy_url} (not a genuine policy or too short), trying next strategy")
+
                 except Exception as e:
                     logger.error(f"Strategy {strategy_name} error for {domain}: {e}")
                     continue
