@@ -217,6 +217,27 @@ async def test_simple():
     return {"status": "ok", "message": "Simple test successful", "test": True, "timestamp": _utcnow_iso()}
 
 
+@app.get("/health/learned")
+async def learned_store_health():
+    """Report the learned-policy store backend so the operator can confirm the
+    Neon/Postgres connection is live (vs the ephemeral file fallback)."""
+    global ultra_fetcher_instance
+    if ULTRA_FETCHER_AVAILABLE and ultra_fetcher_instance is None:
+        ultra_fetcher_instance = await get_ultra_fetcher()
+    store = getattr(ultra_fetcher_instance, "learned_store", None)
+    if not store:
+        return {"status": "unavailable", "timestamp": _utcnow_iso()}
+    return {
+        "status": "ok",
+        "backend": "postgres" if store.use_db else "file",
+        "db_url_configured": bool(
+            os.getenv("DATABASE_URL") or os.getenv("NEON_DATABASE_URL") or os.getenv("POSTGRES_URL")
+        ),
+        "entries": store.count(),
+        "timestamp": _utcnow_iso(),
+    }
+
+
 @app.post("/fetch-privacy-policy")
 async def fetch_privacy_policy(request: URLRequest, http_request: Request):
     client_ip = http_request.client.host if http_request.client else "unknown"

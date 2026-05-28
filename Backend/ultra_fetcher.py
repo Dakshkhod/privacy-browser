@@ -27,6 +27,9 @@ try:
     FIRECRAWL_AVAILABLE = True
 except ImportError:
     FIRECRAWL_AVAILABLE = False
+
+# Persistent store for learned/verified policy URLs (Neon Postgres or file)
+from learned_store import LearnedPolicyStore
 from datetime import datetime, timedelta
 from urllib.parse import urljoin, urlparse, urlunparse
 from urllib.robotparser import RobotFileParser
@@ -75,10 +78,12 @@ class UltraPrivacyFetcher:
         # CORRECT policy URL for each domain we've successfully analyzed, so
         # future runs skip discovery and go straight to the known-good URL.
         # The tool gets faster and more accurate the more it's used.
-        self.learned_policies_file = self.cache_dir / "learned_policies.json"
-        self.learned_policies = self._load_learned_policies()
-        self.max_learned_policies = 5000
-        self._learned_lock = None  # created lazily on the running event loop
+        #
+        # Backed by Neon/Postgres when DATABASE_URL is set (survives deploys),
+        # otherwise a local JSON file. Initialized in __aenter__.
+        self.learned_store = LearnedPolicyStore(
+            self.cache_dir / "learned_policies.json", max_entries=5000
+        )
 
         # Connection management
         self.connector = None
@@ -200,12 +205,23 @@ class UltraPrivacyFetcher:
             timeout=timeout,
             headers=self._get_smart_headers()
         )
+
+        # Bring up the learned-policy store (Neon Postgres or file fallback).
+        try:
+            await self.learned_store.initialize()
+        except Exception as e:
+            logger.warning(f"Learned-policy store init failed: {e}")
+
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Clean shutdown"""
         if self.session:
             await self.session.close()
+        try:
+            await self.learned_store.close()
+        except Exception:
+            pass
         if self.connector:
             await self.connector.close()
 
@@ -868,42 +884,11 @@ class UltraPrivacyFetcher:
 
     # ------------------------------------------------------------------
     # Learned-policy registry  (verified domain -> policy_url mappings)
+    # Delegates persistence to LearnedPolicyStore (Neon Postgres or file).
     # ------------------------------------------------------------------
-    def _load_learned_policies(self) -> Dict:
-        """Load the persistent registry of verified domain -> policy URL maps."""
-        try:
-            if self.learned_policies_file.exists():
-                with open(self.learned_policies_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    if isinstance(data, dict):
-                        logger.info(f"Loaded {len(data)} learned policy URLs")
-                        return data
-        except Exception as e:
-            logger.warning(f"Could not load learned policies: {e}")
-        return {}
-
-    def _get_learned_lock(self) -> asyncio.Lock:
-        """Lazily create the write lock on the active event loop."""
-        if self._learned_lock is None:
-            self._learned_lock = asyncio.Lock()
-        return self._learned_lock
-
     def _get_learned_policy_url(self, domain: str) -> Optional[str]:
         """Return a previously verified policy URL for this domain, if any."""
-        entry = self.learned_policies.get(self._normalize_domain_for_lookup(domain))
-        if isinstance(entry, dict):
-            return entry.get('policy_url')
-        return None
-
-    async def _persist_learned_policies(self):
-        """Atomically write the registry to disk (temp file + replace)."""
-        try:
-            tmp = self.learned_policies_file.with_suffix('.json.tmp')
-            async with aiofiles.open(tmp, 'w', encoding='utf-8') as f:
-                await f.write(json.dumps(self.learned_policies, ensure_ascii=False, indent=2))
-            tmp.replace(self.learned_policies_file)
-        except Exception as e:
-            logger.warning(f"Could not persist learned policies: {e}")
+        return self.learned_store.get(self._normalize_domain_for_lookup(domain))
 
     async def _save_learned_policy(self, domain: str, policy_url: str, score: int):
         """Remember a VERIFIED policy URL so future analyses skip discovery.
@@ -915,35 +900,14 @@ class UltraPrivacyFetcher:
         if not policy_url:
             return
         normalized = self._normalize_domain_for_lookup(domain)
-        now = datetime.now().isoformat()
-        async with self._get_learned_lock():
-            existing = self.learned_policies.get(normalized, {}) or {}
-            self.learned_policies[normalized] = {
-                'policy_url': policy_url,
-                'score': int(score) if isinstance(score, (int, float)) else 0,
-                'verified_at': existing.get('verified_at', now),
-                'last_used': now,
-                'hit_count': int(existing.get('hit_count', 0)) + 1,
-            }
-            # LRU eviction if the registry grows too large.
-            if len(self.learned_policies) > self.max_learned_policies:
-                ordered = sorted(
-                    self.learned_policies.items(),
-                    key=lambda kv: kv[1].get('last_used', ''),
-                )
-                for stale_domain, _ in ordered[: len(self.learned_policies) - self.max_learned_policies]:
-                    self.learned_policies.pop(stale_domain, None)
-            await self._persist_learned_policies()
+        await self.learned_store.save(normalized, policy_url, score)
         logger.info(f"📚 Learned policy URL for {normalized}: {policy_url}")
 
     async def _invalidate_learned_policy(self, domain: str):
         """Drop a learned URL that no longer resolves to a valid policy."""
         normalized = self._normalize_domain_for_lookup(domain)
-        async with self._get_learned_lock():
-            if normalized in self.learned_policies:
-                self.learned_policies.pop(normalized, None)
-                await self._persist_learned_policies()
-                logger.info(f"🗑️ Invalidated stale learned URL for {normalized}")
+        await self.learned_store.invalidate(normalized)
+        logger.info(f"🗑️ Invalidated stale learned URL for {normalized}")
 
     def _get_cache_key(self, domain: str) -> str:
         """Generate cache key for domain"""
