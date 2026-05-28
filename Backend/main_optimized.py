@@ -572,6 +572,7 @@ def transform_llm_to_ui_analysis(llm_analysis: Dict, policy_url: Optional[str]) 
             "confidence": {"level": llm_analysis.get('confidence', 'Medium')},
             "safer_alternatives": None,
             "policy_url": policy_url,
+            "key_points": llm_analysis.get('key_points', []),
             "positive_aspects": llm_analysis.get('positive_aspects', []),
             "analysis_method": llm_analysis.get('analysis_method', 'unknown'),
             "detailed_analysis": {

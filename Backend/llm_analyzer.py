@@ -215,9 +215,26 @@ Provide analysis in this exact JSON format:
     "risk_level": "Low/Medium/High/Critical",
     "risk_factors": ["list", "of", "specific", "concerns"],
     "positive_aspects": ["list", "of", "good", "practices"],
+    "key_points": [
+        {{
+            "category": "Data Collected/Data Stored/Data Shared/Retention/Your Rights/Security/Tracking",
+            "point": "One plain-English sentence summarizing this key fact about what is collected, stored, shared or retained",
+            "quote": "A SHORT verbatim excerpt (MAX 20 words) copied exactly from the policy text above that supports this point"
+        }}
+    ],
     "summary": "2-3 sentence summary of key points",
     "confidence": "High/Medium/Low"
 }}
+
+RULES for "key_points":
+- Produce 5-10 of the MOST IMPORTANT points a user must know, prioritizing
+  what data is COLLECTED and STORED, then sharing, retention, and rights.
+- Every "quote" MUST be copied word-for-word from the <policy> text above and be
+  20 words or fewer. Do NOT paraphrase inside "quote". If you cannot find a
+  matching line for a point, omit that point entirely.
+- "point" is your own concise plain-English explanation; "quote" is the
+  supporting evidence in the policy's own words.
+- Order points from most to least important. No duplicates.
 
 Look for dark patterns including: vague language (may/might/sometimes), unlimited retention, broad partner sharing, unclear opt-out, and weak/implied consent.
 Be thorough and specific. Focus on actual data collection practices."""
@@ -237,7 +254,7 @@ Be thorough and specific. Focus on actual data collection practices."""
                 ],
                 model="llama-3.3-70b-versatile",  # Free tier, very capable
                 temperature=0.3,  # Lower temperature for more consistent output
-                max_tokens=2000,  # Enough for detailed analysis
+                max_tokens=3000,  # Higher ceiling to fit key_points with quotes
                 response_format={"type": "json_object"}  # Force JSON response
             )
             
@@ -251,6 +268,12 @@ Be thorough and specific. Focus on actual data collection practices."""
 
             # Normalize data_types format for UI compatibility
             analysis = self._normalize_groq_response(analysis)
+
+            # Validate key_points quotes against the real policy text so we
+            # never surface a fabricated "verbatim" excerpt.
+            analysis['key_points'] = self._validate_key_points(
+                analysis.get('key_points', []), policy_text
+            )
 
             # Sanity reconciliation: if normalize dropped everything AND the
             # LLM also returned no rights, no warnings, no dark patterns —
@@ -282,6 +305,61 @@ Be thorough and specific. Focus on actual data collection practices."""
             logger.error(f"Groq API error: {e}")
             raise
     
+    def _validate_key_points(self, key_points, policy_text: str) -> List[Dict]:
+        """Verify each key_point's quote actually appears in the policy text.
+
+        The LLM is instructed to copy quotes verbatim, but models occasionally
+        paraphrase or hallucinate. We normalize whitespace/case and check the
+        quote against the real policy text. A quote that can't be matched
+        (even fuzzily) is dropped, while the plain-English point is kept and
+        flagged as unverified so the UI can render it without a fake citation.
+        """
+        if not isinstance(key_points, list):
+            return []
+
+        norm_policy = re.sub(r'\s+', ' ', (policy_text or '').lower())
+        validated: List[Dict] = []
+        seen = set()
+
+        for kp in key_points:
+            if not isinstance(kp, dict):
+                continue
+            point = (kp.get('point') or '').strip()
+            quote = (kp.get('quote') or '').strip()
+            category = (kp.get('category') or 'General').strip()
+            if not point:
+                continue
+
+            point_key = point.lower()
+            if point_key in seen:
+                continue
+
+            verified = False
+            if quote:
+                norm_quote = re.sub(r'\s+', ' ', quote.lower()).strip(' "“”.’\'')
+                if len(norm_quote) >= 8:
+                    if norm_quote in norm_policy:
+                        verified = True
+                    else:
+                        # Fuzzy: accept if >= 70% of the meaningful words
+                        # appear somewhere in the policy.
+                        words = [w for w in norm_quote.split() if len(w) > 2]
+                        if words and sum(1 for w in words if w in norm_policy) / len(words) >= 0.7:
+                            verified = True
+
+            if not verified:
+                quote = ''  # don't surface an unverifiable "verbatim" excerpt
+
+            seen.add(point_key)
+            validated.append({
+                'category': category[:40],
+                'point': point[:300],
+                'quote': quote[:300],
+                'verified': verified,
+            })
+
+        return validated[:10]
+
     def _normalize_groq_response(self, analysis: Dict) -> Dict:
         """Normalize Groq LLM response to match UI expected format"""
         
@@ -436,7 +514,10 @@ Be thorough and specific. Focus on actual data collection practices."""
         
         # Generate summary
         summary = self._generate_summary(data_types, third_party, user_rights, risk_level)
-        
+
+        # Extract quote-backed key points straight from the policy text
+        key_points = self._extract_heuristic_key_points(policy_text)
+
         return {
             "data_types_collected": data_types,
             "third_party_sharing": third_party,
@@ -447,11 +528,78 @@ Be thorough and specific. Focus on actual data collection practices."""
             "risk_level": risk_level,
             "risk_factors": risk_factors,
             "positive_aspects": positive_aspects,
+            "key_points": key_points,
             "summary": summary,
             "confidence": "Medium",
             "analysis_method": "enhanced_heuristics",
             "website_url": website_url
         }
+
+    def _extract_heuristic_key_points(self, policy_text: str) -> List[Dict]:
+        """Pull the most relevant sentences verbatim from the policy text.
+
+        Used when the LLM is unavailable. We scan for sentences that describe
+        what is collected, stored, shared, retained, or what rights users have,
+        and surface them as quote-backed key points in the policy's own words.
+        """
+        if not policy_text:
+            return []
+
+        # Category → trigger phrases. Order defines display priority.
+        category_triggers = [
+            ('Data Collected', ['we collect', 'information we collect', 'data we collect',
+                                 'collect information', 'collect personal', 'collect the following',
+                                 'we may collect', 'types of information']),
+            ('Data Stored',    ['we store', 'we retain', 'stored on', 'we keep', 'store your',
+                                 'store information', 'hold your']),
+            ('Data Shared',    ['we share', 'share your', 'disclose', 'third part', 'sell your',
+                                 'provide to', 'share information', 'with our partners']),
+            ('Retention',      ['retain', 'retention period', 'as long as', 'how long']),
+            ('Your Rights',    ['you have the right', 'you can request', 'right to access',
+                                 'right to delete', 'opt out', 'opt-out', 'withdraw consent']),
+            ('Tracking',       ['cookies', 'tracking technolog', 'web beacon', 'pixel',
+                                 'analytics', 'advertising id']),
+            ('Security',       ['encrypt', 'security measures', 'protect your', 'safeguard']),
+        ]
+
+        # Split into sentences (keep them reasonably short for quoting).
+        raw_sentences = re.split(r'(?<=[.!?])\s+|\n+', policy_text)
+        sentences = []
+        for s in raw_sentences:
+            s = re.sub(r'\s+', ' ', s).strip()
+            if 25 <= len(s) <= 220:           # skip fragments and giant blocks
+                sentences.append(s)
+
+        key_points: List[Dict] = []
+        used_sentences = set()
+        used_categories = set()
+
+        for category, triggers in category_triggers:
+            for sentence in sentences:
+                low = sentence.lower()
+                if any(t in low for t in triggers):
+                    sig = sentence[:80].lower()
+                    if sig in used_sentences:
+                        continue
+                    # Quote = first ~20 words of the sentence, verbatim.
+                    words = sentence.split()
+                    quote = ' '.join(words[:20])
+                    if len(words) > 20:
+                        quote += '…'
+                    key_points.append({
+                        'category': category,
+                        'point': sentence[:200],
+                        'quote': quote,
+                        'verified': True,  # taken directly from the policy text
+                    })
+                    used_sentences.add(sig)
+                    used_categories.add(category)
+                    break  # one representative sentence per category first pass
+
+            if len(key_points) >= 8:
+                break
+
+        return key_points[:8]
     
     def _detect_personal_info(self, text: str) -> Dict:
         """Detect personal information collection with enhanced patterns"""

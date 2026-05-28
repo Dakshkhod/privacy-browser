@@ -370,6 +370,7 @@ function App() {
         risk_factors: safeArray(analysis.risk_factors),
         user_friendly_summary: safeString(analysis.user_friendly_summary),
         confidence: safeObject(analysis.confidence),
+        key_points: safeArray(analysis.key_points),
         safer_alternatives: analysis.safer_alternatives || null
       };
     } catch (e) {
@@ -1404,6 +1405,45 @@ function App() {
                     )}
                   </div>
                 </div>
+
+                {/* Policy Highlights — key points quoted from the actual policy */}
+                {safeArray(safeAnalysis.key_points).length > 0 && (
+                  <div className="result-card highlights-card">
+                    <h2>📝 Policy Highlights</h2>
+                    <p className="highlights-subtitle">
+                      The most important points, summarized in plain English with the
+                      policy's own wording as evidence.
+                    </p>
+                    <div className="highlights-list">
+                      {safeArray(safeAnalysis.key_points).map((kp, idx) => (
+                        <div className="highlight-item" key={idx}>
+                          <div className="highlight-header">
+                            <span className="highlight-category">{safeString(kp.category) || 'Key Point'}</span>
+                          </div>
+                          <p className="highlight-point">{safeString(kp.point)}</p>
+                          {safeString(kp.quote) && (
+                            <blockquote className="highlight-quote">
+                              <span className="quote-mark">“</span>
+                              {safeString(kp.quote)}
+                              <span className="quote-mark">”</span>
+                              {analysis?.policy_url && (
+                                <a
+                                  className="quote-source-link"
+                                  href={analysis.policy_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Open the original policy"
+                                >
+                                  <ExternalLinkIcon />
+                                </a>
+                              )}
+                            </blockquote>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Interactive Data Collection Chart */}
                 {availableTypes.length > 0 && (
