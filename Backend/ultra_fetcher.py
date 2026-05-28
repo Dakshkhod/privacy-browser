@@ -68,7 +68,18 @@ class UltraPrivacyFetcher:
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_ttl = 86400  # 24 hours
         self.max_memory_cache = 500
-        
+
+        # Learned-policy registry: a long-lived, lightweight store of
+        # verified  domain -> policy_url  mappings. Unlike the result cache
+        # (which holds full text and expires in 24h), this just remembers the
+        # CORRECT policy URL for each domain we've successfully analyzed, so
+        # future runs skip discovery and go straight to the known-good URL.
+        # The tool gets faster and more accurate the more it's used.
+        self.learned_policies_file = self.cache_dir / "learned_policies.json"
+        self.learned_policies = self._load_learned_policies()
+        self.max_learned_policies = 5000
+        self._learned_lock = None  # created lazily on the running event loop
+
         # Connection management
         self.connector = None
         self.session = None
@@ -854,6 +865,85 @@ class UltraPrivacyFetcher:
         if domain.startswith('www.'):
             domain = domain[4:]
         return domain
+
+    # ------------------------------------------------------------------
+    # Learned-policy registry  (verified domain -> policy_url mappings)
+    # ------------------------------------------------------------------
+    def _load_learned_policies(self) -> Dict:
+        """Load the persistent registry of verified domain -> policy URL maps."""
+        try:
+            if self.learned_policies_file.exists():
+                with open(self.learned_policies_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if isinstance(data, dict):
+                        logger.info(f"Loaded {len(data)} learned policy URLs")
+                        return data
+        except Exception as e:
+            logger.warning(f"Could not load learned policies: {e}")
+        return {}
+
+    def _get_learned_lock(self) -> asyncio.Lock:
+        """Lazily create the write lock on the active event loop."""
+        if self._learned_lock is None:
+            self._learned_lock = asyncio.Lock()
+        return self._learned_lock
+
+    def _get_learned_policy_url(self, domain: str) -> Optional[str]:
+        """Return a previously verified policy URL for this domain, if any."""
+        entry = self.learned_policies.get(self._normalize_domain_for_lookup(domain))
+        if isinstance(entry, dict):
+            return entry.get('policy_url')
+        return None
+
+    async def _persist_learned_policies(self):
+        """Atomically write the registry to disk (temp file + replace)."""
+        try:
+            tmp = self.learned_policies_file.with_suffix('.json.tmp')
+            async with aiofiles.open(tmp, 'w', encoding='utf-8') as f:
+                await f.write(json.dumps(self.learned_policies, ensure_ascii=False, indent=2))
+            tmp.replace(self.learned_policies_file)
+        except Exception as e:
+            logger.warning(f"Could not persist learned policies: {e}")
+
+    async def _save_learned_policy(self, domain: str, policy_url: str, score: int):
+        """Remember a VERIFIED policy URL so future analyses skip discovery.
+
+        Only call this after the content has passed _is_genuine_privacy_policy
+        (or came from Firecrawl, which renders the exact target). The registry
+        grows over time, making repeat analyses faster and more accurate.
+        """
+        if not policy_url:
+            return
+        normalized = self._normalize_domain_for_lookup(domain)
+        now = datetime.now().isoformat()
+        async with self._get_learned_lock():
+            existing = self.learned_policies.get(normalized, {}) or {}
+            self.learned_policies[normalized] = {
+                'policy_url': policy_url,
+                'score': int(score) if isinstance(score, (int, float)) else 0,
+                'verified_at': existing.get('verified_at', now),
+                'last_used': now,
+                'hit_count': int(existing.get('hit_count', 0)) + 1,
+            }
+            # LRU eviction if the registry grows too large.
+            if len(self.learned_policies) > self.max_learned_policies:
+                ordered = sorted(
+                    self.learned_policies.items(),
+                    key=lambda kv: kv[1].get('last_used', ''),
+                )
+                for stale_domain, _ in ordered[: len(self.learned_policies) - self.max_learned_policies]:
+                    self.learned_policies.pop(stale_domain, None)
+            await self._persist_learned_policies()
+        logger.info(f"📚 Learned policy URL for {normalized}: {policy_url}")
+
+    async def _invalidate_learned_policy(self, domain: str):
+        """Drop a learned URL that no longer resolves to a valid policy."""
+        normalized = self._normalize_domain_for_lookup(domain)
+        async with self._get_learned_lock():
+            if normalized in self.learned_policies:
+                self.learned_policies.pop(normalized, None)
+                await self._persist_learned_policies()
+                logger.info(f"🗑️ Invalidated stale learned URL for {normalized}")
 
     def _get_cache_key(self, domain: str) -> str:
         """Generate cache key for domain"""
@@ -1983,6 +2073,7 @@ class UltraPrivacyFetcher:
                                 }
                                 await self._save_to_memory_cache(normalized_domain, response)
                                 await self._save_to_disk_cache(normalized_domain, response)
+                                await self._save_learned_policy(normalized_domain, policy_url, score)
                                 return response
                     return await self._generate_detailed_error(
                         url, base_url, domain, normalized_domain, 1,
@@ -2102,6 +2193,7 @@ class UltraPrivacyFetcher:
                                     }
                                     await self._save_to_memory_cache(normalized_domain, response)
                                     await self._save_to_disk_cache(normalized_domain, response)
+                                    await self._save_learned_policy(normalized_domain, policy_url, score)
                                     return response
                         return await self._generate_detailed_error(
                             url, base_url, domain, normalized_domain, 1,
@@ -2131,6 +2223,7 @@ class UltraPrivacyFetcher:
                         # Save to cache
                         await self._save_to_memory_cache(normalized_domain, response)
                         await self._save_to_disk_cache(normalized_domain, response)
+                        await self._save_learned_policy(normalized_domain, final_url, score)
                         logger.info(f"✓ Direct fetch successful for {url} (score: {score}, chars: {content_length}) in {time.time() - start_time:.2f}s")
                         return response
 
@@ -2168,7 +2261,43 @@ class UltraPrivacyFetcher:
                 return cached
             
             self.stats['cache_misses'] += 1
-            
+
+            # ----------------------------------------------------------------
+            # LEARNED-REGISTRY FAST PATH
+            # If we've previously verified a policy URL for this domain, try it
+            # directly before running the (slow) full discovery pipeline. This
+            # is the core of the tool "improving over time": once a site has
+            # been analyzed, repeat runs are a single fetch instead of dozens.
+            # ----------------------------------------------------------------
+            learned_url = self._get_learned_policy_url(normalized_domain)
+            if learned_url:
+                logger.info(f"Trying learned policy URL for {normalized_domain}: {learned_url}")
+                l_content, l_status, l_final = await self._fetch_url(learned_url)
+                if l_content and l_status == 200:
+                    l_text = self._extract_clean_text(l_content)
+                    l_title = self._get_title(l_content)
+                    if self._is_genuine_privacy_policy(l_text, l_title, l_final):
+                        l_score = self._calculate_privacy_score_advanced(l_content, l_final, l_title)
+                        response = {
+                            'success': True,
+                            'policy_url': l_final,
+                            'policy_text': l_text[:15000],
+                            'score': l_score,
+                            'strategy': 'learned_registry',
+                            'fetch_time': time.time() - start_time,
+                            'cached': False,
+                            'domain': normalized_domain,
+                        }
+                        await self._save_to_memory_cache(normalized_domain, response)
+                        await self._save_to_disk_cache(normalized_domain, response)
+                        await self._save_learned_policy(normalized_domain, l_final, l_score)
+                        logger.info(f"✓ Learned-registry hit for {normalized_domain} in {time.time() - start_time:.2f}s")
+                        return response
+                # The learned URL no longer resolves to a valid policy (site
+                # restructured) — forget it and fall through to fresh discovery.
+                logger.info(f"Learned URL stale for {normalized_domain}; re-discovering")
+                await self._invalidate_learned_policy(normalized_domain)
+
             # If the user supplied a direct privacy URL that failed the first
             # attempt, retry it with a Referer header before running the full
             # discovery pipeline.  Many sites (e.g. NDTV .aspx) return bot-
@@ -2204,6 +2333,7 @@ class UltraPrivacyFetcher:
                                     }
                                     await self._save_to_memory_cache(normalized_domain, resp_data)
                                     await self._save_to_disk_cache(normalized_domain, resp_data)
+                                    await self._save_learned_policy(normalized_domain, str(resp.url), retry_score)
                                     return resp_data
                 except Exception as _referer_err:
                     logger.debug(f"Referer retry failed for {url}: {_referer_err}")
@@ -2271,6 +2401,8 @@ class UltraPrivacyFetcher:
                             # Save to cache (use normalized_domain for consistency)
                             await self._save_to_memory_cache(normalized_domain, response)
                             await self._save_to_disk_cache(normalized_domain, response)
+                            # Remember the verified URL for faster future runs.
+                            await self._save_learned_policy(normalized_domain, policy_url, score)
 
                             logger.info(f"Success for {domain} via {strategy_name} (score: {score}) in {time.time() - start_time:.2f}s")
                             return response
