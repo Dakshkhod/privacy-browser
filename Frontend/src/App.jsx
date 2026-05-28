@@ -652,9 +652,14 @@ function App() {
       // Merge the policy URL the fetcher actually landed on. /analyze-policy
       // doesn't know that URL (it only gets policy_text), so we must inject it
       // from the fetch step or the source link would be empty.
+      // policyUrl (from /fetch-privacy-policy) is the URL the fetcher actually
+      // landed on — the REAL policy document. It must take priority over
+      // analysisResult.policy_url, because /analyze-policy only receives
+      // website_url and echoes THAT back as policy_url (the homepage), which
+      // would otherwise overwrite the correct link.
       setAnalysis({
         ...analysisResult,
-        policy_url: analysisResult.policy_url || policyUrl || websiteUrl,
+        policy_url: policyUrl || analysisResult.policy_url || websiteUrl,
       });
     } catch (err) {
       console.error("Error analyzing policy:", err);

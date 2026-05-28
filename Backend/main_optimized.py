@@ -399,12 +399,18 @@ async def analyze_policy_endpoint(request: AnalysisRequest, http_request: Reques
         if request.website_url and not is_valid_url(request.website_url):
             raise HTTPException(status_code=400, detail="Invalid website_url")
 
+        # NOTE: website_url is the homepage the caller typed, NOT the URL of the
+        # policy document. This endpoint only receives policy_text, so it cannot
+        # know the real policy URL — pass None as policy_url so we never echo the
+        # homepage back as the "original policy" link. The caller already fetched
+        # the policy and knows its real URL (from /fetch-privacy-policy).
+        # website_url is still used for context-aware alternatives in the LLM call.
         llm_analysis = await analyze_policy_with_llm(request.policy_text, request.website_url)
         if llm_analysis.get('analysis_method') in ('groq_llm', 'enhanced_heuristics'):
-            analysis = transform_llm_to_ui_analysis(llm_analysis, request.website_url)
+            analysis = transform_llm_to_ui_analysis(llm_analysis, None)
         else:
             basic = analyze_policy_basic(request.policy_text)
-            analysis = transform_basic_to_ui_analysis(basic, request.website_url)
+            analysis = transform_basic_to_ui_analysis(basic, None)
 
         analysis = _sanitize_value(analysis)
         log_security_event("POLICY_ANALYSIS_SUCCESS", "ok", client_ip)

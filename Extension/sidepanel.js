@@ -1324,7 +1324,12 @@ async function analyzePrivacyPolicy() {
             if (!analysisResponse.ok) {
                 throw { message: 'Failed to analyze policy content', code: 'ANALYSIS_ERROR' };
             }
-            state.analysis = await analysisResponse.json();
+            const analysisJson = await analysisResponse.json();
+            // /analyze-policy doesn't know the real policy URL (it only gets
+            // policy_text). Inject the URL the fetcher actually landed on so
+            // any "original policy" link points to the real document, not the
+            // homepage the user typed.
+            state.analysis = { ...analysisJson, policy_url: result.policy_url || analysisJson.policy_url };
         } else if (result && result.analysis) {
             state.analysis = result.analysis;
         } else {
