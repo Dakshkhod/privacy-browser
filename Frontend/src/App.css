@@ -3805,6 +3805,31 @@ body {
   font-style: normal;
 }
 
+/* Clickable quote — jumps to + highlights the line in the original policy */
+.highlight-quote-link {
+  display: block;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.highlight-quote-link:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.highlight-quote-link svg {
+  margin-left: 0.4rem;
+  color: #6366f1;
+  vertical-align: middle;
+  opacity: 0.7;
+}
+
+.highlight-quote-link:hover svg {
+  opacity: 1;
+}
+
 .quote-source-link {
   display: inline-flex;
   align-items: center;
@@ -3817,6 +3842,31 @@ body {
 
 .quote-source-link:hover {
   opacity: 1;
+}
+
+/* Clickable dark-pattern example tag */
+.example-tag-link {
+  cursor: pointer;
+  text-decoration: none;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.example-tag-link:hover {
+  filter: brightness(1.15);
+  text-decoration: underline;
+}
+
+/* Clickable data-breakdown detail */
+.legend-details-link {
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px dotted rgba(99, 102, 241, 0.5);
+  transition: color 0.15s ease;
+}
+
+.legend-details-link:hover {
+  color: #4f46e5;
+  border-bottom-style: solid;
 }
 
 /* Enhanced Chart Styles */

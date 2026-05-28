@@ -70,6 +70,42 @@ const safeObject = (value) => {
   return {};
 };
 
+// Build a deep link that scrolls to AND highlights the given text on the
+// original policy page using the browser's native Text Fragments feature
+// (https://site.com/privacy#:~:text=...). Supported in Chrome, Edge, Safari
+// and most Chromium browsers. If the text doesn't match exactly the browser
+// simply opens the page without a highlight — graceful degradation.
+const buildPolicyDeepLink = (policyUrl, text) => {
+  if (!policyUrl) return null;
+  if (!text) return policyUrl;
+
+  // Clean the quote: drop surrounding quote marks, ellipses, collapse spaces.
+  const clean = String(text)
+    .replace(/[“”"]/g, '')
+    .replace(/[…]+/g, '')
+    .replace(/\.{3,}$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!clean) return policyUrl;
+
+  // Percent-encode, plus the two chars that are delimiters in the text-fragment
+  // grammar: '-' (prefix/suffix marker) and ',' (range separator).
+  const enc = (s) => encodeURIComponent(s).replace(/-/g, '%2D').replace(/,/g, '%2C');
+
+  const words = clean.split(' ');
+  let fragment;
+  if (words.length > 12) {
+    // Long passage: use textStart,textEnd so the browser matches the range
+    // without needing the entire (possibly truncated) middle to match.
+    fragment = `${enc(words.slice(0, 6).join(' '))},${enc(words.slice(-4).join(' '))}`;
+  } else {
+    fragment = enc(clean);
+  }
+
+  const base = policyUrl.split('#')[0];
+  return `${base}#:~:text=${fragment}`;
+};
+
 // Helper functions
 const getFriendlyLabel = (dataType) => {
   if (!dataType || typeof dataType !== 'string') return 'Unknown Data Type';
@@ -1019,7 +1055,20 @@ function App() {
                 <div className="pattern-examples">
                   <span className="examples-label">Found:</span>
                   {pattern.examples.map((ex, i) => (
-                    <span key={i} className="example-tag">{ex}</span>
+                    analysis?.policy_url ? (
+                      <a
+                        key={i}
+                        className="example-tag example-tag-link"
+                        href={buildPolicyDeepLink(analysis.policy_url, ex)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Find this passage in the original policy"
+                      >
+                        {ex}
+                      </a>
+                    ) : (
+                      <span key={i} className="example-tag">{ex}</span>
+                    )
                   ))}
                 </div>
               )}
@@ -1417,7 +1466,8 @@ function App() {
                     <h2>📝 Policy Highlights</h2>
                     <p className="highlights-subtitle">
                       The most important points, summarized in plain English with the
-                      policy's own wording as evidence.
+                      policy's own wording as evidence. Click any quote to jump to that
+                      exact line in the original policy.
                     </p>
                     <div className="highlights-list">
                       {safeArray(safeAnalysis.key_points).map((kp, idx) => (
@@ -1427,22 +1477,26 @@ function App() {
                           </div>
                           <p className="highlight-point">{safeString(kp.point)}</p>
                           {safeString(kp.quote) && (
-                            <blockquote className="highlight-quote">
-                              <span className="quote-mark">“</span>
-                              {safeString(kp.quote)}
-                              <span className="quote-mark">”</span>
-                              {analysis?.policy_url && (
-                                <a
-                                  className="quote-source-link"
-                                  href={analysis.policy_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Open the original policy"
-                                >
-                                  <ExternalLinkIcon />
-                                </a>
-                              )}
-                            </blockquote>
+                            analysis?.policy_url ? (
+                              <a
+                                className="highlight-quote highlight-quote-link"
+                                href={buildPolicyDeepLink(analysis.policy_url, kp.quote)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Jump to this exact line in the original policy"
+                              >
+                                <span className="quote-mark">“</span>
+                                {safeString(kp.quote)}
+                                <span className="quote-mark">”</span>
+                                <ExternalLinkIcon />
+                              </a>
+                            ) : (
+                              <blockquote className="highlight-quote">
+                                <span className="quote-mark">“</span>
+                                {safeString(kp.quote)}
+                                <span className="quote-mark">”</span>
+                              </blockquote>
+                            )
                           )}
                         </div>
                       ))}
@@ -1528,9 +1582,21 @@ function App() {
                                 <span className="legend-icon">{getDataTypeIcon(type)}</span>
                                 <div className="legend-text-wrapper">
                                   <span className="legend-label">{getFriendlyLabel(type)}</span>
-                                  <span className="legend-details" title={details && details.length ? details.join(', ') : fallbackDetail}>
-                                    {details && details.length ? details.join(', ') : fallbackDetail}
-                                  </span>
+                                  {details && details.length && analysis?.policy_url ? (
+                                    <a
+                                      className="legend-details legend-details-link"
+                                      href={buildPolicyDeepLink(analysis.policy_url, details[0])}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Find this in the original policy"
+                                    >
+                                      {details.join(', ')}
+                                    </a>
+                                  ) : (
+                                    <span className="legend-details" title={details && details.length ? details.join(', ') : fallbackDetail}>
+                                      {details && details.length ? details.join(', ') : fallbackDetail}
+                                    </span>
+                                  )}
                                 </div>
                                 <span className="legend-risk">
                                   {getDataTypeWeight(type) > 6 ? '🔴' : getDataTypeWeight(type) > 3 ? '🟡' : '🟢'}
